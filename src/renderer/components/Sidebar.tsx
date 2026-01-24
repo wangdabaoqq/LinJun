@@ -184,9 +184,11 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
           sidebarCollapsed ? "justify-center" : "gap-3"
         }`}
       >
-        <span className="text-2xl text-[var(--accent-primary)] glow-primary flex-shrink-0">
-          ◈
-        </span>
+        <img
+          src="src/renderer/components/shared/AppIcon.svg"
+          alt="CLIPlus Logo"
+          className="w-8 h-8 flex-shrink-0 drop-shadow-[var(--glow-primary)]"
+        />
         <div
           className={`transition-all duration-300 overflow-hidden ${
             sidebarCollapsed ? "w-0 opacity-0" : "w-auto opacity-100"

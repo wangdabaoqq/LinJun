@@ -64,6 +64,11 @@ export function QuotaWindowBar({
     <div className="py-2">
       <div className="flex items-center justify-between mb-1.5">
         <div className="flex items-center gap-2 overflow-hidden">
+          <img
+            src="src/renderer/components/shared/AppIcon.svg"
+            alt="Quota Icon"
+            className="w-4 h-4 flex-shrink-0"
+          />
           <span
             className="text-sm font-medium text-[var(--text-primary)] truncate"
             title={displayLabel}
