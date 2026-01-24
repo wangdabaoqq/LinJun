@@ -1,0 +1,8 @@
+node_modules/
+out/
+dist/
+*.log
+.DS_Store
+.env
+.env.local
+resources/binaries/*/cliproxy*

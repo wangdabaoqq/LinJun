@@ -1,0 +1,330 @@
+import fs from "fs";
+import path from "path";
+import { proxyManager } from "../proxy/manager";
+
+export type RequestLogStatus = "success" | "error";
+
+export interface RequestLogEntry {
+  id: string;
+  status: RequestLogStatus;
+  statusCode: number;
+  filePath: string;
+  timestamp: string;
+  time: string;
+  method?: string;
+  url?: string;
+  provider?: string;
+  model?: string;
+  account?: string;
+  requestBody?: string;
+}
+
+const SUCCESS_PREFIX = "v1-responses";
+const ERROR_PREFIX = "error-v1";
+
+export function readRecentRequestLogs(limit = 50): RequestLogEntry[] {
+  const configDir = proxyManager.getConfigDir();
+  const logDir = path.join(configDir, "logs");
+
+  if (!fs.existsSync(logDir)) {
+    return [];
+  }
+
+  const files = fs
+    .readdirSync(logDir)
+    .filter(
+      (name) =>
+        name.startsWith(SUCCESS_PREFIX) || name.startsWith(ERROR_PREFIX),
+    )
+    .map((name) => {
+      const filePath = path.join(logDir, name);
+      const stat = fs.statSync(filePath);
+      const status: RequestLogStatus = name.startsWith(SUCCESS_PREFIX)
+        ? "success"
+        : "error";
+      return { filePath, mtime: stat.mtimeMs, status };
+    })
+    .sort((a, b) => b.mtime - a.mtime)
+    .slice(0, limit);
+
+  const entries: RequestLogEntry[] = [];
+
+  for (const file of files) {
+    const entry = parseLogFile(file.filePath, file.status);
+    if (entry) {
+      entries.push(entry);
+    }
+  }
+
+  return entries;
+}
+
+export function deleteAllLogs(): { success: boolean; error?: string } {
+  try {
+    const configDir = proxyManager.getConfigDir();
+    const logDir = path.join(configDir, "logs");
+
+    if (!fs.existsSync(logDir)) {
+      return { success: true };
+    }
+
+    const files = fs
+      .readdirSync(logDir)
+      .filter(
+        (name) =>
+          name.startsWith(SUCCESS_PREFIX) || name.startsWith(ERROR_PREFIX),
+      );
+
+    for (const file of files) {
+      fs.unlinkSync(path.join(logDir, file));
+    }
+
+    console.log(`[Logs] Deleted ${files.length} log files`);
+    return { success: true };
+  } catch (error) {
+    console.error("[Logs] Failed to delete logs:", error);
+    return { success: false, error: String(error) };
+  }
+}
+
+function parseLogFile(
+  filePath: string,
+  status: RequestLogStatus,
+): RequestLogEntry | null {
+  try {
+    const content = fs.readFileSync(filePath, "utf-8");
+    const requestInfo = extractSection(content, "=== REQUEST INFO ===");
+    const requestBodySection = extractSection(content, "=== REQUEST BODY ===");
+    const apiRequestSection = findFirstApiRequestSection(content);
+    const responseSection = extractSection(content, "=== RESPONSE ===");
+
+    if (!requestInfo && !requestBodySection) {
+      return null;
+    }
+
+    const infoMap = parseKeyValueBlock(requestInfo);
+    const apiRequestMap = parseApiRequestSection(apiRequestSection);
+    const statusCode = extractStatusCode(responseSection, status);
+    const timestamp = infoMap["Timestamp"] || "";
+    const time = formatTime(timestamp);
+    const rawProvider =
+      apiRequestMap.provider || inferProviderFromUrl(apiRequestMap.upstreamUrl);
+    const account = apiRequestMap.account;
+
+    let model: string | undefined;
+    if (requestBodySection) {
+      try {
+        const parsed = JSON.parse(requestBodySection);
+        if (
+          parsed &&
+          typeof parsed === "object" &&
+          typeof parsed.model === "string"
+        ) {
+          model = parsed.model;
+        }
+      } catch {
+        // ignore json parsing error
+      }
+    }
+
+    if (!model) {
+      model = inferModelFromText(requestBodySection);
+    }
+
+    const provider = normalizeProvider(rawProvider, model);
+
+    return {
+      id: path.basename(filePath),
+      status,
+      statusCode,
+      filePath,
+      timestamp,
+      time,
+      method: infoMap["Method"],
+      url: infoMap["URL"],
+      provider,
+      model,
+      account,
+      requestBody: requestBodySection || undefined,
+    };
+  } catch (error) {
+    console.error("[Logs] Failed to parse log file", filePath, error);
+    return null;
+  }
+}
+
+function extractSection(content: string, title: string): string {
+  const startIndex = content.indexOf(title);
+  if (startIndex === -1) return "";
+
+  const contentStart = startIndex + title.length + 1;
+  const nextSection = content.indexOf("\n===", contentStart);
+
+  if (nextSection === -1) {
+    return content.slice(contentStart).trim();
+  }
+  return content.slice(contentStart, nextSection).trim();
+}
+
+function findFirstApiRequestSection(content: string): string {
+  const match = content.match(/=== API REQUEST \d+ ===/);
+  if (!match) return "";
+  return extractSection(content, match[0]);
+}
+
+function parseKeyValueBlock(block: string): Record<string, string> {
+  const map: Record<string, string> = {};
+  block
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .forEach((line) => {
+      const idx = line.indexOf(":");
+      if (idx > -1) {
+        const key = line.slice(0, idx).trim();
+        const value = line.slice(idx + 1).trim();
+        map[key] = value;
+      }
+    });
+  return map;
+}
+
+function extractProvider(section: string): string | undefined {
+  if (!section) return undefined;
+  const authLine = section
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .find((line) => line.startsWith("Auth:"));
+
+  if (!authLine) return undefined;
+  const match = authLine.match(/provider=([^,\s]+)/);
+  return match ? match[1] : undefined;
+}
+
+interface ApiRequestInfo {
+  provider?: string;
+  account?: string;
+  upstreamUrl?: string;
+}
+
+function parseApiRequestSection(section: string): ApiRequestInfo {
+  const result: ApiRequestInfo = {};
+  if (!section) return result;
+
+  const lines = section.split(/\r?\n/).map((line) => line.trim());
+
+  for (const line of lines) {
+    if (line.startsWith("Auth:")) {
+      const providerMatch = line.match(/provider=([^,\s]+)/);
+      if (providerMatch) result.provider = providerMatch[1];
+
+      const labelMatch = line.match(/label=([^,\s]+)/);
+      if (labelMatch) result.account = labelMatch[1];
+    }
+
+    if (line.startsWith("Upstream URL:")) {
+      result.upstreamUrl = line.replace("Upstream URL:", "").trim();
+    }
+  }
+
+  return result;
+}
+
+function inferProviderFromUrl(url?: string): string | undefined {
+  if (!url) return undefined;
+
+  const urlLower = url.toLowerCase();
+
+  if (urlLower.includes("chatgpt.com") || urlLower.includes("openai.com")) {
+    return "openai";
+  }
+  if (urlLower.includes("anthropic.com") || urlLower.includes("claude.ai")) {
+    return "claude";
+  }
+  if (
+    urlLower.includes("googleapis.com") ||
+    urlLower.includes("generativelanguage")
+  ) {
+    return "gemini";
+  }
+  if (urlLower.includes("github.com") || urlLower.includes("copilot")) {
+    return "copilot";
+  }
+  if (urlLower.includes("qwen") || urlLower.includes("dashscope")) {
+    return "qwen";
+  }
+
+  return undefined;
+}
+
+function normalizeProvider(
+  provider?: string,
+  model?: string,
+): string | undefined {
+  if (!provider && !model) return undefined;
+
+  const p = provider?.toLowerCase() || "";
+  const m = model?.toLowerCase() || "";
+
+  if (
+    p === "codex" ||
+    m.includes("gpt") ||
+    m.includes("o1") ||
+    m.includes("o3")
+  ) {
+    return "openai";
+  }
+
+  if (p === "claude" || m.includes("claude")) {
+    return "claude";
+  }
+
+  if (p === "gemini" || m.includes("gemini")) {
+    return "gemini";
+  }
+
+  return provider;
+}
+
+function inferModelFromText(text: string): string | undefined {
+  if (!text) return undefined;
+  const match = text.match(/"model"\s*:\s*"([^"]+)"/);
+  return match ? match[1] : undefined;
+}
+
+function extractStatusCode(
+  responseSection: string,
+  status: RequestLogStatus,
+): number {
+  if (!responseSection) {
+    return status === "success" ? 200 : 500;
+  }
+  const statusLine = responseSection
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .find((line) => line.startsWith("Status:"));
+
+  if (statusLine) {
+    const match = statusLine.match(/Status:\s*(\d+)/);
+    if (match) {
+      return parseInt(match[1], 10);
+    }
+  }
+  return status === "success" ? 200 : 500;
+}
+
+function formatTime(timestamp: string): string {
+  if (!timestamp) return "";
+  try {
+    const date = new Date(timestamp);
+    if (isNaN(date.getTime())) return "";
+    return date.toLocaleTimeString("en-US", {
+      hour12: false,
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    });
+  } catch {
+    return "";
+  }
+}

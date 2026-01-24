@@ -1,0 +1,453 @@
+import {
+  scanTokenFiles,
+  getTokensByProvider,
+  getProviderSummary,
+  ProviderType,
+  TokenReadResult,
+} from "./tokenReader";
+import {
+  fetchCodexUsage,
+  formatResetTime,
+  CodexUsageResponse,
+} from "./codexService";
+import {
+  fetchAntigravityUsage,
+  AntigravityUsageResponse,
+  AntigravityModelQuota,
+} from "./antigravityService";
+import { store } from "../utils/store";
+import { getKiroUsage, KiroUsageResponse } from "./kiroService";
+
+export interface QuotaWindow {
+  label: string;
+  usedPercent: number;
+  resetIn: string;
+  limitReached: boolean;
+}
+
+export interface QuotaAccount {
+  id: string;
+  provider: ProviderType;
+  email: string;
+  badge?: string;
+  status: "active" | "limited" | "error" | "refreshing";
+  rateLimits: {
+    primary: QuotaWindow;
+    secondary?: QuotaWindow;
+    codeReview?: QuotaWindow;
+    additional?: QuotaWindow[];
+  };
+  lastUpdated: Date;
+  error?: string;
+}
+
+export interface ProviderInfo {
+  id: ProviderType;
+  name: string;
+  icon: string;
+  accountCount: number;
+  color: "teal" | "magenta" | "indigo";
+}
+
+const PROVIDER_META: Record<
+  ProviderType,
+  { name: string; icon: string; color: "teal" | "magenta" | "indigo" }
+> = {
+  codex: { name: "Codex", icon: "◈", color: "teal" },
+  antigravity: { name: "Antigravity", icon: "⚛", color: "magenta" },
+  claude: { name: "Claude", icon: "◆", color: "indigo" },
+  gemini: { name: "Gemini", icon: "◇", color: "teal" },
+  kiro: { name: "Kiro", icon: "◎", color: "magenta" },
+  copilot: { name: "Copilot", icon: "⬡", color: "indigo" },
+  qwen: { name: "Qwen", icon: "◎", color: "teal" },
+  iflow: { name: "iFlow", icon: "◉", color: "magenta" },
+  vertex: { name: "Vertex", icon: "▲", color: "indigo" },
+};
+
+function convertCodexUsageToQuotaAccount(
+  token: TokenReadResult,
+  usage: CodexUsageResponse,
+): QuotaAccount {
+  const isLimited =
+    usage.rate_limit.limit_reached ||
+    usage.rate_limit.primary_window.used_percent > 95;
+
+  return {
+    id: `${token.provider}-${token.email}`,
+    provider: token.provider,
+    email: token.email,
+    badge: "Plus",
+    status: isLimited ? "limited" : "active",
+    rateLimits: {
+      primary: {
+        label: "5-Hour Window",
+        usedPercent: usage.rate_limit.primary_window.used_percent,
+        resetIn: formatResetTime(
+          usage.rate_limit.primary_window.reset_after_seconds,
+        ),
+        limitReached: usage.rate_limit.limit_reached,
+      },
+      secondary: usage.rate_limit.secondary_window
+        ? {
+            label: "7-Day Window",
+            usedPercent: usage.rate_limit.secondary_window.used_percent,
+            resetIn: formatResetTime(
+              usage.rate_limit.secondary_window.reset_after_seconds,
+            ),
+            limitReached: false,
+          }
+        : undefined,
+    },
+    lastUpdated: new Date(),
+  };
+}
+
+function convertAntigravityUsageToQuotaAccount(
+  token: TokenReadResult,
+  usage: AntigravityUsageResponse,
+): QuotaAccount {
+  const DEFAULT_MODELS = [
+    {
+      model: "claude-opus-4-5-thinking",
+      aliases: ["claude_opus_4_5_thinking"],
+    },
+    { model: "gemini-3-pro-high", aliases: ["gemini3_pro_high"] },
+    { model: "gemini-3-pro-image", aliases: ["gemini3_image"] },
+    { model: "gemini-3-flash", aliases: ["gemini-3-flash", "gemini_3_flash"] },
+  ];
+
+  const DEFAULT_MODEL_IDS = DEFAULT_MODELS.map((entry) => entry.model);
+
+  const defaultModels: AntigravityModelQuota[] = [];
+  const additionalModels: AntigravityModelQuota[] = [];
+
+  const modelMap = new Map<string, AntigravityModelQuota>();
+  for (const model of usage.models) {
+    if (model.usedPercent === undefined) continue;
+    modelMap.set(model.modelId, model);
+  }
+
+  DEFAULT_MODEL_IDS.forEach((modelId) => {
+    const model = modelMap.get(modelId);
+    if (model) {
+      defaultModels.push(model);
+      modelMap.delete(modelId);
+    }
+  });
+
+  additionalModels.push(...modelMap.values());
+
+  const primaryModel = defaultModels[0] || additionalModels.shift();
+  const secondaryModel = defaultModels[1] || additionalModels.shift();
+  const tertiaryModel = defaultModels[2] || additionalModels.shift();
+  const quaternaryModel = defaultModels[3] || additionalModels.shift();
+
+  const usedPercent = primaryModel?.usedPercent || 0;
+  const isLimited = usedPercent > 95 || !usage.hasQuota;
+
+  const additional: QuotaWindow[] = [];
+  const formatModelResetTime = (model?: AntigravityModelQuota) => {
+    if (!model?.resetTime) {
+      return "Monthly";
+    }
+    const date = new Date(model.resetTime);
+    const datePart = date.toISOString().slice(0, 10);
+    const language = store.get("language");
+    const locale = language === "en" ? "en-US" : "zh-CN";
+    const timePart = date.toLocaleTimeString(locale, {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    });
+    return `${datePart} ${timePart}`;
+  };
+
+  if (tertiaryModel) {
+    additional.push({
+      label: tertiaryModel.displayName,
+      usedPercent: tertiaryModel.usedPercent || 0,
+      resetIn: formatModelResetTime(tertiaryModel),
+      limitReached: (tertiaryModel.usedPercent || 0) >= 100,
+    });
+  }
+
+  if (quaternaryModel) {
+    additional.push({
+      label: quaternaryModel.displayName,
+      usedPercent: quaternaryModel.usedPercent || 0,
+      resetIn: formatModelResetTime(quaternaryModel),
+      limitReached: (quaternaryModel.usedPercent || 0) >= 100,
+    });
+  }
+
+  additionalModels.forEach((model) => {
+    additional.push({
+      label: model.displayName,
+      usedPercent: model.usedPercent || 0,
+      resetIn: formatModelResetTime(model),
+      limitReached: (model.usedPercent || 0) >= 100,
+    });
+  });
+
+  const tierLabel = usage.paidTier?.name
+    ? "Pro"
+    : usage.tier?.id === "standard-tier"
+      ? "Plus"
+      : "Free";
+
+  return {
+    id: `${token.provider}-${token.email}`,
+    provider: token.provider,
+    email: token.email,
+    badge: tierLabel,
+    status: isLimited ? "limited" : "active",
+    rateLimits: {
+      primary: {
+        label: primaryModel?.displayName || "Model Quota",
+        usedPercent,
+        resetIn: formatModelResetTime(primaryModel),
+        limitReached: usedPercent >= 100,
+      },
+      secondary: secondaryModel
+        ? {
+            label: secondaryModel.displayName,
+            usedPercent: secondaryModel.usedPercent || 0,
+            resetIn: formatModelResetTime(secondaryModel),
+            limitReached: (secondaryModel.usedPercent || 0) >= 100,
+          }
+        : undefined,
+      additional: additional.length > 0 ? additional : undefined,
+    },
+    lastUpdated: new Date(),
+  };
+}
+
+function formatUnixSecondsToLocal(seconds?: number): string {
+  if (!seconds) return "-";
+  const date = new Date(seconds * 1000);
+  return `${date.toLocaleDateString()} ${date.toLocaleTimeString("zh-CN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  })}`;
+}
+
+function convertKiroUsageToQuotaAccount(
+  token: TokenReadResult,
+  usage: KiroUsageResponse,
+  displayEmail: string,
+  accountId: string,
+): QuotaAccount {
+  const breakdown = usage.usageBreakdownList?.[0];
+  const currentUsage =
+    breakdown?.freeTrialInfo?.currentUsageWithPrecision ??
+    breakdown?.currentUsageWithPrecision ??
+    0;
+  const usageLimit =
+    breakdown?.freeTrialInfo?.usageLimitWithPrecision ??
+    breakdown?.usageLimitWithPrecision ??
+    0;
+  const resetSeconds =
+    breakdown?.nextDateReset ??
+    usage.nextDateReset ??
+    breakdown?.freeTrialInfo?.freeTrialExpiry;
+  const usedPercent = usageLimit > 0 ? (currentUsage / usageLimit) * 100 : 0;
+  const isLimited = usedPercent >= 100;
+
+  return {
+    id: accountId,
+    provider: token.provider,
+    email: displayEmail,
+    badge: usage.subscriptionInfo?.subscriptionTitle || "Kiro",
+    status: isLimited ? "limited" : "active",
+    rateLimits: {
+      primary: {
+        label: breakdown?.displayName || "Credit",
+        usedPercent,
+        resetIn: "",
+        limitReached: isLimited,
+      },
+    },
+    lastUpdated: new Date(),
+  };
+}
+
+function createErrorQuotaAccount(
+  token: TokenReadResult,
+  error: string,
+): QuotaAccount {
+  return {
+    id: `${token.provider}-${token.email}`,
+    provider: token.provider,
+    email: token.email,
+    status: "error",
+    rateLimits: {
+      primary: {
+        label: "Unknown",
+        usedPercent: 0,
+        resetIn: "-",
+        limitReached: false,
+      },
+    },
+    lastUpdated: new Date(),
+    error,
+  };
+}
+
+export function getProviders(): ProviderInfo[] {
+  const summary = getProviderSummary();
+
+  return summary.map(({ provider, accountCount }) => ({
+    id: provider,
+    name: PROVIDER_META[provider]?.name || provider,
+    icon: PROVIDER_META[provider]?.icon || "◈",
+    accountCount,
+    color: PROVIDER_META[provider]?.color || "teal",
+  }));
+}
+
+export async function getQuotaByProvider(
+  provider: ProviderType,
+): Promise<QuotaAccount[]> {
+  const tokens = getTokensByProvider(provider);
+  const results: QuotaAccount[] = [];
+  const providerCounts = new Map<string, number>();
+
+  for (const token of tokens) {
+    if (provider === "codex") {
+      try {
+        const usage = await fetchCodexUsage(token);
+        results.push(convertCodexUsageToQuotaAccount(token, usage));
+      } catch (error) {
+        console.error(
+          `[QuotaManager] Failed to fetch quota for ${token.email}:`,
+          error,
+        );
+        results.push(
+          createErrorQuotaAccount(
+            token,
+            error instanceof Error ? error.message : "Unknown error",
+          ),
+        );
+      }
+    } else if (provider === "antigravity") {
+      try {
+        const usage = await fetchAntigravityUsage(token);
+        results.push(convertAntigravityUsageToQuotaAccount(token, usage));
+      } catch (error) {
+        console.error(
+          `[QuotaManager] Failed to fetch Antigravity quota for ${token.email}:`,
+          error,
+        );
+        results.push(
+          createErrorQuotaAccount(
+            token,
+            error instanceof Error ? error.message : "Unknown error",
+          ),
+        );
+      }
+    } else if (provider === "kiro") {
+      try {
+        const usage = await getKiroUsage(token);
+        const displayEmail = token.email || usage.userInfo?.email || "unknown";
+        const baseName = displayEmail === "unknown" ? "kiro" : displayEmail;
+        const count = providerCounts.get(baseName) ?? 0;
+        const nextCount = count + 1;
+        providerCounts.set(baseName, nextCount);
+        const suffix =
+          baseName === "kiro" && nextCount > 1 ? `-${nextCount}` : "";
+        const safeName = `${baseName}${suffix}`;
+        const accountId = `${token.provider}-${safeName}`;
+        results.push(
+          convertKiroUsageToQuotaAccount(token, usage, safeName, accountId),
+        );
+      } catch (error) {
+        console.error(
+          `[QuotaManager] Failed to fetch Kiro quota for ${token.email}:`,
+          error,
+        );
+        results.push(
+          createErrorQuotaAccount(
+            token,
+            error instanceof Error ? error.message : "Unknown error",
+          ),
+        );
+      }
+    } else {
+      results.push({
+        id: `${token.provider}-${token.email}`,
+        provider: token.provider,
+        email: token.email,
+        status: "active",
+        rateLimits: {
+          primary: {
+            label: "Usage",
+            usedPercent: 0,
+            resetIn: "-",
+            limitReached: false,
+          },
+        },
+        lastUpdated: new Date(),
+      });
+    }
+  }
+
+  return results;
+}
+
+export async function refreshQuota(
+  accountId: string,
+): Promise<QuotaAccount | null> {
+  const [provider, ...emailParts] = accountId.split("-");
+  const email = emailParts.join("-");
+  const tokens = scanTokenFiles();
+  const token = tokens.find(
+    (t) => t.provider === provider && t.email === email,
+  );
+
+  if (!token) {
+    console.error(`[QuotaManager] Token not found for account: ${accountId}`);
+    return null;
+  }
+
+  if (token.provider === "codex") {
+    try {
+      const usage = await fetchCodexUsage(token);
+      return convertCodexUsageToQuotaAccount(token, usage);
+    } catch (error) {
+      return createErrorQuotaAccount(
+        token,
+        error instanceof Error ? error.message : "Unknown error",
+      );
+    }
+  }
+
+  if (token.provider === "antigravity") {
+    try {
+      const usage = await fetchAntigravityUsage(token);
+      return convertAntigravityUsageToQuotaAccount(token, usage);
+    } catch (error) {
+      return createErrorQuotaAccount(
+        token,
+        error instanceof Error ? error.message : "Unknown error",
+      );
+    }
+  }
+
+  if (token.provider === "kiro") {
+    try {
+      const usage = await getKiroUsage(token);
+      const displayEmail = token.email || usage.userInfo?.email || "unknown";
+      const safeName = displayEmail === "unknown" ? "kiro" : displayEmail;
+      const accountId = `${token.provider}-${safeName}`;
+      return convertKiroUsageToQuotaAccount(token, usage, safeName, accountId);
+    } catch (error) {
+      return createErrorQuotaAccount(
+        token,
+        error instanceof Error ? error.message : "Unknown error",
+      );
+    }
+  }
+
+  return null;
+}

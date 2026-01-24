@@ -1,0 +1,615 @@
+import { useState, useEffect } from "react";
+import { useTranslations } from "../../stores/settings";
+
+interface CLIToolInfo {
+  name: string;
+  command: string;
+  status: "installed" | "not_found";
+  path?: string;
+  version?: string;
+  configPath?: string;
+  authPath?: string;
+}
+
+interface CLIConfig {
+  configContent?: string;
+  authContent?: string;
+  configPath?: string;
+  authPath?: string;
+}
+
+interface ConfigModalProps {
+  tool: CLIToolInfo;
+  onClose: () => void;
+}
+
+function ConfigModal({ tool, onClose }: ConfigModalProps) {
+  const t = useTranslations();
+  const [loading, setLoading] = useState(false);
+  const [proxyUrl, setProxyUrl] = useState("http://127.0.0.1:8317");
+  const [apiKey, setApiKey] = useState("");
+  const [testingConnection, setTestingConnection] = useState(false);
+  const [connectionResult, setConnectionResult] = useState<{
+    success: boolean;
+    error?: string;
+    latency?: number;
+  } | null>(null);
+  const [activeTab, setActiveTab] = useState<"connection" | "config" | "auth">(
+    "connection",
+  );
+
+  const hasConfigFiles =
+    tool.name === "Codex CLI" || tool.name === "Claude Code";
+  const hasAuthFile = tool.name === "Codex CLI";
+
+  const getDefaultClaudeConfig = () => {
+    return JSON.stringify(
+      {
+        alwaysThinkingEnabled: true,
+        env: {
+          ANTHROPIC_AUTH_TOKEN: apiKey || "your-api-key-here",
+          ANTHROPIC_BASE_URL: proxyUrl,
+          ANTHROPIC_DEFAULT_HAIKU_MODEL: "gemini-3-flash-preview",
+          ANTHROPIC_DEFAULT_OPUS_MODEL: "gemini-claude-opus-4-5-thinking",
+          ANTHROPIC_DEFAULT_SONNET_MODEL: "gemini-claude-sonnet-4-5",
+          ANTHROPIC_MODEL: "gemini-claude-sonnet-4-5",
+        },
+        model: "gemini-claude-opus-4-5-thinking",
+      },
+      null,
+      2,
+    );
+  };
+
+  const getDefaultCodexConfig = () => {
+    return `# CLIProxyAPI Configuration for Codex CLI
+model_provider = "cliproxyapi"
+model = "gpt-5.2-codex"
+model_reasoning_effort = "high"
+
+[model_providers.cliproxyapi]
+name = "cliproxyapi"
+base_url = "${proxyUrl}/v1"
+wire_api = "responses"`;
+  };
+
+  const getDefaultCodexAuth = () => {
+    return JSON.stringify(
+      {
+        OPENAI_API_KEY: apiKey || "your-api-key-here",
+      },
+      null,
+      2,
+    );
+  };
+
+  const [configContent, setConfigContent] = useState(
+    tool.name === "Claude Code"
+      ? getDefaultClaudeConfig()
+      : getDefaultCodexConfig(),
+  );
+  const [authContent, setAuthContent] = useState(getDefaultCodexAuth());
+
+  const handleTestConnection = async () => {
+    setTestingConnection(true);
+    setConnectionResult(null);
+    try {
+      const result = await window.electronAPI?.cli.testConnection(
+        proxyUrl,
+        apiKey || undefined,
+      );
+      setConnectionResult(result || { success: false, error: "No response" });
+    } catch (error) {
+      setConnectionResult({ success: false, error: String(error) });
+    } finally {
+      setTestingConnection(false);
+    }
+  };
+
+  const handleCopyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+  };
+
+  const handleSaveConfig = async () => {
+    setLoading(true);
+    try {
+      const configPath =
+        tool.name === "Claude Code"
+          ? `${require("os").homedir()}/.claude/settings.json`
+          : `${require("os").homedir()}/.codex/config.toml`;
+
+      const result = await window.electronAPI?.cli.writeConfig(
+        configPath,
+        configContent,
+        true,
+      );
+      if (result?.success) {
+        alert(
+          `配置已保存${result.backupPath ? `\n备份文件: ${result.backupPath}` : ""}`,
+        );
+      } else {
+        alert(`保存失败: ${result?.error}`);
+      }
+    } catch (error) {
+      alert(`保存失败: ${String(error)}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveAuth = async () => {
+    setLoading(true);
+    try {
+      const authPath = `${require("os").homedir()}/.codex/auth.json`;
+      const result = await window.electronAPI?.cli.writeConfig(
+        authPath,
+        authContent,
+        true,
+      );
+      if (result?.success) {
+        alert(
+          `认证文件已保存${result.backupPath ? `\n备份文件: ${result.backupPath}` : ""}`,
+        );
+      } else {
+        alert(`保存失败: ${result?.error}`);
+      }
+    } catch (error) {
+      alert(`保存失败: ${String(error)}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateConfigWithProxyUrl = () => {
+    if (tool.name === "Claude Code") {
+      setConfigContent(getDefaultClaudeConfig());
+    } else {
+      setConfigContent(getDefaultCodexConfig());
+    }
+    setAuthContent(getDefaultCodexAuth());
+  };
+
+  const handleTestConnection = async () => {
+    setTestingConnection(true);
+    setConnectionResult(null);
+    try {
+      const result = await window.electronAPI?.cli.testConnection(
+        proxyUrl,
+        apiKey || undefined,
+      );
+      setConnectionResult(result || { success: false, error: "No response" });
+    } catch (error) {
+      setConnectionResult({ success: false, error: String(error) });
+    } finally {
+      setTestingConnection(false);
+    }
+  };
+
+  const handleCopyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div
+        className="fixed inset-0 bg-[var(--overlay-bg)] backdrop-blur-xl animate-fade-in"
+        style={{ WebkitBackdropFilter: "blur(24px)" }}
+        onClick={onClose}
+      />
+      <div className="relative glass-card glass-card-teal p-6 w-full max-w-[800px] max-h-[80vh] overflow-y-auto animate-scale-in">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-xl font-bold text-[var(--text-primary)]">
+              {tool.name} 配置
+            </h2>
+            <p className="text-xs text-[var(--text-muted)] mt-1">
+              {tool.path || "未找到安装路径"}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 flex items-center justify-center rounded-full bg-soft hover:bg-muted text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-all"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div className="flex gap-2 mb-6 border-b border-subtle">
+          <button
+            className={`px-4 py-2 text-sm font-medium transition-colors ${
+              activeTab === "connection"
+                ? "text-[var(--accent-teal)] border-b-2 border-[var(--accent-teal)]"
+                : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+            }`}
+            onClick={() => setActiveTab("connection")}
+          >
+            连接信息
+          </button>
+          {hasConfigFiles && (
+            <button
+              className={`px-4 py-2 text-sm font-medium transition-colors ${
+                activeTab === "config"
+                  ? "text-[var(--accent-teal)] border-b-2 border-[var(--accent-teal)]"
+                  : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+              }`}
+              onClick={() => setActiveTab("config")}
+            >
+              {tool.name === "Claude Code" ? "settings.json" : "config.toml"}
+            </button>
+          )}
+          {hasAuthFile && (
+            <button
+              className={`px-4 py-2 text-sm font-medium transition-colors ${
+                activeTab === "auth"
+                  ? "text-[var(--accent-teal)] border-b-2 border-[var(--accent-teal)]"
+                  : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+              }`}
+              onClick={() => setActiveTab("auth")}
+            >
+              auth.json
+            </button>
+          )}
+        </div>
+
+        {activeTab === "connection" && (
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs text-[var(--text-muted)] mb-2 uppercase tracking-wider">
+                代理服务器 URL
+              </label>
+              <input
+                type="text"
+                value={proxyUrl}
+                onChange={(e) => setProxyUrl(e.target.value)}
+                className="glass-input w-full"
+                placeholder="http://127.0.0.1:8317"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs text-[var(--text-muted)] mb-2 uppercase tracking-wider">
+                API 密钥 (可选)
+              </label>
+              <input
+                type="password"
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                className="glass-input w-full"
+                placeholder="输入 API 密钥"
+              />
+            </div>
+
+            <button
+              onClick={handleTestConnection}
+              disabled={testingConnection}
+              className="glass-btn glass-btn-teal w-full py-2.5 flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              {testingConnection ? (
+                <>
+                  <span className="animate-spin">◌</span>
+                  测试中...
+                </>
+              ) : (
+                <>
+                  <span>◎</span>
+                  测试连接
+                </>
+              )}
+            </button>
+
+            {connectionResult && (
+              <div
+                className={`p-4 rounded-lg border ${
+                  connectionResult.success
+                    ? "bg-[var(--accent-teal)]/10 border-[var(--accent-teal)]/30"
+                    : "bg-[var(--accent-magenta)]/10 border-[var(--accent-magenta)]/30"
+                }`}
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <span
+                    className={`text-lg ${
+                      connectionResult.success
+                        ? "text-[var(--accent-teal)]"
+                        : "text-[var(--accent-magenta)]"
+                    }`}
+                  >
+                    {connectionResult.success ? "✓" : "✕"}
+                  </span>
+                  <span
+                    className={`font-medium ${
+                      connectionResult.success
+                        ? "text-[var(--accent-teal)]"
+                        : "text-[var(--accent-magenta)]"
+                    }`}
+                  >
+                    {connectionResult.success ? "连接成功" : "连接失败"}
+                  </span>
+                </div>
+                {connectionResult.latency && (
+                  <p className="text-sm text-[var(--text-muted)]">
+                    延迟: {connectionResult.latency}ms
+                  </p>
+                )}
+                {connectionResult.error && (
+                  <p className="text-sm text-[var(--accent-magenta)]">
+                    {connectionResult.error}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === "config" && (
+          <div className="space-y-4">
+            {loading ? (
+              <div className="text-center py-8 text-[var(--text-muted)]">
+                <span className="animate-spin inline-block">◌</span> 加载中...
+              </div>
+            ) : config?.configContent ? (
+              <>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs text-[var(--text-muted)]">
+                    {config.configPath}
+                  </span>
+                  <button
+                    onClick={() => handleCopyToClipboard(config.configContent!)}
+                    className="glass-btn text-xs py-1 px-3"
+                  >
+                    复制
+                  </button>
+                </div>
+                <textarea
+                  value={config.configContent}
+                  readOnly
+                  className="glass-input w-full h-64 font-mono text-xs resize-none cursor-default"
+                  spellCheck={false}
+                />
+                <p className="text-xs text-[var(--text-muted)] text-center">
+                  配置文件为只读，如需修改请直接编辑文件
+                </p>
+              </>
+            ) : (
+              <div className="text-center py-8 text-[var(--text-muted)]">
+                配置文件不存在: {config?.configPath}
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === "auth" && (
+          <div className="space-y-4">
+            {loading ? (
+              <div className="text-center py-8 text-[var(--text-muted)]">
+                <span className="animate-spin inline-block">◌</span> 加载中...
+              </div>
+            ) : config?.authContent ? (
+              <>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs text-[var(--text-muted)]">
+                    {config.authPath}
+                  </span>
+                  <button
+                    onClick={() => handleCopyToClipboard(config.authContent!)}
+                    className="glass-btn text-xs py-1 px-3"
+                  >
+                    复制
+                  </button>
+                </div>
+                <textarea
+                  value={config.authContent}
+                  readOnly
+                  className="glass-input w-full h-64 font-mono text-xs resize-none cursor-default"
+                  spellCheck={false}
+                />
+                <p className="text-xs text-[var(--text-muted)] text-center">
+                  认证文件为只读，如需修改请直接编辑文件
+                </p>
+              </>
+            ) : (
+              <div className="text-center py-8 text-[var(--text-muted)]">
+                认证文件不存在: {config?.authPath}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+const CACHE_KEY = "cli_tools_cache";
+const CACHE_DURATION = 5 * 60 * 1000;
+
+interface CachedData {
+  tools: CLIToolInfo[];
+  timestamp: number;
+}
+
+function getCachedTools(): CLIToolInfo[] | null {
+  try {
+    const cached = localStorage.getItem(CACHE_KEY);
+    if (!cached) return null;
+
+    const data: CachedData = JSON.parse(cached);
+    const now = Date.now();
+
+    if (now - data.timestamp > CACHE_DURATION) {
+      localStorage.removeItem(CACHE_KEY);
+      return null;
+    }
+
+    return data.tools;
+  } catch (error) {
+    console.error("Failed to read cache:", error);
+    return null;
+  }
+}
+
+function setCachedTools(tools: CLIToolInfo[]): void {
+  try {
+    const data: CachedData = {
+      tools,
+      timestamp: Date.now(),
+    };
+    localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+  } catch (error) {
+    console.error("Failed to write cache:", error);
+  }
+}
+
+export function Agents() {
+  const t = useTranslations();
+  const [agents, setAgents] = useState<CLIToolInfo[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [scanning, setScanning] = useState(false);
+  const [selectedTool, setSelectedTool] = useState<CLIToolInfo | null>(null);
+  const [lastDetectTime, setLastDetectTime] = useState<number>(0);
+
+  useEffect(() => {
+    const cachedTools = getCachedTools();
+    if (cachedTools && cachedTools.length > 0) {
+      setAgents(cachedTools);
+      setLoading(false);
+      setLastDetectTime(Date.now());
+    } else {
+      detectTools();
+    }
+  }, []);
+
+  const detectTools = async (force = false) => {
+    const now = Date.now();
+    if (!force && lastDetectTime && now - lastDetectTime < 30000) {
+      console.log("[Agents] Skipping detection, last scan was recent");
+      return;
+    }
+
+    setScanning(true);
+    try {
+      const result = await window.electronAPI?.cli.detectAll();
+      if (result?.success) {
+        setAgents(result.tools);
+        setCachedTools(result.tools);
+        setLastDetectTime(now);
+      }
+    } catch (error) {
+      console.error("Failed to detect CLI tools:", error);
+    } finally {
+      setLoading(false);
+      setScanning(false);
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "installed":
+        return "status-dot-online";
+      default:
+        return "bg-[var(--text-dim)]";
+    }
+  };
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case "installed":
+        return t.agents.configured || "已安装";
+      default:
+        return t.agents.notFound || "未找到";
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold text-[var(--text-primary)]">
+          {t.agents.title}
+        </h2>
+        <p className="text-[var(--text-muted)] text-sm mt-1">
+          {t.agents.subtitle}
+        </p>
+      </div>
+
+      <div className="glass-card p-4">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-xs font-bold tracking-widest text-[var(--text-dim)]">
+            {t.agents.detectedAgents}
+          </h3>
+          <button
+            className="glass-btn glass-btn-teal text-xs py-1.5"
+            onClick={() => detectTools(true)}
+            disabled={scanning}
+          >
+            {scanning ? (
+              <>
+                <span className="animate-spin inline-block mr-1">◌</span>
+                扫描中...
+              </>
+            ) : (
+              t.agents.scanSystem
+            )}
+          </button>
+        </div>
+
+        {loading ? (
+          <div className="text-center py-8 text-[var(--text-muted)]">
+            <span className="animate-spin inline-block">◌</span> 检测中...
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {agents.map((agent) => (
+              <div
+                key={agent.name}
+                className={`flex items-center justify-between p-4 rounded-xl border backdrop-blur-sm ${
+                  agent.status === "installed"
+                    ? "bg-[var(--accent-teal)]/5 border-[var(--accent-teal)]/20"
+                    : "bg-soft border-subtle"
+                }`}
+              >
+                <div className="flex items-center gap-4">
+                  <div
+                    className={`status-dot ${getStatusColor(agent.status)}`}
+                  />
+                  <div>
+                    <div className="font-medium text-[var(--text-primary)]">
+                      {agent.name}
+                    </div>
+                    <div className="text-xs terminal-text text-[var(--text-dim)]">
+                      {agent.path || `命令: ${agent.command}`}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4">
+                  {agent.version && (
+                    <span className="text-xs terminal-text text-[var(--text-muted)]">
+                      {agent.version}
+                    </span>
+                  )}
+                  {agent.status === "installed" ? (
+                    <button
+                      className="glass-btn glass-btn-teal text-xs py-1 px-3"
+                      onClick={() => setSelectedTool(agent)}
+                    >
+                      配置
+                    </button>
+                  ) : (
+                    <span className="text-xs text-[var(--text-dim)]">
+                      {getStatusText(agent.status)}
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {selectedTool && (
+        <ConfigModal
+          tool={selectedTool}
+          onClose={() => setSelectedTool(null)}
+        />
+      )}
+    </div>
+  );
+}
