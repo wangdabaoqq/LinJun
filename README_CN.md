@@ -1,6 +1,6 @@
-# Linjun
+# 霖君
 
-![Linjun Banner](docs/icon/logo.png)
+![霖君 Banner](docs/icon/logo.png)
 
 [![Platform macOS](https://img.shields.io/badge/platform-macOS-lightgray.svg)](https://developer.apple.com/macos/) [![Platform Windows](https://img.shields.io/badge/platform-Windows-blue.svg)](https://www.microsoft.com/windows/) [![Platform Linux](https://img.shields.io/badge/platform-Linux-yellow.svg)](https://www.linux.org/) [![Language TypeScript](https://img.shields.io/badge/language-TypeScript-3178c6.svg)](https://www.typescriptlang.org/) [![License MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
@@ -8,7 +8,7 @@
 
 **跨平台 AI 代理管理工具，支持 Claude、Gemini、OpenAI、Qwen 等。**
 
-Linjun 是一款原生桌面应用，用于管理 [CLIProxyAPIPlus](https://github.com/router-for-me/CLIProxyAPIPlus) —— 一个为 AI 编程助手提供支持的本地代理服务器。它帮助你在 **macOS**、**Windows** 和 **Linux** 上统一管理多个 AI 账户、追踪配额、配置 CLI 工具。
+霖君是一款原生桌面应用，用于管理 [CLIProxyAPIPlus](https://github.com/router-for-me/CLIProxyAPIPlus) —— 一个为 AI 编程助手提供支持的本地代理服务器。它帮助你在 **macOS**、**Windows** 和 **Linux** 上统一管理多个 AI 账户、追踪配额、配置 CLI 工具。
 
 ## ✨ 功能特性
 
@@ -40,7 +40,7 @@ Linjun 是一款原生桌面应用，用于管理 [CLIProxyAPIPlus](https://gith
 
 ### 兼容的 CLI Agent
 
-Linjun 可以自动配置以下工具使用你的集中代理：
+霖君可以自动配置以下工具使用你的集中代理：
 
 - Claude Code
 - Codex CLI
@@ -53,12 +53,12 @@ Linjun 可以自动配置以下工具使用你的集中代理：
 
 从 [GitHub Releases](https://github.com/wangdabaoqq/L-jun/releases) 下载最新版本：
 
-| 平台                  | 下载文件                          |
-| --------------------- | --------------------------------- |
-| macOS (Apple Silicon) | `Linjun-x.x.x-arm64.dmg`          |
-| macOS (Intel)         | `Linjun-x.x.x.dmg`                |
-| Windows               | `Linjun-Setup-x.x.x.exe`          |
-| Linux                 | `Linjun-x.x.x.AppImage` 或 `.deb` |
+| 平台                  | 下载文件                        |
+| --------------------- | ------------------------------- |
+| macOS (Apple Silicon) | `霖君-x.x.x-arm64.dmg`          |
+| macOS (Intel)         | `霖君-x.x.x.dmg`                |
+| Windows               | `霖君-Setup-x.x.x.exe`          |
+| Linux                 | `霖君-x.x.x.AppImage` 或 `.deb` |
 
 ### 从源码构建
 
@@ -96,7 +96,7 @@ bun run build:all      # 所有平台
 
 ### 1. 启动服务器
 
-启动 Linjun，点击 **Start** 初始化本地代理服务器。
+启动 霖君，点击 **Start** 初始化本地代理服务器。
 
 ### 2. 连接账户
 
@@ -116,15 +116,15 @@ bun run build:all      # 所有平台
 
 | 仪表盘                                       | 服务商                                       |
 | -------------------------------------------- | -------------------------------------------- |
-| ![Dashboard](docs/screenshots/Dashboard.png) | ![Providers](docs/screenshots/Providers.png) |
+| ![Dashboard](docs/screenshots/dashboard.png) | ![Providers](docs/screenshots/providers.png) |
 
 | 配额监控                             | 设置                                       |
 | ------------------------------------ | ------------------------------------------ |
-| ![Quota](docs/screenshots/Quota.png) | ![Settings](docs/screenshots/Settings.png) |
+| ![Quota](docs/screenshots/quota.png) | ![Settings](docs/screenshots/settings.png) |
 
 | 代理配置                               | API 密钥                                 |
 | -------------------------------------- | ---------------------------------------- |
-| ![Agents](docs/screenshots/Agents.png) | ![API Key](docs/screenshots/API-key.png) |
+| ![Agents](docs/screenshots/agents.png) | ![API Key](docs/screenshots/api-key.png) |
 
 ## ⚙️ 设置选项
 
@@ -136,7 +136,7 @@ bun run build:all      # 所有平台
 ## 🏗️ 项目结构
 
 ```
-linjun/
+霖君/
 ├── src/
 │   ├── main/                    # Electron 主进程
 │   │   ├── index.ts            # 应用入口

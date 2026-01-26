@@ -1,6 +1,6 @@
 export const en = {
   app: {
-    name: "Linjun",
+    name: "霖君",
     systemActive: "SYSTEM ACTIVE",
   },
   sidebar: {

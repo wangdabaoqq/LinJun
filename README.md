@@ -1,6 +1,6 @@
-# Linjun
+# 霖君
 
-![Linjun Banner](docs/icon/logo.png)
+![霖君 Banner](docs/icon/logo.png)
 
 [![Platform macOS](https://img.shields.io/badge/platform-macOS-lightgray.svg)](https://developer.apple.com/macos/) [![Platform Windows](https://img.shields.io/badge/platform-Windows-blue.svg)](https://www.microsoft.com/windows/) [![Platform Linux](https://img.shields.io/badge/platform-Linux-yellow.svg)](https://www.linux.org/) [![Language TypeScript](https://img.shields.io/badge/language-TypeScript-3178c6.svg)](https://www.typescriptlang.org/) [![License MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
@@ -8,7 +8,7 @@
 
 **Cross-platform AI proxy management for Claude, Gemini, OpenAI, Qwen, and more.**
 
-Linjun is a native desktop application for managing [CLIProxyAPIPlus](https://github.com/router-for-me/CLIProxyAPIPlus) - a local proxy server that powers your AI coding agents. It helps you manage multiple AI accounts, track quotas, and configure CLI tools in one place across **macOS**, **Windows**, and **Linux**.
+霖君 is a native desktop application for managing [CLIProxyAPIPlus](https://github.com/router-for-me/CLIProxyAPIPlus) - a local proxy server that powers your AI coding agents. It helps you manage multiple AI accounts, track quotas, and configure CLI tools in one place across **macOS**, **Windows**, and **Linux**.
 
 ## ✨ Features
 
@@ -40,7 +40,7 @@ Linjun is a native desktop application for managing [CLIProxyAPIPlus](https://gi
 
 ### Compatible CLI Agents
 
-Linjun can automatically configure these tools to use your centralized proxy:
+霖君 can automatically configure these tools to use your centralized proxy:
 
 - Claude Code
 - Codex CLI
@@ -53,12 +53,12 @@ Linjun can automatically configure these tools to use your centralized proxy:
 
 Download the latest release from [GitHub Releases](https://github.com/wangdabaoqq/L-jun/releases):
 
-| Platform              | Download                          |
-| --------------------- | --------------------------------- |
-| macOS (Apple Silicon) | `Linjun-x.x.x-arm64.dmg`          |
-| macOS (Intel)         | `Linjun-x.x.x.dmg`                |
-| Windows               | `Linjun-Setup-x.x.x.exe`          |
-| Linux                 | `Linjun-x.x.x.AppImage` or `.deb` |
+| Platform              | Download                        |
+| --------------------- | ------------------------------- |
+| macOS (Apple Silicon) | `霖君-x.x.x-arm64.dmg`          |
+| macOS (Intel)         | `霖君-x.x.x.dmg`                |
+| Windows               | `霖君-Setup-x.x.x.exe`          |
+| Linux                 | `霖君-x.x.x.AppImage` or `.deb` |
 
 ### Build from Source
 
@@ -96,7 +96,7 @@ bun run build:all      # All platforms
 
 ### 1. Start the Server
 
-Launch Linjun and click **Start** to initialize the local proxy server.
+Launch 霖君 and click **Start** to initialize the local proxy server.
 
 ### 2. Connect Accounts
 
@@ -116,17 +116,15 @@ Go to **Agents** tab → Select detected agent → Configure to use local proxy.
 
 | Dashboard                                    | Providers                                    |
 | -------------------------------------------- | -------------------------------------------- |
-| ![Dashboard](docs/screenshots/Dashboard.png) | ![Providers](docs/screenshots/Providers.png) |
+| ![Dashboard](docs/screenshots/dashboard.png) | ![Providers](docs/screenshots/providers.png) |
 
 | Quota Monitoring                     | Settings                                   |
 | ------------------------------------ | ------------------------------------------ |
-| ![Quota](docs/screenshots/Quota.png) | ![Settings](docs/screenshots/Settings.png) |
+| ![Quota](docs/screenshots/quota.png) | ![Settings](docs/screenshots/settings.png) |
 
-| Agents                                   | API Key                                    |
-| ---------------------------------------- | ------------------------------------------ |
-| ![Agents](docs/screenshots/Agents.png) | ![API Key](docs/screenshots/API-key.png) |
-
-
+| Agents                                 | API Key                                  |
+| -------------------------------------- | ---------------------------------------- |
+| ![Agents](docs/screenshots/agents.png) | ![API Key](docs/screenshots/api-key.png) |
 
 ## ⚙️ Settings
 
@@ -138,7 +136,7 @@ Go to **Agents** tab → Select detected agent → Configure to use local proxy.
 ## 🏗️ Architecture
 
 ```
-linjun/
+霖君/
 ├── src/
 │   ├── main/                    # Electron main process
 │   │   ├── index.ts            # App entry point

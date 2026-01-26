@@ -1,5 +1,5 @@
 appId: com.linjun.app
-productName: Linjun
+productName: 霖君
 directories:
   buildResources: resources
   output: dist
