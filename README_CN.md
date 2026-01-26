@@ -122,6 +122,10 @@ bun run build:all      # 所有平台
 | ------------------------------------ | ------------------------------------------ |
 | ![Quota](docs/screenshots/quota.png) | ![Settings](docs/screenshots/settings.png) |
 
+| 代理配置                               | API 密钥                                 |
+| -------------------------------------- | ---------------------------------------- |
+| ![Agents](docs/screenshots/agents.png) | ![API Key](docs/screenshots/api-key.png) |
+
 ## ⚙️ 设置选项
 
 - **端口**：更改代理监听端口（默认：8317）
