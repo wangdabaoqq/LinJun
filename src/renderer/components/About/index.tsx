@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useTranslations } from "../../stores/settings";
-import appIconUrl from "../../assets/menu.png";
+import appIconUrl from "../../assets/AppIcon.png";
 
 interface UpdateInfo {
   hasUpdate: boolean;
@@ -52,11 +52,13 @@ export function About() {
       </div>
 
       <div className="glass-card glass-card-teal p-6 text-center">
-        <img
-          src={appIconUrl}
-          alt="霖君 Logo"
-          className="w-16 h-16 mx-auto mb-4"
-        />
+        <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-[var(--accent-teal)] to-[var(--accent-cyan)] p-2 shadow-xl">
+          <img
+            src={appIconUrl}
+            alt="霖君 Logo"
+            className="w-full h-full object-contain"
+          />
+        </div>
         <h1 className="text-3xl font-bold text-[var(--text-primary)] tracking-wider">
           霖君
         </h1>

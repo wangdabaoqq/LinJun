@@ -1,6 +1,6 @@
 # Linjun
 
-![Linjun Banner](docs/icon/icon.png)
+![Linjun Banner](docs/icon/logo.png)
 
 [![Platform macOS](https://img.shields.io/badge/platform-macOS-lightgray.svg)](https://developer.apple.com/macos/) [![Platform Windows](https://img.shields.io/badge/platform-Windows-blue.svg)](https://www.microsoft.com/windows/) [![Platform Linux](https://img.shields.io/badge/platform-Linux-yellow.svg)](https://www.linux.org/) [![Language TypeScript](https://img.shields.io/badge/language-TypeScript-3178c6.svg)](https://www.typescriptlang.org/) [![License MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
@@ -116,15 +116,15 @@ Go to **Agents** tab → Select detected agent → Configure to use local proxy.
 
 | Dashboard                                    | Providers                                    |
 | -------------------------------------------- | -------------------------------------------- |
-| ![Dashboard](docs/screenshots/dashboard.png) | ![Providers](docs/screenshots/providers.png) |
+| ![Dashboard](docs/screenshots/Dashboard.png) | ![Providers](docs/screenshots/Providers.png) |
 
 | Quota Monitoring                     | Settings                                   |
 | ------------------------------------ | ------------------------------------------ |
-| ![Quota](docs/screenshots/quota.png) | ![Settings](docs/screenshots/settings.png) |
+| ![Quota](docs/screenshots/Quota.png) | ![Settings](docs/screenshots/Settings.png) |
 
 | Agents                                   | API Key                                    |
 | ---------------------------------------- | ------------------------------------------ |
-| ![Agents](docs/screenshots/agents.png) | ![API Key](docs/screenshots/api-key.png) |
+| ![Agents](docs/screenshots/Agents.png) | ![API Key](docs/screenshots/API-key.png) |
 
 
 

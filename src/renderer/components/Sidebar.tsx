@@ -10,7 +10,7 @@ import { HelpCircleIcon } from "./ui/help-circle";
 import { PanelLeftCloseIcon } from "./ui/panel-left-close";
 import { PanelLeftOpenIcon } from "./ui/panel-left-open";
 import { useSettingsStore, useTranslations } from "../stores/settings";
-import appIconUrl from "../assets/menu.png";
+import appIconUrl from "../assets/AppIcon.png";
 
 type Page =
   | "dashboard"
@@ -186,11 +186,11 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
           sidebarCollapsed ? "justify-center" : "gap-3"
         }`}
       >
-        <img
-          src={appIconUrl}
-          alt="霖君 Logo"
-          className="w-8 h-8 flex-shrink-0"
-        />
+          <img
+            src={appIconUrl}
+            alt="霖君 Logo"
+            className="w-8 h-8 object-contain"
+          />
         <div
           className={`transition-all duration-300 overflow-hidden ${
             sidebarCollapsed ? "w-0 opacity-0" : "w-auto opacity-100"
