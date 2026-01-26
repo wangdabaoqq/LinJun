@@ -1,12 +1,16 @@
 import React from "react";
 import { useLanguage, useTranslations } from "../../stores/settings";
-import appIconUrl from "../../assets/AppIcon.svg?url";
+import {
+  getProviderIcon,
+  inferProviderFromLabel,
+} from "../icons/ProviderIcons";
 
 interface QuotaWindowBarProps {
   label: string;
   usedPercent: number;
   resetIn: string;
   limitReached?: boolean;
+  providerId?: string;
 }
 
 export function QuotaWindowBar({
@@ -14,6 +18,7 @@ export function QuotaWindowBar({
   usedPercent,
   resetIn,
   limitReached = false,
+  providerId,
 }: QuotaWindowBarProps) {
   const t = useTranslations();
   const { language } = useLanguage();
@@ -42,6 +47,8 @@ export function QuotaWindowBar({
   };
 
   const displayLabel = getTranslatedLabel(label);
+  const inferredProvider = inferProviderFromLabel(label);
+  const shouldShowIcon = inferredProvider !== "custom";
   const normalizeResetLabel = (value: string) => {
     if (language === "en") {
       return value
@@ -65,11 +72,11 @@ export function QuotaWindowBar({
     <div className="py-2">
       <div className="flex items-center justify-between mb-1.5">
         <div className="flex items-center gap-2 overflow-hidden">
-          <img
-            src={appIconUrl}
-            alt="Quota Icon"
-            className="w-4 h-4 flex-shrink-0"
-          />
+          {shouldShowIcon && (
+            <span className="w-4 h-4 flex-shrink-0 text-[var(--text-muted)]">
+              {getProviderIcon(inferredProvider)}
+            </span>
+          )}
           <span
             className="text-sm font-medium text-[var(--text-primary)] truncate"
             title={displayLabel}

@@ -49,6 +49,7 @@ const electronAPI = {
     }) => ipcRenderer.invoke("settings:syncToYaml", updates),
   },
   app: {
+    getVersion: () => ipcRenderer.invoke("app:getVersion"),
     checkForUpdates: () => ipcRenderer.invoke("app:checkForUpdates"),
     openExternal: (url: string) => ipcRenderer.invoke("app:openExternal", url),
   },

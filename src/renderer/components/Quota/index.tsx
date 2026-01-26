@@ -104,6 +104,7 @@ export function Quota() {
                     email={account.email}
                     badge={account.badge}
                     status={account.status}
+                    providerId={selectedProvider || undefined}
                     rateLimits={account.rateLimits}
                     lastUpdated={account.lastUpdated}
                     onRefresh={() => refreshAccount(account.id)}

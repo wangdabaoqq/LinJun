@@ -16,57 +16,57 @@ linjun is a cross-platform desktop application for managing CLIProxyAPIPlus, bui
 
 ```bash
 # Install dependencies
-pnpm install
+bun install
 
 # Development mode (hot reload)
-pnpm dev
+bun dev
 
 # Build for production
-pnpm build
+bun run build
 
 # Platform-specific builds
-pnpm build:mac      # macOS (dmg, zip)
-pnpm build:win      # Windows (nsis, portable)
-pnpm build:linux    # Linux (AppImage, deb)
-pnpm build:all      # All platforms
+bun run build:mac      # macOS (dmg, zip)
+bun run build:win      # Windows (nsis, portable)
+bun run build:linux    # Linux (AppImage, deb)
+bun run build:all      # All platforms
 
 # Download CLIProxyAPIPlus binary
-pnpm download:binary
+bun run download:binary
 ```
 
 ## Lint & Format Commands
 
 ```bash
 # Lint all files
-pnpm lint
+bun run lint
 
 # Lint with auto-fix
-pnpm lint:fix
+bun run lint:fix
 
 # Format code with Prettier
-pnpm format
+bun run format
 
 # Type check without emitting
-pnpm typecheck
+bun run typecheck
 ```
 
 ## Test Commands
 
 ```bash
 # Run all tests
-pnpm test
+bun test
 
 # Run tests in watch mode
-pnpm test:watch
+bun run test:watch
 
 # Run a single test file
-pnpm test src/main/proxy/manager.test.ts
+bun test src/main/proxy/manager.test.ts
 
 # Run tests matching a pattern
-pnpm test -t "ProxyManager"
+bun test -t "ProxyManager"
 
 # Run with coverage
-pnpm test:coverage
+bun run test:coverage
 ```
 
 ## Project Structure

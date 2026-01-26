@@ -52,3 +52,6 @@ publish:
   provider: github
   owner: wangdabaoqq
   repo: L-jun
+  releaseType: release
+
+generateUpdatesFilesForAllChannels: true

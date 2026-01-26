@@ -29,25 +29,25 @@ cp .env.example .env
 
 ```bash
 # macOS only
-pnpm release:mac
+bun run release:mac
 
 # Windows only
-pnpm release:win
+bun run release:win
 
 # Linux only
-pnpm release:linux
+bun run release:linux
 ```
 
 ### All Platforms
 
 ```bash
 # Build and publish for all platforms
-pnpm release:all
+bun run release:all
 ```
 
 ## What Happens
 
-When you run `pnpm release:all`:
+When you run `bun run release:all`:
 
 1. **Build**: `electron-vite build` compiles TypeScript
 2. **Package**: `electron-builder` creates installers for each platform
@@ -85,7 +85,7 @@ For GitHub Actions, add this to your workflow:
 - name: Build & Release
   env:
     GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  run: pnpm release:all
+  run: bun run release:all
 ```
 
 Note: `GITHUB_TOKEN` is automatically provided in GitHub Actions.

@@ -35,11 +35,17 @@ export async function checkForUpdates(): Promise<UpdateInfo> {
     };
   } catch (error) {
     console.error("[UpdateChecker] Failed to check updates:", error);
+
+    let errorMessage = "Failed to check for updates";
+    if (axios.isAxiosError(error) && error.response?.status === 404) {
+      errorMessage = "No releases available yet";
+    }
+
     return {
       hasUpdate: false,
       currentVersion,
       latestVersion: currentVersion,
-      error: "Failed to check for updates",
+      error: errorMessage,
     };
   }
 }

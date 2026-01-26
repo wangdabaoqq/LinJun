@@ -1,12 +1,14 @@
-# linjun
+# Linjun
 
-![linjun Banner](docs/screenshots/banner.png)
+![Linjun Banner](docs/screenshots/banner.png)
 
 [![Platform macOS](https://img.shields.io/badge/platform-macOS-lightgray.svg)](https://developer.apple.com/macos/) [![Platform Windows](https://img.shields.io/badge/platform-Windows-blue.svg)](https://www.microsoft.com/windows/) [![Platform Linux](https://img.shields.io/badge/platform-Linux-yellow.svg)](https://www.linux.org/) [![Language TypeScript](https://img.shields.io/badge/language-TypeScript-3178c6.svg)](https://www.typescriptlang.org/) [![License MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
+**[中文文档](README_CN.md)**
+
 **Cross-platform AI proxy management for Claude, Gemini, OpenAI, Qwen, and more.**
 
-linjun is a native desktop application for managing [CLIProxyAPIPlus](https://github.com/router-for-me/CLIProxyAPIPlus) - a local proxy server that powers your AI coding agents. It helps you manage multiple AI accounts, track quotas, and configure CLI tools in one place across **macOS**, **Windows**, and **Linux**.
+Linjun is a native desktop application for managing [CLIProxyAPIPlus](https://github.com/router-for-me/CLIProxyAPIPlus) - a local proxy server that powers your AI coding agents. It helps you manage multiple AI accounts, track quotas, and configure CLI tools in one place across **macOS**, **Windows**, and **Linux**.
 
 ## ✨ Features
 
@@ -38,56 +40,63 @@ linjun is a native desktop application for managing [CLIProxyAPIPlus](https://gi
 
 ### Compatible CLI Agents
 
-linjun can automatically configure these tools to use your centralized proxy:
+Linjun can automatically configure these tools to use your centralized proxy:
 
 - Claude Code
 - Codex CLI
 - Gemini CLI
 - OpenCode
 
-## 🚀 Installation
+## 📥 Installation
 
-### Requirements
+### Download
+
+Download the latest release from [GitHub Releases](https://github.com/wangdabaoqq/L-jun/releases):
+
+| Platform              | Download                          |
+| --------------------- | --------------------------------- |
+| macOS (Apple Silicon) | `Linjun-x.x.x-arm64.dmg`          |
+| macOS (Intel)         | `Linjun-x.x.x.dmg`                |
+| Windows               | `Linjun-Setup-x.x.x.exe`          |
+| Linux                 | `Linjun-x.x.x.AppImage` or `.deb` |
+
+### Build from Source
+
+**Requirements:**
 
 - Node.js 18+
-- pnpm 8+ (recommended) or npm
+- Bun (recommended) or npm
 - Git
-
-### From Source
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/linjun.git
-cd linjun
+git clone https://github.com/wangdabaoqq/L-jun.git
+cd L-jun
 
 # Install dependencies
-pnpm install
+bun install
 
 # Download CLIProxyAPIPlus binary
-pnpm download:binary
+bun run download:binary
 
 # Start development server
-pnpm dev
+bun dev
 ```
 
 ### Build for Production
 
 ```bash
-# Build for your current platform
-pnpm build
-
-# Platform-specific builds
-pnpm build:mac      # macOS (dmg, zip)
-pnpm build:win      # Windows (nsis, portable)
-pnpm build:linux    # Linux (AppImage, deb)
-pnpm build:all      # All platforms
+bun run build:mac      # macOS (dmg, zip)
+bun run build:win      # Windows (nsis, portable)
+bun run build:linux    # Linux (AppImage, deb)
+bun run build:all      # All platforms
 ```
 
 ## 📖 Usage
 
 ### 1. Start the Server
 
-Launch linjun and click **Start** to initialize the local proxy server.
+Launch Linjun and click **Start** to initialize the local proxy server.
 
 ### 2. Connect Accounts
 
@@ -105,25 +114,19 @@ Go to **Agents** tab → Select detected agent → Configure to use local proxy.
 
 ## 📸 Screenshots
 
-### Dashboard
+| Dashboard                                    | Providers                                    |
+| -------------------------------------------- | -------------------------------------------- |
+| ![Dashboard](docs/screenshots/dashboard.png) | ![Providers](docs/screenshots/providers.png) |
 
-![Dashboard](docs/screenshots/dashboard.png)
+| Quota Monitoring                     | Settings                                   |
+| ------------------------------------ | ------------------------------------------ |
+| ![Quota](docs/screenshots/quota.png) | ![Settings](docs/screenshots/settings.png) |
 
-### Providers
+| Agents                                   | API Key                                    |
+| ---------------------------------------- | ------------------------------------------ |
+| ![Agents](docs/screenshots/agents.png) | ![API Key](docs/screenshots/api-key.png) |
 
-![Providers](docs/screenshots/providers.png)
 
-### Quota Monitoring
-
-![Quota](docs/screenshots/quota.png)
-
-### Agent Configuration
-
-![Agents](docs/screenshots/agents.png)
-
-### Settings
-
-![Settings](docs/screenshots/settings.png)
 
 ## ⚙️ Settings
 
@@ -197,6 +200,4 @@ MIT License. See [LICENSE](LICENSE) for details.
 
 ---
 
-**Star History**
-
-![Star History](https://api.star-history.com/svg?repos=yourusername/linjun&type=Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=wangdabaoqq/L-jun&type=Date)](https://star-history.com/#wangdabaoqq/L-jun&Date)

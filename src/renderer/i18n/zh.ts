@@ -3,7 +3,6 @@ import { Translations } from "./en";
 export const zh: Translations = {
   app: {
     name: "CLI-to-API 桥接器",
-    version: "v2.0",
     systemActive: "系统运行中",
   },
   sidebar: {

@@ -1,4 +1,4 @@
-import { ipcMain, shell } from "electron";
+import { app, ipcMain, shell } from "electron";
 import { proxyManager } from "../proxy/manager";
 import { managementAPI, Provider } from "../proxy/api";
 import { store } from "../utils/store";
@@ -255,6 +255,10 @@ export function setupIpcHandlers(): void {
       }
     },
   );
+
+  ipcMain.handle("app:getVersion", () => {
+    return app.getVersion();
+  });
 
   ipcMain.handle("app:checkForUpdates", async () => {
     return await checkForUpdates();

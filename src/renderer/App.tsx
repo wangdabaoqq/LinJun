@@ -87,6 +87,13 @@ function TopBar() {
   const t = useTranslations();
   const port = useSettingsStore((s) => s.port);
   const isMac = navigator.userAgent.includes("Mac");
+  const [version, setVersion] = useState<string>("");
+
+  useEffect(() => {
+    window.electronAPI?.app.getVersion().then((v) => {
+      setVersion(v ? `v${v}` : "");
+    });
+  }, []);
 
   return (
     <div
@@ -100,7 +107,7 @@ function TopBar() {
             {t.app.name}
           </span>
           <span className="text-xs text-[var(--text-dim)] bg-soft px-2 py-0.5 rounded">
-            {t.app.version}
+            {version}
           </span>
         </div>
       </div>

@@ -1,16 +1,16 @@
 import { useState } from "react";
 import { useTranslations } from "../../stores/settings";
+import Claude from "@lobehub/icons/es/Claude";
+import OpenAI from "@lobehub/icons/es/OpenAI";
+import Gemini from "@lobehub/icons/es/Gemini";
+import GithubCopilot from "@lobehub/icons/es/GithubCopilot";
+import Qwen from "@lobehub/icons/es/Qwen";
+import VertexAI from "@lobehub/icons/es/VertexAI";
 
 import {
-  ClaudeIcon,
-  OpenAIIcon,
-  GeminiIcon,
   AntigravityIcon,
-  QwenIcon,
   IFlowIcon,
-  CopilotIcon,
   KiroIcon,
-  VertexIcon,
   CustomIcon,
 } from "../icons/ProviderIcons";
 
@@ -50,7 +50,7 @@ const allProviders: Omit<Provider, "accounts">[] = [
   {
     id: "claude",
     name: "Claude Code",
-    icon: <ClaudeIcon />,
+    icon: <Claude.Color size={24} />,
     color: "magenta",
     description: "Claude 4, Claude 3.5 Sonnet, Claude 3 Opus",
     authType: "oauth",
@@ -58,7 +58,7 @@ const allProviders: Omit<Provider, "accounts">[] = [
   {
     id: "gemini",
     name: "Gemini CLI",
-    icon: <GeminiIcon />,
+    icon: <Gemini.Color size={24} />,
     color: "indigo",
     description: "Gemini 2.5 Pro/Flash, Gemini 1.5",
     authType: "oauth",
@@ -66,7 +66,7 @@ const allProviders: Omit<Provider, "accounts">[] = [
   {
     id: "codex",
     name: "Codex (ChatGPT)",
-    icon: <OpenAIIcon />,
+    icon: <OpenAI size={24} />,
     color: "teal",
     description: "GPT-4o, o1, o3, ChatGPT Plus",
     authType: "oauth",
@@ -82,7 +82,7 @@ const allProviders: Omit<Provider, "accounts">[] = [
   {
     id: "qwen",
     name: "Qwen Code",
-    icon: <QwenIcon />,
+    icon: <Qwen.Color size={24} />,
     color: "indigo",
     description: "Qwen 3, Qwen 2.5 Coder",
     authType: "oauth",
@@ -98,7 +98,7 @@ const allProviders: Omit<Provider, "accounts">[] = [
   {
     id: "copilot",
     name: "GitHub Copilot",
-    icon: <CopilotIcon />,
+    icon: <GithubCopilot size={24} />,
     color: "teal",
     description: "GPT-4o, Claude 3.5, Gemini 2.0",
     authType: "oauth",
@@ -116,7 +116,7 @@ const allProviders: Omit<Provider, "accounts">[] = [
   {
     id: "vertex",
     name: "Vertex AI",
-    icon: <VertexIcon />,
+    icon: <VertexAI.Color size={24} />,
     color: "teal",
     description: "Gemini, Claude, Llama via Google Cloud",
     authType: "oauth",

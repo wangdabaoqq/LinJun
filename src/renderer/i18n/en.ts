@@ -1,7 +1,6 @@
 export const en = {
   app: {
     name: "Linjun",
-    version: "v2.0",
     systemActive: "SYSTEM ACTIVE",
   },
   sidebar: {

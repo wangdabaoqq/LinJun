@@ -13,6 +13,7 @@ export interface AccountQuotaCardProps {
   email: string;
   badge?: string;
   status: "active" | "limited" | "error" | "refreshing";
+  providerId?: string;
   rateLimits: {
     primary: QuotaWindow;
     secondary?: QuotaWindow;
@@ -27,6 +28,7 @@ export function AccountQuotaCard({
   email,
   badge,
   status,
+  providerId,
   rateLimits,
   lastUpdated,
   onRefresh,
@@ -130,6 +132,7 @@ export function AccountQuotaCard({
           usedPercent={rateLimits.primary.usedPercent}
           resetIn={rateLimits.primary.resetIn}
           limitReached={rateLimits.primary.limitReached}
+          providerId={providerId}
         />
 
         {(rateLimits.secondary ||
@@ -142,6 +145,7 @@ export function AccountQuotaCard({
                 usedPercent={rateLimits.secondary.usedPercent}
                 resetIn={rateLimits.secondary.resetIn}
                 limitReached={rateLimits.secondary.limitReached}
+                providerId={providerId}
               />
             )}
             {rateLimits.codeReview && (
@@ -150,6 +154,7 @@ export function AccountQuotaCard({
                 usedPercent={rateLimits.codeReview.usedPercent}
                 resetIn={rateLimits.codeReview.resetIn}
                 limitReached={rateLimits.codeReview.limitReached}
+                providerId={providerId}
               />
             )}
 
@@ -164,6 +169,7 @@ export function AccountQuotaCard({
                       usedPercent={quota.usedPercent}
                       resetIn={quota.resetIn}
                       limitReached={quota.limitReached}
+                      providerId={providerId}
                     />
                   ))}
 
@@ -177,6 +183,7 @@ export function AccountQuotaCard({
                         usedPercent={quota.usedPercent}
                         resetIn={quota.resetIn}
                         limitReached={quota.limitReached}
+                        providerId={providerId}
                       />
                     ))}
 
