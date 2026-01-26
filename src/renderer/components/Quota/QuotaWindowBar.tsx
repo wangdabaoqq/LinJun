@@ -1,5 +1,6 @@
 import React from "react";
 import { useLanguage, useTranslations } from "../../stores/settings";
+import appIconUrl from "../../assets/AppIcon.svg?url";
 
 interface QuotaWindowBarProps {
   label: string;
@@ -65,7 +66,7 @@ export function QuotaWindowBar({
       <div className="flex items-center justify-between mb-1.5">
         <div className="flex items-center gap-2 overflow-hidden">
           <img
-            src="src/renderer/components/shared/AppIcon.svg"
+            src={appIconUrl}
             alt="Quota Icon"
             className="w-4 h-4 flex-shrink-0"
           />

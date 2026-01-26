@@ -1,20 +1,20 @@
-# CLIPlus UI Design - Cyberpunk Theme
+# linjun UI Design - Cyberpunk Theme
 
 ## Visual Style Guide
 
 ### Color Palette
 
-| Name | Hex | Usage |
-|------|-----|-------|
-| **Background** | `#0a0a0f` | Main background |
-| **Background Secondary** | `#0d0d12` | Cards, panels |
-| **Neon Cyan** | `#00ffff` | Primary accent, active states |
-| **Neon Pink** | `#ff00aa` | Secondary accent, warnings |
-| **Neon Purple** | `#9d00ff` | Tertiary accent |
-| **Neon Green** | `#00ff88` | Success, online status |
-| **Neon Red** | `#ff0044` | Error, offline status |
-| **Text Primary** | `#e0e0e0` | Main text |
-| **Text Muted** | `#888888` | Secondary text |
+| Name                     | Hex       | Usage                         |
+| ------------------------ | --------- | ----------------------------- |
+| **Background**           | `#0a0a0f` | Main background               |
+| **Background Secondary** | `#0d0d12` | Cards, panels                 |
+| **Neon Cyan**            | `#00ffff` | Primary accent, active states |
+| **Neon Pink**            | `#ff00aa` | Secondary accent, warnings    |
+| **Neon Purple**          | `#9d00ff` | Tertiary accent               |
+| **Neon Green**           | `#00ff88` | Success, online status        |
+| **Neon Red**             | `#ff0044` | Error, offline status         |
+| **Text Primary**         | `#e0e0e0` | Main text                     |
+| **Text Muted**           | `#888888` | Secondary text                |
 
 ### Typography
 
@@ -65,19 +65,29 @@
 ## Component Specifications
 
 ### HUD Top Bar
+
 ```css
 .hud-bar {
   height: 40px;
-  background: linear-gradient(180deg, rgba(0,0,0,0.8), rgba(10,10,15,0.9));
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.8),
+    rgba(10, 10, 15, 0.9)
+  );
   border-bottom: 1px solid rgba(0, 255, 255, 0.2);
   backdrop-filter: blur(10px);
 }
 ```
 
 ### Cyber Card
+
 ```css
 .cyber-card {
-  background: linear-gradient(135deg, rgba(13,13,18,0.9), rgba(20,20,30,0.9));
+  background: linear-gradient(
+    135deg,
+    rgba(13, 13, 18, 0.9),
+    rgba(20, 20, 30, 0.9)
+  );
   border: 1px solid rgba(0, 255, 255, 0.2);
   border-radius: 8px;
 }
@@ -89,9 +99,14 @@
 ```
 
 ### Cyber Button
+
 ```css
 .cyber-btn {
-  background: linear-gradient(135deg, rgba(0,255,255,0.1), rgba(157,0,255,0.1));
+  background: linear-gradient(
+    135deg,
+    rgba(0, 255, 255, 0.1),
+    rgba(157, 0, 255, 0.1)
+  );
   border: 1px solid rgba(0, 255, 255, 0.4);
   color: #00ffff;
   text-transform: uppercase;
@@ -105,6 +120,7 @@
 ```
 
 ### Status Indicators
+
 ```css
 .status-online {
   color: #00ff88;
@@ -118,6 +134,7 @@
 ```
 
 ### Progress Bar
+
 ```css
 .progress-bar-cyber {
   background: rgba(0, 0, 0, 0.4);
@@ -135,18 +152,21 @@
 ## Page Designs
 
 ### Dashboard
+
 - 3 stat cards (Requests, Tokens, Latency) with neon colors
 - Terminal log with live indicator
 - Quota usage bars
 - Active endpoints grid
 
 ### Providers
+
 - Grid of provider cards
 - Status indicators (green/red glow)
 - OAuth connect buttons
 - Account count display
 
 ### Quota
+
 - Summary cards (Total Used, At Limit, Next Reset)
 - Per-account quota bars with color coding:
   - Green: < 80%
@@ -154,16 +174,19 @@
   - Red: > 95%
 
 ### Agents
+
 - List of detected CLI agents
 - Status: Configured (green), Detected (yellow), Not Found (gray)
 - Configuration code snippets
 
 ### Logs
+
 - Table with columns: Time, Provider, Model, Tokens, Latency, Status
 - Filter buttons (All, Success, Error)
 - Monospace terminal font
 
 ### Settings
+
 - Form inputs with cyber styling
 - Toggle switches with neon glow
 - About section with version info

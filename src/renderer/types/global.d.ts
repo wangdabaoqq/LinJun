@@ -69,18 +69,30 @@ interface ElectronAPI {
     ) => Promise<{ success: boolean; keys: string[]; error?: string }>;
   };
   logs: {
-    fetch: (limit?: number) => Promise<{
-      id: string;
-      status: "success" | "error";
-      timestamp: string;
-      method?: string;
-      url?: string;
-      provider?: string;
-      model?: string;
-      headers: Record<string, string>;
-      requestBody?: string;
-    }[]>;
+    fetch: (limit?: number) => Promise<
+      {
+        id: string;
+        status: "success" | "error";
+        timestamp: string;
+        method?: string;
+        url?: string;
+        provider?: string;
+        model?: string;
+        headers: Record<string, string>;
+        requestBody?: string;
+      }[]
+    >;
   };
+}
+
+declare module "*.svg" {
+  const content: string;
+  export default content;
+}
+
+declare module "*.svg?url" {
+  const content: string;
+  export default content;
 }
 
 declare global {

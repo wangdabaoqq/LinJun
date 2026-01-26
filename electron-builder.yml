@@ -47,3 +47,8 @@ nsis:
   allowToChangeInstallationDirectory: true
   createDesktopShortcut: true
   createStartMenuShortcut: true
+
+publish:
+  provider: github
+  owner: wangdabaoqq
+  repo: L-jun

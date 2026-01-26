@@ -55,7 +55,7 @@ export function About() {
           ◈
         </div>
         <h1 className="text-3xl font-bold text-[var(--text-primary)] tracking-wider">
-          CLIPlus
+          linjun
         </h1>
         <p className="text-[var(--text-muted)] mt-2">{t.about.tagline}</p>
         <div className="terminal-text text-xl text-[var(--accent-magenta)] glow-magenta mt-4">
@@ -269,7 +269,7 @@ export function About() {
         </h3>
         <p className="text-sm text-[var(--text-muted)]">{t.about.builtWith}</p>
         <p className="text-xs text-[var(--text-dim)] mt-4">
-          © 2024 CLIPlus. MIT License.
+          © 2024 linjun. MIT License.
         </p>
       </div>
     </div>

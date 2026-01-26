@@ -1,71 +1,73 @@
-import { Tray, Menu, nativeImage, app, BrowserWindow } from 'electron'
-import path from 'path'
-import { proxyManager } from './proxy/manager'
+import { Tray, Menu, nativeImage, app, BrowserWindow } from "electron";
+import path from "path";
+import { proxyManager } from "./proxy/manager";
 
-let tray: Tray | null = null
+let tray: Tray | null = null;
 
 export function createTray(mainWindow: BrowserWindow): void {
-  const iconPath = path.join(__dirname, '../../resources/icon.png')
-  const icon = nativeImage.createFromPath(iconPath).resize({ width: 16, height: 16 })
+  const iconPath = path.join(__dirname, "../../resources/icon.png");
+  const icon = nativeImage
+    .createFromPath(iconPath)
+    .resize({ width: 16, height: 16 });
 
-  tray = new Tray(icon)
-  tray.setToolTip('CLIPlus')
+  tray = new Tray(icon);
+  tray.setToolTip("linjun");
 
   const updateMenu = (): void => {
-    const isRunning = proxyManager.isRunning()
+    const isRunning = proxyManager.isRunning();
 
     const contextMenu = Menu.buildFromTemplate([
       {
-        label: 'Dashboard',
+        label: "Dashboard",
         click: () => {
-          mainWindow.show()
-          mainWindow.focus()
+          mainWindow.show();
+          mainWindow.focus();
         },
       },
-      { type: 'separator' },
+      { type: "separator" },
       {
-        label: isRunning ? '● Running' : '○ Stopped',
+        label: isRunning ? "● Running" : "○ Stopped",
         enabled: false,
       },
       {
         label: `Port: ${proxyManager.getPort()}`,
         enabled: false,
       },
-      { type: 'separator' },
+      { type: "separator" },
       {
-        label: isRunning ? 'Stop Proxy' : 'Start Proxy',
+        label: isRunning ? "Stop Proxy" : "Start Proxy",
         click: async () => {
           if (isRunning) {
-            await proxyManager.stop()
+            await proxyManager.stop();
           } else {
-            await proxyManager.start()
+            await proxyManager.start();
           }
-          updateMenu()
+          updateMenu();
         },
       },
-      { type: 'separator' },
+      { type: "separator" },
       {
-        label: 'Quit',
+        label: "Quit",
         click: () => {
-          proxyManager.stop()
-          app.quit()
+          proxyManager.stop();
+          app.quit();
         },
       },
-    ])
+    ]);
 
-    tray?.setContextMenu(contextMenu)
-  }
+    tray?.setContextMenu(contextMenu);
+  };
 
-  updateMenu()
-  proxyManager.on('statusChange', updateMenu)
+  updateMenu();
+  proxyManager.on("statusChange", updateMenu);
 
-  tray.on('click', () => {
-    mainWindow.show()
-    mainWindow.focus()
-  })
+  tray.on("click", () => {
+    mainWindow.show();
+    mainWindow.focus();
+  });
 }
 
 export function destroyTray(): void {
-  tray?.destroy()
-  tray = null
+  tray?.destroy();
+  tray = null;
 }

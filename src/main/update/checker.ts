@@ -1,7 +1,7 @@
 import axios from "axios";
 import { app } from "electron";
 
-const GITHUB_REPO = "anthropics/cliPlus";
+const GITHUB_REPO = "wangdabaoqq/L-jun";
 
 export interface UpdateInfo {
   hasUpdate: boolean;

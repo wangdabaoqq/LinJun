@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from "electron";
+import { app, BrowserWindow, nativeImage } from "electron";
 import path from "path";
 import { createTray } from "./tray";
 import { setupIpcHandlers } from "./ipc/handlers";
@@ -22,11 +22,16 @@ async function initializeApp(): Promise<void> {
 }
 
 function createWindow(): void {
+  // Set window icon for all platforms
+  // In development mode, macOS also needs explicit icon setting
+  const iconPath = path.join(__dirname, "../../resources/icon.png");
+
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
     minWidth: 800,
     minHeight: 600,
+    icon: nativeImage.createFromPath(iconPath),
     webPreferences: {
       preload: path.join(__dirname, "../preload/index.js"),
       nodeIntegration: false,

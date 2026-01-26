@@ -5,4 +5,5 @@ dist/
 .DS_Store
 .env
 .env.local
+.env.production
 resources/binaries/*/cliproxy*

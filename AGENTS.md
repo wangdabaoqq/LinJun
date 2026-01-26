@@ -1,10 +1,11 @@
-# AGENTS.md - CLIPlus Development Guide
+# AGENTS.md - linjun Development Guide
 
 > Instructions for AI coding agents working on this Electron + React + TypeScript codebase.
 
 ## Project Overview
 
-CLIPlus is a cross-platform desktop application for managing CLIProxyAPIPlus, built with:
+linjun is a cross-platform desktop application for managing CLIProxyAPIPlus, built with:
+
 - **Electron 33+** - Desktop framework
 - **React 18** - UI library
 - **TypeScript 5** - Type safety
@@ -89,9 +90,9 @@ src/
 ```typescript
 // ✅ Good
 interface ProxyStatus {
-  running: boolean
-  port: number
-  uptime: number
+  running: boolean;
+  port: number;
+  uptime: number;
 }
 
 export function getStatus(): ProxyStatus {
@@ -107,6 +108,7 @@ export function getStatus(): any {
 ### Imports
 
 Order imports in this sequence (with blank lines between groups):
+
 1. Node.js built-ins
 2. Electron modules
 3. Third-party packages
@@ -115,30 +117,30 @@ Order imports in this sequence (with blank lines between groups):
 
 ```typescript
 // ✅ Good
-import path from 'path'
-import { spawn } from 'child_process'
+import path from "path";
+import { spawn } from "child_process";
 
-import { app, BrowserWindow, ipcMain } from 'electron'
+import { app, BrowserWindow, ipcMain } from "electron";
 
-import axios from 'axios'
-import { create } from 'zustand'
+import axios from "axios";
+import { create } from "zustand";
 
-import { proxyManager } from '@/main/proxy/manager'
+import { proxyManager } from "@/main/proxy/manager";
 
-import { formatBytes } from './utils'
+import { formatBytes } from "./utils";
 ```
 
 ### Naming Conventions
 
-| Element | Convention | Example |
-|---------|------------|---------|
-| Files (components) | PascalCase | `ProxyControl.tsx` |
-| Files (utils) | camelCase | `formatBytes.ts` |
-| Variables/Functions | camelCase | `isRunning`, `startProxy()` |
-| Constants | UPPER_SNAKE | `DEFAULT_PORT` |
-| Types/Interfaces | PascalCase | `ProxyConfig` |
-| React Components | PascalCase | `DashboardView` |
-| IPC Channels | kebab:colon | `proxy:start`, `auth:login` |
+| Element             | Convention  | Example                     |
+| ------------------- | ----------- | --------------------------- |
+| Files (components)  | PascalCase  | `ProxyControl.tsx`          |
+| Files (utils)       | camelCase   | `formatBytes.ts`            |
+| Variables/Functions | camelCase   | `isRunning`, `startProxy()` |
+| Constants           | UPPER_SNAKE | `DEFAULT_PORT`              |
+| Types/Interfaces    | PascalCase  | `ProxyConfig`               |
+| React Components    | PascalCase  | `DashboardView`             |
+| IPC Channels        | kebab:colon | `proxy:start`, `auth:login` |
 
 ### React Components
 
@@ -149,11 +151,11 @@ import { formatBytes } from './utils'
 ```typescript
 // ✅ Good
 interface ProxyControlProps {
-  onStatusChange?: (running: boolean) => void
+  onStatusChange?: (running: boolean) => void;
 }
 
 export function ProxyControl({ onStatusChange }: ProxyControlProps) {
-  const [running, setRunning] = useState(false)
+  const [running, setRunning] = useState(false);
   // ...
 }
 ```
@@ -169,11 +171,11 @@ export function ProxyControl({ onStatusChange }: ProxyControlProps) {
 // ✅ Good
 async function startProxy(): Promise<{ success: boolean; error?: string }> {
   try {
-    await proxyManager.start()
-    return { success: true }
+    await proxyManager.start();
+    return { success: true };
   } catch (error) {
-    console.error('[Proxy] Failed to start:', error)
-    return { success: false, error: String(error) }
+    console.error("[Proxy] Failed to start:", error);
+    return { success: false, error: String(error) };
   }
 }
 ```
@@ -186,17 +188,17 @@ async function startProxy(): Promise<{ success: boolean; error?: string }> {
 
 ```typescript
 // main/ipc/handlers.ts
-ipcMain.handle('proxy:start', async () => {
-  await proxyManager.start()
-  return { success: true }
-})
+ipcMain.handle("proxy:start", async () => {
+  await proxyManager.start();
+  return { success: true };
+});
 
 // preload/index.ts
-contextBridge.exposeInMainWorld('electronAPI', {
+contextBridge.exposeInMainWorld("electronAPI", {
   proxy: {
-    start: () => ipcRenderer.invoke('proxy:start'),
+    start: () => ipcRenderer.invoke("proxy:start"),
   },
-})
+});
 ```
 
 ### Tailwind CSS
@@ -224,18 +226,20 @@ contextBridge.exposeInMainWorld('electronAPI', {
 When creating new files, follow these patterns:
 
 ### Main Process Module
+
 ```typescript
 // src/main/feature/index.ts
-import { ipcMain } from 'electron'
+import { ipcMain } from "electron";
 
 export function setupFeature(): void {
-  ipcMain.handle('feature:action', async (_event, args) => {
+  ipcMain.handle("feature:action", async (_event, args) => {
     // Implementation
-  })
+  });
 }
 ```
 
 ### React Component
+
 ```typescript
 // src/renderer/components/Feature/FeatureName.tsx
 import { useState } from 'react'

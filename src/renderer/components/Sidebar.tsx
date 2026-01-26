@@ -10,6 +10,7 @@ import { HelpCircleIcon } from "./ui/help-circle";
 import { PanelLeftCloseIcon } from "./ui/panel-left-close";
 import { PanelLeftOpenIcon } from "./ui/panel-left-open";
 import { useSettingsStore, useTranslations } from "../stores/settings";
+import appIconUrl from "../assets/AppIcon.svg?url";
 
 type Page =
   | "dashboard"
@@ -147,6 +148,7 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
     const isActive = currentPage === item.id;
     const button = (
       <button
+        data-page={item.id}
         onClick={() => onNavigate(item.id)}
         className={`nav-item w-full flex items-center ${sidebarCollapsed ? "justify-center" : "gap-3"} px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
           isActive ? "nav-item-active" : "nav-item-inactive"
@@ -185,8 +187,8 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
         }`}
       >
         <img
-          src="src/renderer/components/shared/AppIcon.svg"
-          alt="CLIPlus Logo"
+          src={appIconUrl}
+          alt="linjun Logo"
           className="w-8 h-8 flex-shrink-0 drop-shadow-[var(--glow-primary)]"
         />
         <div
@@ -195,7 +197,7 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
           }`}
         >
           <div className="text-lg font-bold text-[var(--text-primary)] whitespace-nowrap">
-            CLIPlus
+            linjun
           </div>
           <div className="text-xs text-[var(--text-dim)] whitespace-nowrap">
             Proxy Manager

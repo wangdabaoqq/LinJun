@@ -31,7 +31,7 @@ export interface ProxyConfig {
 }
 
 function getDefaultConfig(authDir: string): string {
-  return `# CLIProxyAPIPlus Configuration (managed by CLIPlus)
+  return `# CLIProxyAPIPlus Configuration (managed by linjun)
 host: "127.0.0.1"
 port: 8317
 auth-dir: "${authDir}"
