@@ -12,11 +12,17 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License MIT" /></a>
 </p>
 
-**[中文文档](README_CN.md)**
+<p align="center">
+  <strong><a href="README_CN.md">中文文档</a></strong>
+</p>
 
-**Cross-platform AI proxy management for Claude, Gemini, OpenAI, Qwen, and more.**
+<p align="center">
+  <strong>Cross-platform AI proxy management for Claude, Gemini, OpenAI, Qwen, and more.</strong>
+</p>
 
-霖君 is a native desktop application for managing [CLIProxyAPIPlus](https://github.com/router-for-me/CLIProxyAPIPlus) - a local proxy server that powers your AI coding agents. It helps you manage multiple AI accounts, track quotas, and configure CLI tools in one place across **macOS**, **Windows**, and **Linux**.
+<p align="center">
+  霖君 is a native desktop application for managing <a href="https://github.com/router-for-me/CLIProxyAPIPlus">CLIProxyAPIPlus</a> - a local proxy server that powers your AI coding agents. It helps you manage multiple AI accounts, track quotas, and configure CLI tools in one place across <strong>macOS</strong>, <strong>Windows</strong>, and <strong>Linux</strong>.
+</p>
 
 ## ✨ Features
 

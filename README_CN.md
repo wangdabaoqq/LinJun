@@ -12,11 +12,17 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License MIT" /></a>
 </p>
 
-**[English](README.md)**
+<p align="center">
+  <strong><a href="README.md">English</a></strong>
+</p>
 
-**跨平台 AI 代理管理工具，支持 Claude、Gemini、OpenAI、Qwen 等。**
+<p align="center">
+  <strong>跨平台 AI 代理管理工具，支持 Claude、Gemini、OpenAI、Qwen 等。</strong>
+</p>
 
-霖君是一款原生桌面应用，用于管理 [CLIProxyAPIPlus](https://github.com/router-for-me/CLIProxyAPIPlus) —— 一个为 AI 编程助手提供支持的本地代理服务器。它帮助你在 **macOS**、**Windows** 和 **Linux** 上统一管理多个 AI 账户、追踪配额、配置 CLI 工具。
+<p align="center">
+  霖君是一款原生桌面应用，用于管理 <a href="https://github.com/router-for-me/CLIProxyAPIPlus">CLIProxyAPIPlus</a> —— 一个为 AI 编程助手提供支持的本地代理服务器。它帮助你在 <strong>macOS</strong>、<strong>Windows</strong> 和 <strong>Linux</strong> 上统一管理多个 AI 账户、追踪配额、配置 CLI 工具。
+</p>
 
 ## ✨ 功能特性
 
