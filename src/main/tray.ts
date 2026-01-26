@@ -11,7 +11,7 @@ export function createTray(mainWindow: BrowserWindow): void {
     .resize({ width: 16, height: 16 });
 
   tray = new Tray(icon);
-  tray.setToolTip("linjun");
+  tray.setToolTip("霖君");
 
   const updateMenu = (): void => {
     const isRunning = proxyManager.isRunning();

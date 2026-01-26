@@ -10,7 +10,7 @@ import { HelpCircleIcon } from "./ui/help-circle";
 import { PanelLeftCloseIcon } from "./ui/panel-left-close";
 import { PanelLeftOpenIcon } from "./ui/panel-left-open";
 import { useSettingsStore, useTranslations } from "../stores/settings";
-import appIconUrl from "../assets/AppIcon.svg?url";
+import appIconUrl from "../assets/menu.png";
 
 type Page =
   | "dashboard"
@@ -188,8 +188,8 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
       >
         <img
           src={appIconUrl}
-          alt="linjun Logo"
-          className="w-8 h-8 flex-shrink-0 drop-shadow-[var(--glow-primary)]"
+          alt="霖君 Logo"
+          className="w-8 h-8 flex-shrink-0"
         />
         <div
           className={`transition-all duration-300 overflow-hidden ${
@@ -197,7 +197,7 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
           }`}
         >
           <div className="text-lg font-bold text-[var(--text-primary)] whitespace-nowrap">
-            linjun
+            霖君
           </div>
           <div className="text-xs text-[var(--text-dim)] whitespace-nowrap">
             Proxy Manager

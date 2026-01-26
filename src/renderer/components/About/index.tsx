@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useTranslations } from "../../stores/settings";
+import appIconUrl from "../../assets/menu.png";
 
 interface UpdateInfo {
   hasUpdate: boolean;
@@ -51,11 +52,13 @@ export function About() {
       </div>
 
       <div className="glass-card glass-card-teal p-6 text-center">
-        <div className="text-6xl mb-4 text-[var(--accent-teal)] glow-teal">
-          ◈
-        </div>
+        <img
+          src={appIconUrl}
+          alt="霖君 Logo"
+          className="w-16 h-16 mx-auto mb-4"
+        />
         <h1 className="text-3xl font-bold text-[var(--text-primary)] tracking-wider">
-          linjun
+          霖君
         </h1>
         <p className="text-[var(--text-muted)] mt-2">{t.about.tagline}</p>
         <div className="terminal-text text-xl text-[var(--accent-magenta)] glow-magenta mt-4">
@@ -101,27 +104,37 @@ export function About() {
             {t.about.links}
           </h3>
           <div className="space-y-3">
-            <a
-              href="#"
-              className="flex items-center gap-2 text-sm text-[var(--text-muted)] hover:text-[var(--accent-magenta)] transition-colors"
+            <button
+              onClick={() =>
+                handleOpenExternal("https://github.com/wangdabaoqq/L-jun")
+              }
+              className="flex items-center gap-2 text-sm text-[var(--text-muted)] hover:text-[var(--accent-magenta)] transition-colors cursor-pointer w-full text-left"
             >
               <span>◉</span>
               <span>GitHub Repository</span>
-            </a>
-            <a
-              href="#"
-              className="flex items-center gap-2 text-sm text-[var(--text-muted)] hover:text-[var(--accent-magenta)] transition-colors"
+            </button>
+            <button
+              onClick={() =>
+                handleOpenExternal(
+                  "https://github.com/wangdabaoqq/L-jun#readme",
+                )
+              }
+              className="flex items-center gap-2 text-sm text-[var(--text-muted)] hover:text-[var(--accent-magenta)] transition-colors cursor-pointer w-full text-left"
             >
               <span>◉</span>
               <span>{t.about.documentation}</span>
-            </a>
-            <a
-              href="#"
-              className="flex items-center gap-2 text-sm text-[var(--text-muted)] hover:text-[var(--accent-magenta)] transition-colors"
+            </button>
+            <button
+              onClick={() =>
+                handleOpenExternal(
+                  "https://github.com/wangdabaoqq/L-jun/issues",
+                )
+              }
+              className="flex items-center gap-2 text-sm text-[var(--text-muted)] hover:text-[var(--accent-magenta)] transition-colors cursor-pointer w-full text-left"
             >
               <span>◉</span>
               <span>{t.about.reportIssue}</span>
-            </a>
+            </button>
           </div>
         </div>
       </div>
@@ -269,7 +282,7 @@ export function About() {
         </h3>
         <p className="text-sm text-[var(--text-muted)]">{t.about.builtWith}</p>
         <p className="text-xs text-[var(--text-dim)] mt-4">
-          © 2024 linjun. MIT License.
+          © 2024 霖君. MIT License.
         </p>
       </div>
     </div>
