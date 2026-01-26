@@ -4,7 +4,13 @@
   <img src="docs/icon/logo.webp" alt="霖君 Banner" />
 </p>
 
-[![Platform macOS](https://img.shields.io/badge/platform-macOS-lightgray.svg)](https://developer.apple.com/macos/) [![Platform Windows](https://img.shields.io/badge/platform-Windows-blue.svg)](https://www.microsoft.com/windows/) [![Platform Linux](https://img.shields.io/badge/platform-Linux-yellow.svg)](https://www.linux.org/) [![Language TypeScript](https://img.shields.io/badge/language-TypeScript-3178c6.svg)](https://www.typescriptlang.org/) [![License MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+<p align="center">
+  <a href="https://developer.apple.com/macos/"><img src="https://img.shields.io/badge/platform-macOS-lightgray.svg" alt="Platform macOS" /></a>
+  <a href="https://www.microsoft.com/windows/"><img src="https://img.shields.io/badge/platform-Windows-blue.svg" alt="Platform Windows" /></a>
+  <a href="https://www.linux.org/"><img src="https://img.shields.io/badge/platform-Linux-yellow.svg" alt="Platform Linux" /></a>
+  <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/language-TypeScript-3178c6.svg" alt="Language TypeScript" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License MIT" /></a>
+</p>
 
 **[English](README.md)**
 
