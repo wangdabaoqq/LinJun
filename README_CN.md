@@ -1,7 +1,7 @@
 # 霖君
 
 <p align="center">
-  <img src="docs/icon/logo.webp" alt="霖君 Banner" />
+  <img src="docs/icon/logo.webp" alt="LinJun Banner" />
 </p>
 
 <p align="center">
@@ -21,7 +21,7 @@
 </p>
 
 <p align="center">
-  霖君是一款原生桌面应用，用于管理 <a href="https://github.com/router-for-me/CLIProxyAPIPlus">CLIProxyAPIPlus</a> —— 一个为 AI 编程助手提供支持的本地代理服务器。它帮助你在 <strong>macOS</strong>、<strong>Windows</strong> 和 <strong>Linux</strong> 上统一管理多个 AI 账户、追踪配额、配置 CLI 工具。
+  LinJun 是一款原生桌面应用，用于管理 <a href="https://github.com/router-for-me/CLIProxyAPIPlus">CLIProxyAPIPlus</a> —— 一个为 AI 编程助手提供支持的本地代理服务器。它帮助你在 <strong>macOS</strong>、<strong>Windows</strong> 和 <strong>Linux</strong> 上统一管理多个 AI 账户、追踪配额、配置 CLI 工具。
 </p>
 
 ## ✨ 功能特性
@@ -54,7 +54,7 @@
 
 ### 兼容的 CLI Agent
 
-霖君可以自动配置以下工具使用你的集中代理：
+LinJun 可以自动配置以下工具使用你的集中代理：
 
 - Claude Code
 - Codex CLI
@@ -110,7 +110,7 @@ bun run build:all      # 所有平台
 
 ### 1. 启动服务器
 
-启动 霖君，点击 **Start** 初始化本地代理服务器。
+启动 LinJun，点击 **Start** 初始化本地代理服务器。
 
 ### 2. 连接账户
 
@@ -150,7 +150,7 @@ bun run build:all      # 所有平台
 ## 🏗️ 项目结构
 
 ```
-霖君/
+LinJun/
 ├── src/
 │   ├── main/                    # Electron 主进程
 │   │   ├── index.ts            # 应用入口

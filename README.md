@@ -1,7 +1,7 @@
 # 霖君
 
 <p align="center">
-  <img src="docs/icon/logo.webp" alt="霖君 Banner" />
+  <img src="docs/icon/logo.webp" alt="LinJun Banner" />
 </p>
 
 <p align="center">
@@ -21,7 +21,7 @@
 </p>
 
 <p align="center">
-  霖君 is a native desktop application for managing <a href="https://github.com/router-for-me/CLIProxyAPIPlus">CLIProxyAPIPlus</a> - a local proxy server that powers your AI coding agents. It helps you manage multiple AI accounts, track quotas, and configure CLI tools in one place across <strong>macOS</strong>, <strong>Windows</strong>, and <strong>Linux</strong>.
+  LinJun is a native desktop application for managing <a href="https://github.com/router-for-me/CLIProxyAPIPlus">CLIProxyAPIPlus</a> - a local proxy server that powers your AI coding agents. It helps you manage multiple AI accounts, track quotas, and configure CLI tools in one place across <strong>macOS</strong>, <strong>Windows</strong>, and <strong>Linux</strong>.
 </p>
 
 ## ✨ Features
@@ -54,7 +54,7 @@
 
 ### Compatible CLI Agents
 
-霖君 can automatically configure these tools to use your centralized proxy:
+LinJun can automatically configure these tools to use your centralized proxy:
 
 - Claude Code
 - Codex CLI
@@ -67,12 +67,12 @@
 
 Download the latest release from [GitHub Releases](https://github.com/wangdabaoqq/L-jun/releases):
 
-| Platform              | Download                          |
-| --------------------- | --------------------------------- |
-| macOS (Apple Silicon) | `LinJun-x.x.x-arm64.dmg`          |
-| macOS (Intel)         | `LinJun-x.x.x.dmg`                |
-| Windows               | `LinJun-Setup-x.x.x.exe`          |
-| Linux                 | `LinJun-x.x.x.AppImage` or `.deb` |
+| Platform              | Download                              |
+| --------------------- | ------------------------------------- |
+| macOS (Apple Silicon) | `LinJun-x.x.x-arm64.dmg`              |
+| macOS (Intel)         | `LinJun-x.x.x-x64.dmg`                |
+| Windows               | `LinJun-x.x.x-x64.exe`                |
+| Linux                 | `LinJun-x.x.x-x64.AppImage` or `.deb` |
 
 ### Build from Source
 
@@ -110,7 +110,7 @@ bun run build:all      # All platforms
 
 ### 1. Start the Server
 
-Launch 霖君 and click **Start** to initialize the local proxy server.
+Launch LinJun and click **Start** to initialize the local proxy server.
 
 ### 2. Connect Accounts
 
@@ -150,7 +150,7 @@ Go to **Agents** tab → Select detected agent → Configure to use local proxy.
 ## 🏗️ Architecture
 
 ```
-霖君/
+LinJun/
 ├── src/
 │   ├── main/                    # Electron main process
 │   │   ├── index.ts            # App entry point
