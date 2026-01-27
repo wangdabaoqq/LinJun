@@ -67,12 +67,12 @@
 
 Download the latest release from [GitHub Releases](https://github.com/wangdabaoqq/L-jun/releases):
 
-| Platform              | Download                        |
-| --------------------- | ------------------------------- |
-| macOS (Apple Silicon) | `霖君-x.x.x-arm64.dmg`          |
-| macOS (Intel)         | `霖君-x.x.x.dmg`                |
-| Windows               | `霖君-Setup-x.x.x.exe`          |
-| Linux                 | `霖君-x.x.x.AppImage` or `.deb` |
+| Platform              | Download                          |
+| --------------------- | --------------------------------- |
+| macOS (Apple Silicon) | `LinJun-x.x.x-arm64.dmg`          |
+| macOS (Intel)         | `LinJun-x.x.x.dmg`                |
+| Windows               | `LinJun-Setup-x.x.x.exe`          |
+| Linux                 | `LinJun-x.x.x.AppImage` or `.deb` |
 
 ### Build from Source
 
@@ -142,7 +142,7 @@ Go to **Agents** tab → Select detected agent → Configure to use local proxy.
 
 ## ⚙️ Settings
 
-- **Port**: Change the proxy listening port (default: 8317)
+- **Port**: Change the proxy listening port (default: 8310)
 - **Routing Strategy**: Round Robin or Fill First
 - **Auto-start**: Launch proxy automatically on app startup
 - **Notifications**: Toggle alerts for quota warnings

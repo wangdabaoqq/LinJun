@@ -1,5 +1,7 @@
 appId: com.linjun.app
 productName: 霖君
+artifactName: "LinJun-${version}-${arch}.${ext}"
+releaseNotesFile: CHANGELOG.md
 directories:
   buildResources: resources
   output: dist
@@ -52,6 +54,6 @@ publish:
   provider: github
   owner: wangdabaoqq
   repo: L-jun
-  releaseType: release
+  releaseType: draft
 
 generateUpdatesFilesForAllChannels: true
