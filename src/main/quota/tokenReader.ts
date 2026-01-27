@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import os from "os";
+import { app } from "electron";
 
 export type ProviderType =
   | "codex"
@@ -15,11 +15,19 @@ export type ProviderType =
 
 export interface TokenFile {
   // Common fields
-  access_token: string;
-  refresh_token: string;
-  email: string;
-  expired: string;
-  type: ProviderType;
+  access_token?: string;
+  refresh_token?: string;
+  email?: string;
+  expired?: string;
+  type?: ProviderType;
+
+  // Gemini
+  token?: {
+    access_token: string;
+    refresh_token: string;
+    expiry?: string;
+  };
+  project_id?: string;
 
   // Codex specific
   account_id?: string;
@@ -27,7 +35,6 @@ export interface TokenFile {
   last_refresh?: string;
 
   // Antigravity specific
-  project_id?: string;
   expires_in?: number;
   timestamp?: number;
   tier_id?: string;
@@ -47,11 +54,42 @@ export interface TokenReadResult {
   raw: TokenFile;
 }
 
+function getAuthDir(): string {
+  return path.join(app.getPath("userData"), "cli-proxy", "auth");
+}
+
 /**
- * Get the CLI proxy API config directory path
+ * Scan the auth directory and return all token files
  */
-function getConfigDir(): string {
-  return path.join(os.homedir(), ".cli-proxy-api");
+export function scanTokenFiles(): TokenReadResult[] {
+  const authDir = getAuthDir();
+
+  if (!fs.existsSync(authDir)) {
+    console.warn(`[TokenReader] Auth directory not found: ${authDir}`);
+    return [];
+  }
+
+  const files = fs.readdirSync(authDir);
+  const tokenFiles: TokenReadResult[] = [];
+
+  for (const file of files) {
+    if (!file.endsWith(".json")) continue;
+
+    const filePath = path.join(authDir, file);
+    const stat = fs.statSync(filePath);
+
+    if (!stat.isFile()) continue;
+
+    const result = readTokenFile(filePath);
+    if (result) {
+      tokenFiles.push(result);
+    }
+  }
+
+  console.log(
+    `[TokenReader] Found ${tokenFiles.length} token files in ${authDir}`,
+  );
+  return tokenFiles;
 }
 
 /**
@@ -92,7 +130,11 @@ function readTokenFile(filePath: string): TokenReadResult | null {
     const filename = path.basename(filePath);
     const provider = parseProviderFromFilename(filename) || data.type;
 
-    if (!provider || !data.access_token || !data.refresh_token) {
+    const accessToken = data.access_token || data.token?.access_token;
+    const refreshToken = data.refresh_token || data.token?.refresh_token;
+    const expiredStr = data.expired || data.token?.expiry;
+
+    if (!provider || !accessToken || !refreshToken) {
       console.warn(`[TokenReader] Invalid token file: ${filePath}`);
       return null;
     }
@@ -101,9 +143,9 @@ function readTokenFile(filePath: string): TokenReadResult | null {
       provider,
       email: data.email || "unknown",
       accountId: data.account_id,
-      accessToken: data.access_token,
-      refreshToken: data.refresh_token,
-      expired: new Date(data.expired),
+      accessToken,
+      refreshToken,
+      expired: expiredStr ? new Date(expiredStr) : new Date(),
       filePath,
       raw: data,
     };
@@ -114,38 +156,6 @@ function readTokenFile(filePath: string): TokenReadResult | null {
     );
     return null;
   }
-}
-
-/**
- * Scan the config directory and return all token files
- */
-export function scanTokenFiles(): TokenReadResult[] {
-  const configDir = getConfigDir();
-
-  if (!fs.existsSync(configDir)) {
-    console.warn(`[TokenReader] Config directory not found: ${configDir}`);
-    return [];
-  }
-
-  const files = fs.readdirSync(configDir);
-  const tokenFiles: TokenReadResult[] = [];
-
-  for (const file of files) {
-    if (!file.endsWith(".json")) continue;
-
-    const filePath = path.join(configDir, file);
-    const stat = fs.statSync(filePath);
-
-    if (!stat.isFile()) continue;
-
-    const result = readTokenFile(filePath);
-    if (result) {
-      tokenFiles.push(result);
-    }
-  }
-
-  console.log(`[TokenReader] Found ${tokenFiles.length} token files`);
-  return tokenFiles;
 }
 
 /**

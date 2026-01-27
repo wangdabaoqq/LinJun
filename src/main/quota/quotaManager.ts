@@ -106,46 +106,16 @@ function convertAntigravityUsageToQuotaAccount(
   token: TokenReadResult,
   usage: AntigravityUsageResponse,
 ): QuotaAccount {
-  const DEFAULT_MODELS = [
-    {
-      model: "claude-opus-4-5-thinking",
-      aliases: ["claude_opus_4_5_thinking"],
-    },
-    { model: "gemini-3-pro-high", aliases: ["gemini3_pro_high"] },
-    { model: "gemini-3-pro-image", aliases: ["gemini3_image"] },
-    { model: "gemini-3-flash", aliases: ["gemini-3-flash", "gemini_3_flash"] },
-  ];
+  const modelsWithUsage = usage.models.filter(
+    (m) => m.usedPercent !== undefined,
+  );
 
-  const DEFAULT_MODEL_IDS = DEFAULT_MODELS.map((entry) => entry.model);
-
-  const defaultModels: AntigravityModelQuota[] = [];
-  const additionalModels: AntigravityModelQuota[] = [];
-
-  const modelMap = new Map<string, AntigravityModelQuota>();
-  for (const model of usage.models) {
-    if (model.usedPercent === undefined) continue;
-    modelMap.set(model.modelId, model);
-  }
-
-  DEFAULT_MODEL_IDS.forEach((modelId) => {
-    const model = modelMap.get(modelId);
-    if (model) {
-      defaultModels.push(model);
-      modelMap.delete(modelId);
-    }
-  });
-
-  additionalModels.push(...modelMap.values());
-
-  const primaryModel = defaultModels[0] || additionalModels.shift();
-  const secondaryModel = defaultModels[1] || additionalModels.shift();
-  const tertiaryModel = defaultModels[2] || additionalModels.shift();
-  const quaternaryModel = defaultModels[3] || additionalModels.shift();
+  const primaryModel = modelsWithUsage[0];
+  const remainingModels = modelsWithUsage.slice(1);
 
   const usedPercent = primaryModel?.usedPercent || 0;
   const isLimited = usedPercent > 95 || !usage.hasQuota;
 
-  const additional: QuotaWindow[] = [];
   const formatModelResetTime = (model?: AntigravityModelQuota) => {
     if (!model?.resetTime) {
       return "Monthly";
@@ -162,32 +132,12 @@ function convertAntigravityUsageToQuotaAccount(
     return `${datePart} ${timePart}`;
   };
 
-  if (tertiaryModel) {
-    additional.push({
-      label: tertiaryModel.displayName,
-      usedPercent: tertiaryModel.usedPercent || 0,
-      resetIn: formatModelResetTime(tertiaryModel),
-      limitReached: (tertiaryModel.usedPercent || 0) >= 100,
-    });
-  }
-
-  if (quaternaryModel) {
-    additional.push({
-      label: quaternaryModel.displayName,
-      usedPercent: quaternaryModel.usedPercent || 0,
-      resetIn: formatModelResetTime(quaternaryModel),
-      limitReached: (quaternaryModel.usedPercent || 0) >= 100,
-    });
-  }
-
-  additionalModels.forEach((model) => {
-    additional.push({
-      label: model.displayName,
-      usedPercent: model.usedPercent || 0,
-      resetIn: formatModelResetTime(model),
-      limitReached: (model.usedPercent || 0) >= 100,
-    });
-  });
+  const additional: QuotaWindow[] = remainingModels.map((model) => ({
+    label: model.displayName,
+    usedPercent: model.usedPercent || 0,
+    resetIn: formatModelResetTime(model),
+    limitReached: (model.usedPercent || 0) >= 100,
+  }));
 
   const tierLabel = usage.paidTier?.name
     ? "Pro"
@@ -208,14 +158,6 @@ function convertAntigravityUsageToQuotaAccount(
         resetIn: formatModelResetTime(primaryModel),
         limitReached: usedPercent >= 100,
       },
-      secondary: secondaryModel
-        ? {
-            label: secondaryModel.displayName,
-            usedPercent: secondaryModel.usedPercent || 0,
-            resetIn: formatModelResetTime(secondaryModel),
-            limitReached: (secondaryModel.usedPercent || 0) >= 100,
-          }
-        : undefined,
       additional: additional.length > 0 ? additional : undefined,
     },
     lastUpdated: new Date(),

@@ -1,5 +1,6 @@
 import axios, { AxiosInstance } from "axios";
 import { proxyManager } from "./manager";
+import { store } from "../utils/store";
 
 class ManagementAPI {
   private client: AxiosInstance;
@@ -11,7 +12,16 @@ class ManagementAPI {
   }
 
   private get baseURL(): string {
-    return `http://127.0.0.1:${proxyManager.getPort()}`;
+    const port = (store.get("port") as number) || proxyManager.getPort();
+    return `http://127.0.0.1:${port}`;
+  }
+
+  private getAuthHeaders(): Record<string, string> {
+    const secret = store.get("managementSecret") as string | undefined;
+    if (secret) {
+      return { Authorization: `Bearer ${secret}` };
+    }
+    return {};
   }
 
   async getStatus(): Promise<{ running: boolean; version: string }> {
@@ -86,6 +96,89 @@ class ManagementAPI {
       return { healthy: false, checks: {} };
     }
   }
+
+  async getQwenAuthUrl(): Promise<QwenAuthUrlResponse> {
+    try {
+      const res = await this.client.get(
+        `${this.baseURL}/v0/management/qwen-auth-url`,
+        {
+          params: { is_webui: true },
+          headers: this.getAuthHeaders(),
+        },
+      );
+      return res.data;
+    } catch (error) {
+      console.error("[ManagementAPI] Failed to get Qwen auth URL:", error);
+      return { status: "error", url: "", state: "" };
+    }
+  }
+
+  async getAntigravityAuthUrl(): Promise<QwenAuthUrlResponse> {
+    try {
+      const res = await this.client.get(
+        `${this.baseURL}/v0/management/antigravity-auth-url`,
+        {
+          params: { is_webui: true },
+          headers: this.getAuthHeaders(),
+        },
+      );
+      return res.data;
+    } catch (error) {
+      console.error(
+        "[ManagementAPI] Failed to get Antigravity auth URL:",
+        error,
+      );
+      return { status: "error", url: "", state: "" };
+    }
+  }
+
+  async getClaudeAuthUrl(): Promise<QwenAuthUrlResponse> {
+    try {
+      const res = await this.client.get(
+        `${this.baseURL}/v0/management/claude-auth-url`,
+        {
+          params: { is_webui: true },
+          headers: this.getAuthHeaders(),
+        },
+      );
+      return res.data;
+    } catch (error) {
+      console.error("[ManagementAPI] Failed to get Claude auth URL:", error);
+      return { status: "error", url: "", state: "" };
+    }
+  }
+
+  async getGeminiAuthUrl(projectId?: string): Promise<QwenAuthUrlResponse> {
+    try {
+      const res = await this.client.get(
+        `${this.baseURL}/v0/management/gemini-cli-auth-url`,
+        {
+          params: { project_id: projectId || null, is_webui: true },
+          headers: this.getAuthHeaders(),
+        },
+      );
+      return res.data;
+    } catch (error) {
+      console.error("[ManagementAPI] Failed to get Gemini auth URL:", error);
+      return { status: "error", url: "", state: "" };
+    }
+  }
+
+  async getQwenAuthStatus(state: string): Promise<QwenAuthStatusResponse> {
+    try {
+      const res = await this.client.get(
+        `${this.baseURL}/v0/management/get-auth-status`,
+        {
+          params: { state },
+          headers: this.getAuthHeaders(),
+        },
+      );
+      return res.data;
+    } catch (error) {
+      console.error("[ManagementAPI] Failed to get Qwen auth status:", error);
+      return { status: "error" };
+    }
+  }
 }
 
 export const managementAPI = new ManagementAPI();
@@ -141,4 +234,14 @@ export interface StatsResponse {
 export interface HealthResponse {
   healthy: boolean;
   checks: Record<string, boolean>;
+}
+
+export interface QwenAuthUrlResponse {
+  status: "ok" | "error";
+  url: string;
+  state: string;
+}
+
+export interface QwenAuthStatusResponse {
+  status: "pending" | "ok" | "error";
 }

@@ -1,5 +1,6 @@
 import React from "react";
 import { QuotaWindowBar } from "./QuotaWindowBar";
+import { ModelQuotaModal } from "./ModelQuotaModal";
 import { useTranslations } from "../../stores/settings";
 
 export interface QuotaWindow {
@@ -34,12 +35,17 @@ export function AccountQuotaCard({
   onRefresh,
 }: AccountQuotaCardProps) {
   const t = useTranslations();
-  const [showMore, setShowMore] = React.useState(false);
-  const defaultAdditionalCount = 2;
+  const [isModalOpen, setIsModalOpen] = React.useState(false);
 
-  React.useEffect(() => {
-    setShowMore(false);
-  }, [email, rateLimits.additional?.length]);
+  const allModels: QuotaWindow[] = [];
+  if (rateLimits.primary) allModels.push(rateLimits.primary);
+  if (rateLimits.secondary) allModels.push(rateLimits.secondary);
+  if (rateLimits.codeReview) allModels.push(rateLimits.codeReview);
+  if (rateLimits.additional) allModels.push(...rateLimits.additional);
+
+  const displayCount = 4;
+  const modelsToShow = allModels.slice(0, displayCount);
+  const hasMoreModels = allModels.length > displayCount;
 
   const getStatusColor = () => {
     switch (status) {
@@ -69,154 +75,128 @@ export function AccountQuotaCard({
   const displayEmail = email;
 
   return (
-    <div className="glass-card p-5 hover:shadow-lg transition-all duration-300 group">
-      <div className="flex items-start justify-between mb-6">
-        <div className="flex items-center gap-4">
-          <div className="relative flex items-center justify-center w-3 h-3 mt-1.5">
-            <div
-              className={`w-2.5 h-2.5 rounded-full ${getStatusColor()}`}
-            ></div>
-            {status === "active" && (
+    <>
+      <div className="glass-card p-5 hover:shadow-lg transition-all duration-300 group">
+        <div className="flex items-start justify-between mb-6">
+          <div className="flex items-center gap-4">
+            <div className="relative flex items-center justify-center w-3 h-3 mt-1.5">
               <div
-                className={`absolute w-full h-full rounded-full ${getStatusColor()} opacity-30 animate-ping`}
+                className={`w-2.5 h-2.5 rounded-full ${getStatusColor()}`}
               ></div>
-            )}
-          </div>
-
-          <div className="flex flex-col">
-            <div className="flex items-center gap-2">
-              <h3 className="font-semibold text-[var(--text-primary)] tracking-tight truncate max-w-[200px]">
-                {displayEmail}
-              </h3>
-              {badge && (
-                <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] border border-[var(--accent-primary)]/20 uppercase tracking-wide">
-                  {badge}
-                </span>
+              {status === "active" && (
+                <div
+                  className={`absolute w-full h-full rounded-full ${getStatusColor()} opacity-30 animate-ping`}
+                ></div>
               )}
             </div>
-          </div>
-        </div>
 
-        {onRefresh && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onRefresh();
-            }}
-            className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-soft transition-all duration-200"
-            title={t.quota.refresh}
-          >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className={status === "refreshing" ? "animate-spin" : ""}
-            >
-              <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-              <path d="M3 3v5h5" />
-              <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
-              <path d="M16 16l5 5v-5" />
-            </svg>
-          </button>
-        )}
-      </div>
-
-      <div className="space-y-4">
-        <QuotaWindowBar
-          label={rateLimits.primary.label}
-          usedPercent={rateLimits.primary.usedPercent}
-          resetIn={rateLimits.primary.resetIn}
-          limitReached={rateLimits.primary.limitReached}
-          providerId={providerId}
-        />
-
-        {(rateLimits.secondary ||
-          rateLimits.codeReview ||
-          rateLimits.additional) && (
-          <div className="pt-3 grid grid-cols-1 gap-3 border-t border-[var(--border-subtle)]">
-            {rateLimits.secondary && (
-              <QuotaWindowBar
-                label={rateLimits.secondary.label}
-                usedPercent={rateLimits.secondary.usedPercent}
-                resetIn={rateLimits.secondary.resetIn}
-                limitReached={rateLimits.secondary.limitReached}
-                providerId={providerId}
-              />
-            )}
-            {rateLimits.codeReview && (
-              <QuotaWindowBar
-                label={rateLimits.codeReview.label}
-                usedPercent={rateLimits.codeReview.usedPercent}
-                resetIn={rateLimits.codeReview.resetIn}
-                limitReached={rateLimits.codeReview.limitReached}
-                providerId={providerId}
-              />
-            )}
-
-            {rateLimits.additional && rateLimits.additional.length > 0 && (
-              <div className="space-y-3">
-                {rateLimits.additional
-                  .slice(0, defaultAdditionalCount)
-                  .map((quota, index) => (
-                    <QuotaWindowBar
-                      key={`additional-default-${index}`}
-                      label={quota.label}
-                      usedPercent={quota.usedPercent}
-                      resetIn={quota.resetIn}
-                      limitReached={quota.limitReached}
-                      providerId={providerId}
-                    />
-                  ))}
-
-                {showMore &&
-                  rateLimits.additional
-                    .slice(defaultAdditionalCount)
-                    .map((quota, index) => (
-                      <QuotaWindowBar
-                        key={`additional-more-${index}`}
-                        label={quota.label}
-                        usedPercent={quota.usedPercent}
-                        resetIn={quota.resetIn}
-                        limitReached={quota.limitReached}
-                        providerId={providerId}
-                      />
-                    ))}
-
-                {rateLimits.additional.length > defaultAdditionalCount && (
-                  <button
-                    onClick={() => setShowMore(!showMore)}
-                    className="text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors flex items-center gap-2"
-                  >
-                    {showMore
-                      ? t.quota.showLess
-                      : t.quota.showMoreModels.replace(
-                          "{count}",
-                          String(
-                            rateLimits.additional.length -
-                              defaultAdditionalCount,
-                          ),
-                        )}
-                  </button>
+            <div className="flex flex-col">
+              <div className="flex items-center gap-2">
+                <h3 className="font-semibold text-[var(--text-primary)] tracking-tight truncate max-w-[200px]">
+                  {displayEmail}
+                </h3>
+                {badge && (
+                  <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] border border-[var(--accent-primary)]/20 uppercase tracking-wide">
+                    {badge}
+                  </span>
                 )}
               </div>
-            )}
+            </div>
           </div>
-        )}
+
+          {onRefresh && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onRefresh();
+              }}
+              className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-soft transition-all duration-200"
+              title={t.quota.refresh}
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className={status === "refreshing" ? "animate-spin" : ""}
+              >
+                <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                <path d="M3 3v5h5" />
+                <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
+                <path d="M16 16l5 5v-5" />
+              </svg>
+            </button>
+          )}
+        </div>
+
+        <div className="space-y-4">
+          {modelsToShow.map((model, index) => (
+            <div
+              key={index}
+              className={
+                index > 0
+                  ? "pt-3 border-t border-[var(--border-subtle)]/50"
+                  : ""
+              }
+            >
+              <QuotaWindowBar
+                label={model.label}
+                usedPercent={model.usedPercent}
+                resetIn={model.resetIn}
+                limitReached={model.limitReached}
+                providerId={providerId}
+              />
+            </div>
+          ))}
+
+          {hasMoreModels && (
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="w-full mt-2 py-1.5 px-3 text-[10px] font-medium tracking-wide text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)]/80 rounded-lg transition-all duration-200 flex items-center justify-center gap-1.5 group/btn border border-transparent hover:border-[var(--border-subtle)]/30"
+            >
+              <span className="opacity-70 group-hover/btn:opacity-100 transition-opacity">
+                {t.quota.viewAllModels}
+              </span>
+              <svg
+                width="10"
+                height="10"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="opacity-50 group-hover/btn:opacity-100 group-hover/btn:translate-x-0.5 transition-all"
+              >
+                <path d="M5 12h14" />
+                <path d="M12 5l7 7-7 7" />
+              </svg>
+            </button>
+          )}
+        </div>
+
+        <div className="mt-4 pt-3 flex items-center justify-between text-[10px] text-[var(--text-dim)] border-t border-[var(--border-subtle)]/30">
+          <span className="flex items-center gap-1.5">
+            {t.quota.updated} {getTimeAgo(lastUpdated)}
+          </span>
+          <span className="uppercase tracking-wider font-medium opacity-70">
+            {t.quota.ready}
+          </span>
+        </div>
       </div>
 
-      <div className="mt-4 pt-3 flex items-center justify-between text-[10px] text-[var(--text-dim)] border-t border-[var(--border-subtle)]">
-        <span className="flex items-center gap-1.5">
-          {t.quota.updated} {getTimeAgo(lastUpdated)}
-        </span>
-        <span className="uppercase tracking-wider font-medium opacity-70">
-          {t.quota.ready}
-        </span>
-      </div>
-    </div>
+      <ModelQuotaModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        email={email}
+        badge={badge}
+        providerId={providerId}
+        rateLimits={rateLimits}
+      />
+    </>
   );
 }

@@ -554,7 +554,7 @@ export function Logs() {
                   {t.logs.noLogs}
                 </p>
                 <p className="text-sm text-[var(--text-dim)]">
-                  Requests will appear here automatically
+                  {t.logs.waitingForRequests}
                 </p>
               </div>
             </div>

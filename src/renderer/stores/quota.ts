@@ -28,6 +28,7 @@ export interface QuotaAccount {
     primary: QuotaWindow;
     secondary?: QuotaWindow;
     codeReview?: QuotaWindow;
+    additional?: QuotaWindow[];
   };
   lastUpdated: Date;
   error?: string;

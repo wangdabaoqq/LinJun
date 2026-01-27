@@ -483,6 +483,18 @@ body {
   box-shadow: var(--glow-secondary);
 }
 
+.glass-btn-indigo {
+  background: color-mix(in srgb, var(--accent-tertiary) 15%, transparent);
+  border-color: color-mix(in srgb, var(--accent-tertiary) 25%, transparent);
+  color: var(--accent-tertiary);
+}
+
+.glass-btn-indigo:hover {
+  background: color-mix(in srgb, var(--accent-tertiary) 22%, transparent);
+  box-shadow: 0 0 20px
+    color-mix(in srgb, var(--accent-tertiary) 40%, transparent);
+}
+
 .glass-input {
   background: rgba(0, 0, 0, 0.2);
   backdrop-filter: blur(10px);

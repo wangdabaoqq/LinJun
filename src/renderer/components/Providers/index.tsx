@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useTranslations } from "../../stores/settings";
 import Claude from "@lobehub/icons/es/Claude";
 import OpenAI from "@lobehub/icons/es/OpenAI";
@@ -20,8 +20,7 @@ interface Account {
   nickname?: string;
   status: "online" | "offline";
   lastUsed: string;
-  quotaUsed: number;
-  quotaLimit: number;
+  filePath?: string;
 }
 
 interface Provider {
@@ -30,7 +29,7 @@ interface Provider {
   icon: React.ReactNode;
   color: "teal" | "magenta" | "indigo";
   description: string;
-  authType: "oauth" | "apikey";
+  authType: "oauth" | "apikey" | "import" | "oauth-project";
   badge?: string;
   accounts: Account[];
 }
@@ -38,12 +37,7 @@ interface Provider {
 interface AddAccountModalProps {
   provider: Omit<Provider, "accounts">;
   onClose: () => void;
-  onAdd: (
-    account: Omit<
-      Account,
-      "id" | "status" | "lastUsed" | "quotaUsed" | "quotaLimit"
-    >,
-  ) => void;
+  onAdd: (account: Omit<Account, "id" | "status" | "lastUsed">) => void;
 }
 
 const allProviders: Omit<Provider, "accounts">[] = [
@@ -65,7 +59,7 @@ const allProviders: Omit<Provider, "accounts">[] = [
   },
   {
     id: "codex",
-    name: "Codex (ChatGPT)",
+    name: "Codex (OpenAI)",
     icon: <OpenAI size={24} />,
     color: "teal",
     description: "GPT-4o, o1, o3, ChatGPT Plus",
@@ -110,8 +104,7 @@ const allProviders: Omit<Provider, "accounts">[] = [
     icon: <KiroIcon />,
     color: "indigo",
     description: "Claude Sonnet 4, Amazon Nova",
-    authType: "oauth",
-    badge: "Plus",
+    authType: "import",
   },
   {
     id: "vertex",
@@ -132,107 +125,25 @@ const allProviders: Omit<Provider, "accounts">[] = [
   },
 ];
 
-const mockAccounts: Record<string, Account[]> = {
-  claude: [
-    {
-      id: "cl1",
-      email: "user@email.com",
-      status: "online",
-      lastUsed: "10m ago",
-      quotaUsed: 78,
-      quotaLimit: 100,
-    },
-    {
-      id: "cl2",
-      email: "work@company.com",
-      status: "online",
-      lastUsed: "2h ago",
-      quotaUsed: 45,
-      quotaLimit: 100,
-    },
-  ],
-  gemini: [
-    {
-      id: "gm1",
-      email: "dev@gmail.com",
-      status: "online",
-      lastUsed: "1h ago",
-      quotaUsed: 24,
-      quotaLimit: 100,
-    },
-    {
-      id: "gm2",
-      email: "test@gmail.com",
-      status: "online",
-      lastUsed: "3h ago",
-      quotaUsed: 10,
-      quotaLimit: 100,
-    },
-    {
-      id: "gm3",
-      email: "backup@gmail.com",
-      status: "offline",
-      lastUsed: "2d ago",
-      quotaUsed: 0,
-      quotaLimit: 100,
-    },
-  ],
-  antigravity: [
-    {
-      id: "ag1",
-      email: "dev@github.com",
-      status: "online",
-      lastUsed: "5m ago",
-      quotaUsed: 89,
-      quotaLimit: 100,
-    },
-  ],
-};
-
-function MiniQuotaBar({ used, limit }: { used: number; limit: number }) {
-  const percentage = limit > 0 ? (used / limit) * 100 : 0;
-  const isWarning = percentage > 80;
-  const isDanger = percentage > 95;
-
-  return (
-    <div className="w-20 h-1.5 bg-muted rounded-full overflow-hidden">
-      <div
-        className={`h-full rounded-full transition-all ${
-          isDanger
-            ? "bg-[var(--accent-magenta)]"
-            : isWarning
-              ? "bg-[var(--warning)]"
-              : "bg-[var(--accent-teal)]"
-        }`}
-        style={{ width: `${Math.min(percentage, 100)}%` }}
-      />
-    </div>
-  );
-}
-
 function AddAccountModal({ provider, onClose, onAdd }: AddAccountModalProps) {
   const t = useTranslations();
   const [isLoading, setIsLoading] = useState(false);
   const [apiKey, setApiKey] = useState("");
   const [nickname, setNickname] = useState("");
   const [endpoint, setEndpoint] = useState("");
+  const [projectId, setProjectId] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const isCustomProvider = provider.id === "custom";
-  const isCliLoginProvider = provider.id === "codex";
+  const isImportProvider = provider.authType === "import";
 
   const handleOAuthConnect = async () => {
     setIsLoading(true);
     setError(null);
     try {
-      let result;
-      if (isCliLoginProvider) {
-        result = await window.electronAPI?.api.cliLogin(provider.id);
-      } else {
-        result = await window.electronAPI?.api.startAuth(
-          provider.id as Parameters<typeof window.electronAPI.api.startAuth>[0],
-        );
-      }
+      const result = await window.electronAPI?.api.startAuth(
+        provider.id as Parameters<typeof window.electronAPI.api.startAuth>[0],
+      );
       if (result?.success) {
         onAdd({
           email: `oauth-${provider.id}@pending`,
@@ -241,6 +152,43 @@ function AddAccountModal({ provider, onClose, onAdd }: AddAccountModalProps) {
       } else {
         setError(result?.error || "Authentication failed");
       }
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleOAuthProjectConnect = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const result = await window.electronAPI?.gemini?.getAuthUrl(
+        projectId.trim() || undefined,
+      );
+      if (result?.status === "ok") {
+        onAdd({
+          email: `oauth-${provider.id}@pending`,
+          nickname: nickname || undefined,
+        });
+      } else {
+        setError("Failed to get Gemini authentication URL");
+      }
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleImport = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      onAdd({
+        email: `import-${provider.id}@scanning`,
+        nickname: nickname || undefined,
+      });
     } catch (err) {
       setError(String(err));
     } finally {
@@ -348,6 +296,71 @@ function AddAccountModal({ provider, onClose, onAdd }: AddAccountModalProps) {
                   <>
                     <span>◎</span>
                     {t.providers.connectOAuth}
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        ) : provider.authType === "oauth-project" ? (
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs text-[var(--text-muted)] mb-2 uppercase tracking-wider">
+                {t.providers.projectIdLabel} ({t.providers.optional})
+              </label>
+              <input
+                type="text"
+                value={projectId}
+                onChange={(e) => setProjectId(e.target.value)}
+                placeholder={t.providers.projectIdPlaceholder}
+                className="glass-input w-full"
+              />
+              <p className="text-xs text-[var(--text-dim)] mt-1.5">
+                {t.providers.projectIdDescription}
+              </p>
+            </div>
+            <div className="glass-card p-4 bg-soft">
+              <p className="text-sm text-[var(--text-muted)] mb-3">
+                {t.providers.oauthDescription}
+              </p>
+              <button
+                onClick={handleOAuthProjectConnect}
+                disabled={isLoading}
+                className={`glass-btn glass-btn-${provider.color} w-full py-2.5 flex items-center justify-center gap-2 disabled:opacity-50`}
+              >
+                {isLoading ? (
+                  <>
+                    <span className="animate-spin">◌</span>
+                    {t.providers.connecting}
+                  </>
+                ) : (
+                  <>
+                    <span>◎</span>
+                    {t.providers.connectOAuth}
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        ) : provider.authType === "import" ? (
+          <div className="space-y-4">
+            <div className="glass-card p-4 bg-soft">
+              <p className="text-sm text-[var(--text-muted)] mb-3">
+                {t.providers.importDescription}
+              </p>
+              <button
+                onClick={handleImport}
+                disabled={isLoading}
+                className={`glass-btn glass-btn-${provider.color} w-full py-2.5 flex items-center justify-center gap-2 disabled:opacity-50`}
+              >
+                {isLoading ? (
+                  <>
+                    <span className="animate-spin">◌</span>
+                    {t.providers.importing}
+                  </>
+                ) : (
+                  <>
+                    <span>↓</span>
+                    {t.providers.importFromIDE}
                   </>
                 )}
               </button>
@@ -480,12 +493,20 @@ function AddProviderModal({
                     <div className="mt-1.5">
                       <span
                         className={`px-2 py-0.5 text-[10px] rounded-full font-medium ${
-                          provider.authType === "oauth"
+                          provider.authType === "oauth" ||
+                          provider.authType === "oauth-project"
                             ? "bg-[var(--accent-primary)]/12 text-[var(--accent-primary)]"
-                            : "bg-[var(--accent-tertiary)]/12 text-[var(--accent-tertiary)]"
+                            : provider.authType === "import"
+                              ? "bg-[var(--accent-secondary)]/12 text-[var(--accent-secondary)]"
+                              : "bg-[var(--accent-tertiary)]/12 text-[var(--accent-tertiary)]"
                         }`}
                       >
-                        {provider.authType === "oauth" ? "OAuth" : "API Key"}
+                        {provider.authType === "oauth" ||
+                        provider.authType === "oauth-project"
+                          ? "OAuth"
+                          : provider.authType === "import"
+                            ? "Import"
+                            : "API Key"}
                       </span>
                     </div>
                   </div>
@@ -513,6 +534,28 @@ function ProviderCard({
   const onlineCount = provider.accounts.filter(
     (a) => a.status === "online",
   ).length;
+
+  const getAccountDisplayName = (account: Account) => {
+    if (account.nickname) return account.nickname;
+    if (
+      account.email &&
+      !account.email.startsWith("oauth-") &&
+      account.email !== "unknown"
+    )
+      return account.email;
+    if (account.filePath) {
+      const filename = account.filePath.split(/[/\\]/).pop();
+      if (filename) {
+        return filename
+          .replace(
+            /^(claude|gemini|codex|antigravity|qwen|iflow|github-copilot|kiro|vertex)-/i,
+            "",
+          )
+          .replace(/\.json$/i, "");
+      }
+    }
+    return account.email || "Unknown Account";
+  };
 
   return (
     <div className={`glass-card glass-card-${provider.color} overflow-hidden`}>
@@ -580,7 +623,7 @@ function ProviderCard({
                   />
                   <div>
                     <div className="text-sm text-[var(--text-primary)]">
-                      {account.email}
+                      {getAccountDisplayName(account)}
                     </div>
                     <div className="text-xs text-[var(--text-dim)]">
                       {account.lastUsed}
@@ -589,15 +632,6 @@ function ProviderCard({
                 </div>
 
                 <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-2">
-                    <MiniQuotaBar
-                      used={account.quotaUsed}
-                      limit={account.quotaLimit}
-                    />
-                    <span className="text-xs terminal-text text-[var(--text-muted)]">
-                      {account.quotaUsed}%
-                    </span>
-                  </div>
                   <button
                     className="glass-btn text-xs py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity"
                     onClick={(e) => {
@@ -614,7 +648,7 @@ function ProviderCard({
 
           <div className="p-3 border-t border-subtle">
             <button
-              className={`glass-btn glass-btn-${provider.color} text-xs py-1.5 w-full`}
+              className="glass-btn glass-btn-teal text-xs py-1.5 w-full transition-all duration-300 hover:brightness-110 active:scale-[0.98] shadow-sm hover:shadow-md"
               onClick={(e) => {
                 e.stopPropagation();
                 onAddAccount(provider.id);
@@ -631,14 +665,8 @@ function ProviderCard({
 
 export function Providers() {
   const t = useTranslations();
-  const [providers, setProviders] = useState<Provider[]>(() => {
-    return allProviders
-      .filter((p) => mockAccounts[p.id]?.length > 0)
-      .map((p) => ({
-        ...p,
-        accounts: mockAccounts[p.id] || [],
-      }));
-  });
+  const [providers, setProviders] = useState<Provider[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [addAccountProvider, setAddAccountProvider] = useState<Omit<
     Provider,
@@ -646,6 +674,84 @@ export function Providers() {
   > | null>(null);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
+
+  interface TokenAccount {
+    id: string;
+    provider: string;
+    email: string;
+    status: "online" | "offline";
+    lastUsed: string;
+    filePath: string;
+  }
+
+  const loadAccounts = useCallback(async () => {
+    if (!window.electronAPI?.providers) return;
+
+    try {
+      const result = await window.electronAPI.providers.getAccounts();
+      if (result?.success) {
+        const accountsByProvider = new Map<string, Account[]>();
+
+        (result.accounts as TokenAccount[]).forEach((acc) => {
+          const accounts = accountsByProvider.get(acc.provider) || [];
+          const lastUsedDate = new Date(acc.lastUsed);
+          const now = new Date();
+          const diffMs = now.getTime() - lastUsedDate.getTime();
+          const diffMins = Math.floor(diffMs / 60000);
+          const diffHours = Math.floor(diffMs / 3600000);
+          const diffDays = Math.floor(diffMs / 86400000);
+
+          let lastUsedText = t.quota.justNow;
+          if (diffDays > 0) {
+            lastUsedText = t.quota.daysAgo.replace(
+              "{days}",
+              diffDays.toString(),
+            );
+          } else if (diffHours > 0) {
+            lastUsedText = t.quota.hoursAgo.replace(
+              "{hours}",
+              diffHours.toString(),
+            );
+          } else if (diffMins > 0) {
+            lastUsedText = t.quota.minutesAgo.replace(
+              "{minutes}",
+              diffMins.toString(),
+            );
+          }
+
+          accounts.push({
+            id: acc.id,
+            email: acc.email,
+            status: acc.status,
+            lastUsed: lastUsedText,
+            filePath: acc.filePath,
+          });
+          accountsByProvider.set(acc.provider, accounts);
+        });
+
+        const loadedProviders: Provider[] = [];
+        accountsByProvider.forEach((accounts, providerId) => {
+          const providerMeta = allProviders.find((p) => p.id === providerId);
+          if (providerMeta) {
+            loadedProviders.push({
+              ...providerMeta,
+              accounts,
+            });
+          }
+        });
+
+        setProviders(loadedProviders);
+      }
+    } catch (error) {
+      console.error("[Providers] Failed to load accounts:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [t]);
+
+  useEffect(() => {
+    loadAccounts();
+  }, [loadAccounts]);
 
   const triggerAuth = async (providerInfo: Omit<Provider, "accounts">) => {
     if (!window.electronAPI) {
@@ -659,64 +765,137 @@ export function Providers() {
     setAuthError(null);
     console.log("[Auth] Starting authentication for:", providerInfo.id);
 
+    if (providerInfo.id === "qwen") {
+      console.log("[Auth] Using Qwen API OAuth");
+      try {
+        const result = await window.electronAPI.qwen?.getAuthUrl();
+        if (result?.status === "ok") {
+          setTimeout(() => {
+            loadAccounts();
+            setIsAuthenticating(false);
+          }, 3000);
+        } else {
+          setAuthError("Failed to get Qwen authentication URL");
+          setIsAuthenticating(false);
+        }
+      } catch (err) {
+        console.error("[Auth] Qwen OAuth error:", err);
+        setAuthError(String(err));
+        setIsAuthenticating(false);
+      }
+      return;
+    }
+
+    if (providerInfo.id === "antigravity") {
+      console.log("[Auth] Using Antigravity API OAuth");
+      try {
+        const result = await window.electronAPI.antigravity?.getAuthUrl();
+        if (result?.status === "ok") {
+          setTimeout(() => {
+            loadAccounts();
+            setIsAuthenticating(false);
+          }, 3000);
+        } else {
+          setAuthError("Failed to get Antigravity authentication URL");
+          setIsAuthenticating(false);
+        }
+      } catch (err) {
+        console.error("[Auth] Antigravity OAuth error:", err);
+        setAuthError(String(err));
+        setIsAuthenticating(false);
+      }
+      return;
+    }
+
+    if (providerInfo.id === "claude") {
+      console.log("[Auth] Using Claude API OAuth");
+      try {
+        const result = await window.electronAPI.claude?.getAuthUrl();
+        if (result?.status === "ok") {
+          setTimeout(() => {
+            loadAccounts();
+            setIsAuthenticating(false);
+          }, 3000);
+        } else {
+          setAuthError("Failed to get Claude authentication URL");
+          setIsAuthenticating(false);
+        }
+      } catch (err) {
+        console.error("[Auth] Claude OAuth error:", err);
+        setAuthError(String(err));
+        setIsAuthenticating(false);
+      }
+      return;
+    }
+
+    if (providerInfo.id === "gemini") {
+      console.log("[Auth] Using Gemini API OAuth");
+      try {
+        const result = await window.electronAPI.gemini?.getAuthUrl();
+        if (result?.status === "ok") {
+          setTimeout(() => {
+            loadAccounts();
+            setIsAuthenticating(false);
+          }, 3000);
+        } else {
+          setAuthError("Failed to get Gemini authentication URL");
+          setIsAuthenticating(false);
+        }
+      } catch (err) {
+        console.error("[Auth] Gemini OAuth error:", err);
+        setAuthError(String(err));
+        setIsAuthenticating(false);
+      }
+      return;
+    }
+
     const cliProviderMap: Record<string, string> = {
-      claude: "claude",
-      gemini: "login",
       codex: "codex",
-      antigravity: "antigravity",
-      qwen: "qwen",
       iflow: "iflow",
       copilot: "github-copilot",
       kiro: "kiro",
       vertex: "vertex",
     };
 
-    try {
-      let result;
-      const cliArg = cliProviderMap[providerInfo.id];
-      if (cliArg) {
-        console.log("[Auth] Using CLI login:", cliArg);
-        result = await window.electronAPI.api.cliLogin(cliArg);
-      } else {
+    const cliArg = cliProviderMap[providerInfo.id];
+
+    if (cliArg) {
+      console.log("[Auth] Using CLI login:", cliArg);
+      window.electronAPI.api.cliLogin(cliArg).then((result) => {
+        console.log("[Auth] CLI login completed:", result);
+        if (result?.success) {
+          loadAccounts();
+        } else if (result?.error) {
+          setAuthError(result.error);
+        }
+        setIsAuthenticating(false);
+      });
+
+      setTimeout(() => {
+        setIsAuthenticating(false);
+      }, 1500);
+    } else {
+      try {
         console.log("[Auth] Using OAuth for:", providerInfo.id);
-        result = await window.electronAPI.api.startAuth(
+        const result = await window.electronAPI.api.startAuth(
           providerInfo.id as Parameters<
             typeof window.electronAPI.api.startAuth
           >[0],
         );
-      }
 
-      console.log("[Auth] Result:", result);
+        console.log("[Auth] Result:", result);
 
-      if (result?.success) {
-        const newAccount: Account = {
-          id: `${providerInfo.id}-${Date.now()}`,
-          email: `oauth-${providerInfo.id}@authenticated`,
-          status: "online",
-          lastUsed: "Just now",
-          quotaUsed: 0,
-          quotaLimit: 100,
-        };
-        setProviders((prev) => {
-          const existingProvider = prev.find((p) => p.id === providerInfo.id);
-          if (existingProvider) {
-            return prev.map((p) =>
-              p.id === providerInfo.id
-                ? { ...p, accounts: [...p.accounts, newAccount] }
-                : p,
-            );
-          } else {
-            return [...prev, { ...providerInfo, accounts: [newAccount] }];
-          }
-        });
-      } else {
-        setAuthError(result?.error || "Authentication failed");
+        if (result?.success) {
+          await loadAccounts();
+        } else {
+          setAuthError(result?.error || "Authentication failed");
+        }
+      } catch (err) {
+        console.error("[Auth] Error:", err);
+        setAuthError(String(err));
+      } finally {
+        setIsAuthenticating(false);
       }
-    } catch (err) {
-      console.error("[Auth] Error:", err);
-      setAuthError(String(err));
-    } finally {
-      setIsAuthenticating(false);
     }
   };
 
@@ -724,7 +903,11 @@ export function Providers() {
     providerInfo: Omit<Provider, "accounts">,
   ) => {
     setShowAddModal(false);
-    if (providerInfo.authType === "apikey") {
+    if (
+      providerInfo.authType === "apikey" ||
+      providerInfo.authType === "import" ||
+      providerInfo.authType === "oauth-project"
+    ) {
       setAddAccountProvider(providerInfo);
     } else {
       await triggerAuth(providerInfo);
@@ -734,7 +917,11 @@ export function Providers() {
   const handleAddAccount = async (providerId: string) => {
     const providerInfo = allProviders.find((p) => p.id === providerId);
     if (providerInfo) {
-      if (providerInfo.authType === "apikey") {
+      if (
+        providerInfo.authType === "apikey" ||
+        providerInfo.authType === "import" ||
+        providerInfo.authType === "oauth-project"
+      ) {
         setAddAccountProvider(providerInfo);
       } else {
         await triggerAuth(providerInfo);
@@ -742,7 +929,7 @@ export function Providers() {
     }
   };
 
-  const handleAccountAdded = (
+  const handleAccountAdded = async (
     accountData: Omit<
       Account,
       "id" | "status" | "lastUsed" | "quotaUsed" | "quotaLimit"
@@ -750,48 +937,38 @@ export function Providers() {
   ) => {
     if (!addAccountProvider) return;
 
-    const newAccount: Account = {
-      id: `${addAccountProvider.id}-${Date.now()}`,
-      email: accountData.email,
-      nickname: accountData.nickname,
-      status: "online",
-      lastUsed: "Just now",
-      quotaUsed: 0,
-      quotaLimit: 100,
-    };
-
-    setProviders((prev) => {
-      const existingProvider = prev.find((p) => p.id === addAccountProvider.id);
-      if (existingProvider) {
-        return prev.map((p) =>
-          p.id === addAccountProvider.id
-            ? { ...p, accounts: [...p.accounts, newAccount] }
-            : p,
-        );
-      } else {
-        return [
-          ...prev,
-          {
-            ...addAccountProvider,
-            accounts: [newAccount],
-          },
-        ];
-      }
-    });
-
     setAddAccountProvider(null);
+    await loadAccounts();
   };
 
-  const handleRemoveAccount = (providerId: string, accountId: string) => {
-    setProviders((prev) =>
-      prev
-        .map((p) =>
-          p.id === providerId
-            ? { ...p, accounts: p.accounts.filter((a) => a.id !== accountId) }
-            : p,
-        )
-        .filter((p) => p.accounts.length > 0),
-    );
+  const handleRemoveAccount = async (providerId: string, accountId: string) => {
+    const provider = providers.find((p) => p.id === providerId);
+    const account = provider?.accounts.find((a) => a.id === accountId);
+
+    if (account?.filePath && window.electronAPI?.providers) {
+      try {
+        const result = await window.electronAPI.providers.removeAccount(
+          account.filePath,
+        );
+        if (result?.success) {
+          await loadAccounts();
+        } else {
+          console.error("[Providers] Failed to remove account:", result?.error);
+        }
+      } catch (error) {
+        console.error("[Providers] Error removing account:", error);
+      }
+    } else {
+      setProviders((prev) =>
+        prev
+          .map((p) =>
+            p.id === providerId
+              ? { ...p, accounts: p.accounts.filter((a) => a.id !== accountId) }
+              : p,
+          )
+          .filter((p) => p.accounts.length > 0),
+      );
+    }
   };
 
   const providersWithAccounts = providers.filter((p) => p.accounts.length > 0);
@@ -807,20 +984,42 @@ export function Providers() {
             {t.providers.subtitle}
           </p>
         </div>
-        <button
-          className="glass-btn glass-btn-teal"
-          onClick={() => setShowAddModal(true)}
-          disabled={isAuthenticating}
-        >
-          {isAuthenticating ? (
-            <>
-              <span className="animate-spin inline-block mr-2">◌</span>
-              {t.providers.connecting}
-            </>
-          ) : (
-            `+ ${t.providers.addProvider}`
-          )}
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            className="glass-btn p-2.5"
+            onClick={() => loadAccounts()}
+            disabled={isLoading}
+            title={t.quota.refresh}
+          >
+            <svg
+              className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
+            </svg>
+          </button>
+          <button
+            className="glass-btn glass-btn-teal"
+            onClick={() => setShowAddModal(true)}
+            disabled={isAuthenticating}
+          >
+            {isAuthenticating ? (
+              <>
+                <span className="animate-spin inline-block mr-2">◌</span>
+                {t.providers.connecting}
+              </>
+            ) : (
+              `+ ${t.providers.addProvider}`
+            )}
+          </button>
+        </div>
       </div>
 
       {authError && (

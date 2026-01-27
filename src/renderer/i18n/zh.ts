@@ -15,7 +15,7 @@ export const zh: Translations = {
   nav: {
     dashboard: "仪表盘",
     quota: "配额",
-    providers: "供应商",
+    providers: "提供商",
     agents: "代理",
     apiKeys: "API 密钥",
     logs: "日志",
@@ -56,6 +56,15 @@ export const zh: Translations = {
     optional: "可选",
     nicknamePlaceholder: "例如：工作账户",
     oauthDescription: "点击下方按钮通过浏览器进行身份验证。授权后将自动返回。",
+    importDescription:
+      "扫描应用数据目录中的 Kiro 授权文件。请确保已在 Kiro IDE 中登录。",
+    importFromIDE: "扫描 Kiro 文件",
+    importing: "扫描中...",
+    projectIdLabel: "项目 ID",
+    projectIdPlaceholder: "输入您的 Google Cloud 项目 ID",
+    projectIdDescription:
+      "如果您是现有的 Gemini Code 用户，可能需要指定一个项目 ID。",
+    projectIdOptional: "新用户可选",
     connecting: "连接中...",
     apiKeyLabel: "API 密钥",
     apiKeyPlaceholder: "请输入您的 API 密钥",
@@ -97,9 +106,14 @@ export const zh: Translations = {
     rateLimit: "速率限制",
     minutesAgo: "{minutes}分钟前",
     hoursAgo: "{hours}小时前",
+    daysAgo: "{days}天前",
     showMore: "展开更多模型",
     showLess: "收起",
     showMoreModels: "查看 {count} 个更多模型",
+    viewAllModels: "查看全部模型",
+    modelQuotaTitle: "全部模型配额",
+    allModelsQuota: "该账户的所有模型配额",
+    close: "关闭",
   },
   agents: {
     title: "代理",
@@ -138,6 +152,7 @@ export const zh: Translations = {
     deleteFailed: "删除失败",
     allProviders: "全部提供商",
     refresh: "刷新",
+    waitingForRequests: "请求将自动显示在此处",
   },
   settings: {
     title: "设置",

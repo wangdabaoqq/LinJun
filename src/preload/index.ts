@@ -83,6 +83,26 @@ const electronAPI = {
       ipcRenderer.invoke("quota:refresh", accountId),
     refreshAll: () => ipcRenderer.invoke("quota:refreshAll"),
   },
+  providers: {
+    getAccounts: () => ipcRenderer.invoke("providers:getAccounts"),
+    removeAccount: (filePath: string) =>
+      ipcRenderer.invoke("providers:removeAccount", filePath),
+  },
+  qwen: {
+    getAuthUrl: () => ipcRenderer.invoke("qwen:getAuthUrl"),
+    getAuthStatus: (state: string) =>
+      ipcRenderer.invoke("qwen:getAuthStatus", state),
+  },
+  antigravity: {
+    getAuthUrl: () => ipcRenderer.invoke("antigravity:getAuthUrl"),
+  },
+  claude: {
+    getAuthUrl: () => ipcRenderer.invoke("claude:getAuthUrl"),
+  },
+  gemini: {
+    getAuthUrl: (projectId?: string) =>
+      ipcRenderer.invoke("gemini:getAuthUrl", projectId),
+  },
 };
 
 contextBridge.exposeInMainWorld("electronAPI", electronAPI);

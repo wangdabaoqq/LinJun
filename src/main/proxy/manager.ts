@@ -111,7 +111,7 @@ class ProxyManager extends EventEmitter {
 
     console.log("[ProxyManager] Starting proxy with config:", configPath);
 
-    this.process = spawn(binaryPath, ["-config", configPath], {
+    this.process = spawn(binaryPath, ["--config", configPath], {
       stdio: ["ignore", "pipe", "pipe"],
       detached: false,
     });
@@ -272,39 +272,90 @@ class ProxyManager extends EventEmitter {
       this.ensureConfig();
       const binaryPath = this.getBinaryPath();
       const configPath = this.getConfigPath();
+
       console.log("[CLI Login] Binary path:", binaryPath);
       console.log("[CLI Login] Config path:", configPath);
-      const args = [`-config`, configPath, `-${provider}-login`];
+      console.log("[CLI Login] Config path exists:", fs.existsSync(configPath));
 
-      const loginProcess = spawn(binaryPath, args, {
-        stdio: ["ignore", "pipe", "pipe"],
-        detached: false,
-      });
+      const providerParts = provider.split(" ");
+      const providerName = providerParts[0];
+      const extraArgs = providerParts.slice(1);
 
-      let stdout = "";
-      let stderr = "";
+      const cliCommand = `"${binaryPath}" --config "${configPath}" --${providerName}-login ${extraArgs.join(" ")}`;
+      console.log("[CLI Login] Full command:", cliCommand);
 
-      loginProcess.stdout?.on("data", (data) => {
-        stdout += data.toString();
-        console.log(`[CLI Login] ${data}`);
-      });
+      const platform = process.platform;
 
-      loginProcess.stderr?.on("data", (data) => {
-        stderr += data.toString();
-        console.error(`[CLI Login Error] ${data}`);
-      });
+      if (platform === "darwin") {
+        const appleScript = `tell application "Terminal"
+          activate
+          do script "${cliCommand.replace(/"/g, '\\"')}"
+        end tell`;
 
-      loginProcess.on("exit", (code) => {
-        if (code === 0) {
-          resolve({ success: true, output: stdout });
-        } else {
-          resolve({ success: false, error: stderr || `Exit code: ${code}` });
-        }
-      });
+        const terminalProcess = spawn("osascript", ["-e", appleScript], {
+          stdio: ["ignore", "pipe", "pipe"],
+          detached: true,
+        });
 
-      loginProcess.on("error", (err) => {
-        resolve({ success: false, error: err.message });
-      });
+        terminalProcess.on("exit", (code) => {
+          if (code === 0) {
+            resolve({
+              success: true,
+              output: "Terminal opened for authentication",
+            });
+          } else {
+            resolve({
+              success: false,
+              error: `Failed to open terminal: exit code ${code}`,
+            });
+          }
+        });
+
+        terminalProcess.on("error", (err) => {
+          resolve({ success: false, error: err.message });
+        });
+      } else if (platform === "win32") {
+        const terminalProcess = spawn(
+          "cmd.exe",
+          ["/c", "start", "cmd.exe", "/k", cliCommand],
+          {
+            stdio: ["ignore", "pipe", "pipe"],
+            detached: true,
+            shell: true,
+          },
+        );
+
+        terminalProcess.on("exit", () => {
+          resolve({
+            success: true,
+            output: "Terminal opened for authentication",
+          });
+        });
+
+        terminalProcess.on("error", (err) => {
+          resolve({ success: false, error: err.message });
+        });
+      } else {
+        const terminalProcess = spawn(
+          "x-terminal-emulator",
+          ["-e", cliCommand],
+          {
+            stdio: ["ignore", "pipe", "pipe"],
+            detached: true,
+          },
+        );
+
+        terminalProcess.on("exit", () => {
+          resolve({
+            success: true,
+            output: "Terminal opened for authentication",
+          });
+        });
+
+        terminalProcess.on("error", (err) => {
+          resolve({ success: false, error: err.message });
+        });
+      }
     });
   }
 }

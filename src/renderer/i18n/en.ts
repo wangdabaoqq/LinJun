@@ -55,6 +55,15 @@ export const en = {
     nicknamePlaceholder: "e.g. Work Account",
     oauthDescription:
       "Click below to authenticate with your browser. You'll be redirected back after authorization.",
+    importDescription:
+      "Scan for Kiro authentication files in the app data directory. Make sure you have logged in to Kiro IDE first.",
+    importFromIDE: "Scan Kiro Files",
+    importing: "Scanning...",
+    projectIdLabel: "Project ID",
+    projectIdPlaceholder: "Enter your Google Cloud Project ID",
+    projectIdDescription:
+      "If you are an existing Gemini Code user, you may need to specify a project ID.",
+    projectIdOptional: "Optional for new users",
     connecting: "Connecting...",
     apiKeyLabel: "API Key",
     apiKeyPlaceholder: "Enter your API key",
@@ -97,9 +106,14 @@ export const en = {
     rateLimit: "Rate Limit",
     minutesAgo: "{minutes}m ago",
     hoursAgo: "{hours}h ago",
+    daysAgo: "{days}d ago",
     showMore: "Show more usage",
     showLess: "Show less",
     showMoreModels: "Show {count} more models",
+    viewAllModels: "View All Models",
+    modelQuotaTitle: "All Model Quotas",
+    allModelsQuota: "All model quotas for this account",
+    close: "Close",
   },
   agents: {
     title: "AGENTS",
@@ -139,6 +153,7 @@ export const en = {
     deleteFailed: "Failed to delete logs",
     allProviders: "All Providers",
     refresh: "Refresh",
+    waitingForRequests: "Requests will appear here automatically",
   },
   settings: {
     title: "SETTINGS",

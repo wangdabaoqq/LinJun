@@ -16,6 +16,7 @@ import {
   getQuotaByProvider,
   refreshQuota,
   ProviderType,
+  scanTokenFiles,
 } from "../quota";
 
 export function setupIpcHandlers(): void {
@@ -462,6 +463,110 @@ export function setupIpcHandlers(): void {
     } catch (error) {
       console.error("[IPC] Failed to refresh all quotas:", error);
       return { success: false, accounts: [], error: String(error) };
+    }
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // Provider Accounts Management - Token-based account listing
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  ipcMain.handle("providers:getAccounts", () => {
+    try {
+      const tokens = scanTokenFiles();
+      const accounts = tokens.map((token) => ({
+        id: `${token.provider}-${token.email}`,
+        provider: token.provider,
+        email: token.email,
+        status: "online" as const,
+        lastUsed: token.raw.last_refresh || token.expired,
+        filePath: token.filePath,
+      }));
+      return { success: true, accounts };
+    } catch (error) {
+      console.error("[IPC] Failed to get provider accounts:", error);
+      return { success: false, accounts: [], error: String(error) };
+    }
+  });
+
+  ipcMain.handle(
+    "providers:removeAccount",
+    async (_event, filePath: string) => {
+      try {
+        const fs = await import("fs");
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+          return { success: true };
+        }
+        return { success: false, error: "Token file not found" };
+      } catch (error) {
+        console.error("[IPC] Failed to remove account:", error);
+        return { success: false, error: String(error) };
+      }
+    },
+  );
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // Qwen OAuth - API-based authentication (avoids interactive terminal input)
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  ipcMain.handle("qwen:getAuthUrl", async () => {
+    try {
+      const result = await managementAPI.getQwenAuthUrl();
+      if (result.status === "ok" && result.url) {
+        await shell.openExternal(result.url);
+      }
+      return result;
+    } catch (error) {
+      console.error("[IPC] Failed to get Qwen auth URL:", error);
+      return { status: "error", url: "", state: "" };
+    }
+  });
+
+  ipcMain.handle("antigravity:getAuthUrl", async () => {
+    try {
+      const result = await managementAPI.getAntigravityAuthUrl();
+      if (result.status === "ok" && result.url) {
+        await shell.openExternal(result.url);
+      }
+      return result;
+    } catch (error) {
+      console.error("[IPC] Failed to get Antigravity auth URL:", error);
+      return { status: "error", url: "", state: "" };
+    }
+  });
+
+  ipcMain.handle("claude:getAuthUrl", async () => {
+    try {
+      const result = await managementAPI.getClaudeAuthUrl();
+      if (result.status === "ok" && result.url) {
+        await shell.openExternal(result.url);
+      }
+      return result;
+    } catch (error) {
+      console.error("[IPC] Failed to get Claude auth URL:", error);
+      return { status: "error", url: "", state: "" };
+    }
+  });
+
+  ipcMain.handle("gemini:getAuthUrl", async (_event, projectId?: string) => {
+    try {
+      const result = await managementAPI.getGeminiAuthUrl(projectId);
+      if (result.status === "ok" && result.url) {
+        await shell.openExternal(result.url);
+      }
+      return result;
+    } catch (error) {
+      console.error("[IPC] Failed to get Gemini auth URL:", error);
+      return { status: "error", url: "", state: "" };
+    }
+  });
+
+  ipcMain.handle("qwen:getAuthStatus", async (_event, state: string) => {
+    try {
+      return await managementAPI.getQwenAuthStatus(state);
+    } catch (error) {
+      console.error("[IPC] Failed to get Qwen auth status:", error);
+      return { status: "error" };
     }
   });
 }
