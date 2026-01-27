@@ -108,7 +108,7 @@ export function About() {
           <div className="space-y-3">
             <button
               onClick={() =>
-                handleOpenExternal("https://github.com/wangdabaoqq/L-jun")
+                handleOpenExternal("https://github.com/wangdabaoqq/LinJun")
               }
               className="flex items-center gap-2 text-sm text-[var(--text-muted)] hover:text-[var(--accent-magenta)] transition-colors cursor-pointer w-full text-left"
             >
@@ -118,7 +118,7 @@ export function About() {
             <button
               onClick={() =>
                 handleOpenExternal(
-                  "https://github.com/wangdabaoqq/L-jun#readme",
+                  "https://github.com/wangdabaoqq/LinJun#readme",
                 )
               }
               className="flex items-center gap-2 text-sm text-[var(--text-muted)] hover:text-[var(--accent-magenta)] transition-colors cursor-pointer w-full text-left"
@@ -129,7 +129,7 @@ export function About() {
             <button
               onClick={() =>
                 handleOpenExternal(
-                  "https://github.com/wangdabaoqq/L-jun/issues",
+                  "https://github.com/wangdabaoqq/LinJun/issues",
                 )
               }
               className="flex items-center gap-2 text-sm text-[var(--text-muted)] hover:text-[var(--accent-magenta)] transition-colors cursor-pointer w-full text-left"

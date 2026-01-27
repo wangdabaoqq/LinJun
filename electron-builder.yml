@@ -52,7 +52,7 @@ nsis:
 publish:
   provider: github
   owner: wangdabaoqq
-  repo: L-jun
+  repo: LinJun
   releaseType: draft
 
 generateUpdatesFilesForAllChannels: true

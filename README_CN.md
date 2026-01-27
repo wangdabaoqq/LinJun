@@ -65,7 +65,7 @@ LinJun 可以自动配置以下工具使用你的集中代理：
 
 ### 下载安装
 
-从 [GitHub Releases](https://github.com/wangdabaoqq/L-jun/releases) 下载最新版本：
+从 [GitHub Releases](https://github.com/wangdabaoqq/LinJun/releases) 下载最新版本：
 
 | 平台                  | 下载文件                              |
 | --------------------- | ------------------------------------- |
@@ -84,7 +84,7 @@ LinJun 可以自动配置以下工具使用你的集中代理：
 
 ```bash
 # 克隆仓库
-git clone https://github.com/wangdabaoqq/L-jun.git
+git clone https://github.com/wangdabaoqq/LinJun.git
 cd L-jun
 
 # 安装依赖
@@ -212,4 +212,4 @@ MIT 许可证。详见 [LICENSE](LICENSE)。
 
 ---
 
-[![Star History Chart](https://api.star-history.com/svg?repos=wangdabaoqq/L-jun&type=Date)](https://star-history.com/#wangdabaoqq/L-jun&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=wangdabaoqq/LinJun&type=Date)](https://star-history.com/#wangdabaoqq/LinJun&Date)

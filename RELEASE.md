@@ -59,7 +59,7 @@ When you run `bun run release:all`:
 
 ## After Publishing
 
-1. Go to https://github.com/wangdabaoqq/L-jun/releases
+1. Go to https://github.com/wangdabaoqq/LinJun/releases
 2. Find the draft release
 3. Edit release notes
 4. Click "Publish release"

@@ -65,7 +65,7 @@ LinJun can automatically configure these tools to use your centralized proxy:
 
 ### Download
 
-Download the latest release from [GitHub Releases](https://github.com/wangdabaoqq/L-jun/releases):
+Download the latest release from [GitHub Releases](https://github.com/wangdabaoqq/LinJun/releases):
 
 | Platform              | Download                              |
 | --------------------- | ------------------------------------- |
@@ -84,7 +84,7 @@ Download the latest release from [GitHub Releases](https://github.com/wangdabaoq
 
 ```bash
 # Clone the repository
-git clone https://github.com/wangdabaoqq/L-jun.git
+git clone https://github.com/wangdabaoqq/LinJun.git
 cd L-jun
 
 # Install dependencies
@@ -212,4 +212,4 @@ MIT License. See [LICENSE](LICENSE) for details.
 
 ---
 
-[![Star History Chart](https://api.star-history.com/svg?repos=wangdabaoqq/L-jun&type=Date)](https://star-history.com/#wangdabaoqq/L-jun&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=wangdabaoqq/LinJun&type=Date)](https://star-history.com/#wangdabaoqq/LinJun&Date)
