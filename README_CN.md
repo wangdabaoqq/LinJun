@@ -67,12 +67,12 @@
 
 从 [GitHub Releases](https://github.com/wangdabaoqq/L-jun/releases) 下载最新版本：
 
-| 平台                  | 下载文件                        |
-| --------------------- | ------------------------------- |
-| macOS (Apple Silicon) | `霖君-x.x.x-arm64.dmg`          |
-| macOS (Intel)         | `霖君-x.x.x.dmg`                |
-| Windows               | `霖君-Setup-x.x.x.exe`          |
-| Linux                 | `霖君-x.x.x.AppImage` 或 `.deb` |
+| 平台                  | 下载文件                              |
+| --------------------- | ------------------------------------- |
+| macOS (Apple Silicon) | `LinJun-x.x.x-arm64.dmg`              |
+| macOS (Intel)         | `LinJun-x.x.x-x64.dmg`                |
+| Windows               | `LinJun-x.x.x-x64.exe`                |
+| Linux                 | `LinJun-x.x.x-x64.AppImage` 或 `.deb` |
 
 ### 从源码构建
 
@@ -142,7 +142,7 @@ bun run build:all      # 所有平台
 
 ## ⚙️ 设置选项
 
-- **端口**：更改代理监听端口（默认：8317）
+- **端口**：更改代理监听端口（默认：8310）
 - **路由策略**：轮询（Round Robin）或填充优先（Fill First）
 - **自动启动**：应用启动时自动启动代理
 - **通知**：开启/关闭配额警告提醒
