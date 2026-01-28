@@ -164,6 +164,43 @@ class ManagementAPI {
     }
   }
 
+  async getCodexAuthUrl(): Promise<QwenAuthUrlResponse> {
+    try {
+      const res = await this.client.get(
+        `${this.baseURL}/v0/management/codex-auth-url`,
+        {
+          params: { is_webui: true },
+          headers: this.getAuthHeaders(),
+        },
+      );
+      return res.data;
+    } catch (error) {
+      console.error("[ManagementAPI] Failed to get Codex auth URL:", error);
+      return { status: "error", url: "", state: "" };
+    }
+  }
+
+  async getCopilotAuthUrl(): Promise<CopilotAuthUrlResponse> {
+    try {
+      const res = await this.client.get(
+        `${this.baseURL}/v0/management/github-auth-url`,
+        {
+          headers: this.getAuthHeaders(),
+        },
+      );
+      return res.data;
+    } catch (error) {
+      console.error("[ManagementAPI] Failed to get Copilot auth URL:", error);
+      return {
+        status: "error",
+        url: "",
+        state: "",
+        user_code: "",
+        verification_uri: "",
+      };
+    }
+  }
+
   async getQwenAuthStatus(state: string): Promise<QwenAuthStatusResponse> {
     try {
       const res = await this.client.get(
@@ -244,4 +281,12 @@ export interface QwenAuthUrlResponse {
 
 export interface QwenAuthStatusResponse {
   status: "pending" | "ok" | "error";
+}
+
+export interface CopilotAuthUrlResponse {
+  status: "ok" | "error";
+  url: string;
+  state: string;
+  user_code: string;
+  verification_uri: string;
 }

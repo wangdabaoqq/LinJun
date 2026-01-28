@@ -1,4 +1,7 @@
 import { app, ipcMain, shell } from "electron";
+import path from "path";
+import fs from "fs";
+import crypto from "crypto";
 import { proxyManager } from "../proxy/manager";
 import { managementAPI, Provider } from "../proxy/api";
 import { store } from "../utils/store";
@@ -17,6 +20,8 @@ import {
   refreshQuota,
   ProviderType,
   scanTokenFiles,
+  isKiroTokenValid,
+  refreshKiroTokenManually,
 } from "../quota";
 
 export function setupIpcHandlers(): void {
@@ -419,9 +424,9 @@ export function setupIpcHandlers(): void {
     },
   );
 
-  ipcMain.handle("quota:getProviders", () => {
+  ipcMain.handle("quota:getProviders", async () => {
     try {
-      return { success: true, providers: getProviders() };
+      return { success: true, providers: await getProviders() };
     } catch (error) {
       console.error("[IPC] Failed to get providers:", error);
       return { success: false, providers: [], error: String(error) };
@@ -453,7 +458,7 @@ export function setupIpcHandlers(): void {
 
   ipcMain.handle("quota:refreshAll", async () => {
     try {
-      const providers = getProviders();
+      const providers = await getProviders();
       const allAccounts = [];
       for (const provider of providers) {
         const accounts = await getQuotaByProvider(provider.id);
@@ -470,17 +475,32 @@ export function setupIpcHandlers(): void {
   // Provider Accounts Management - Token-based account listing
   // ═══════════════════════════════════════════════════════════════════════════════
 
-  ipcMain.handle("providers:getAccounts", () => {
+  ipcMain.handle("providers:getAccounts", async () => {
     try {
       const tokens = scanTokenFiles();
-      const accounts = tokens.map((token) => ({
-        id: `${token.provider}-${token.email}`,
-        provider: token.provider,
-        email: token.email,
-        status: "online" as const,
-        lastUsed: token.raw.last_refresh || token.expired,
-        filePath: token.filePath,
-      }));
+      const accounts = [];
+
+      for (const token of tokens) {
+        if (token.provider === "kiro") {
+          const isValid = await isKiroTokenValid(token);
+          if (!isValid) {
+            console.log(
+              `[IPC] Skipping expired Kiro account: ${token.filePath}`,
+            );
+            continue;
+          }
+        }
+
+        accounts.push({
+          id: `${token.provider}-${token.email}`,
+          provider: token.provider,
+          email: token.email,
+          status: "online" as const,
+          lastUsed: token.raw.last_refresh || token.expired,
+          filePath: token.filePath,
+        });
+      }
+
       return { success: true, accounts };
     } catch (error) {
       console.error("[IPC] Failed to get provider accounts:", error);
@@ -561,12 +581,92 @@ export function setupIpcHandlers(): void {
     }
   });
 
+  ipcMain.handle("codex:getAuthUrl", async () => {
+    try {
+      const result = await managementAPI.getCodexAuthUrl();
+      if (result.status === "ok" && result.url) {
+        await shell.openExternal(result.url);
+      }
+      return result;
+    } catch (error) {
+      console.error("[IPC] Failed to get Codex auth URL:", error);
+      return { status: "error", url: "", state: "" };
+    }
+  });
+
+  ipcMain.handle("copilot:getAuthUrl", async () => {
+    try {
+      return await managementAPI.getCopilotAuthUrl();
+    } catch (error) {
+      console.error("[IPC] Failed to get Copilot auth URL:", error);
+      return {
+        status: "error",
+        url: "",
+        state: "",
+        user_code: "",
+        verification_uri: "",
+      };
+    }
+  });
+
   ipcMain.handle("qwen:getAuthStatus", async (_event, state: string) => {
     try {
       return await managementAPI.getQwenAuthStatus(state);
     } catch (error) {
       console.error("[IPC] Failed to get Qwen auth status:", error);
       return { status: "error" };
+    }
+  });
+
+  ipcMain.handle("kiro:import", async () => {
+    try {
+      const homeDir = app.getPath("home");
+      const ssoDir = path.join(homeDir, ".aws", "sso", "cache");
+      const authDir = proxyManager.getAuthDir();
+
+      if (!fs.existsSync(ssoDir)) {
+        return { success: false, error: "AWS SSO cache directory not found" };
+      }
+
+      const kiroFile = path.join(ssoDir, "kiro-auth-token.json");
+      if (!fs.existsSync(kiroFile)) {
+        return {
+          success: false,
+          error: "Kiro auth token not found. Please login to Kiro IDE first.",
+        };
+      }
+
+      const randomId = crypto.randomBytes(8).toString("hex").toUpperCase();
+      const destFilename = `kiro-google-${randomId}.json`;
+      const destPath = path.join(authDir, destFilename);
+
+      fs.copyFileSync(kiroFile, destPath);
+      console.log(`[IPC] Kiro token imported: ${destPath}`);
+
+      return { success: true, filePath: destPath };
+    } catch (error) {
+      console.error("[IPC] Failed to import Kiro token:", error);
+      return { success: false, error: String(error) };
+    }
+  });
+
+  ipcMain.handle("kiro:refreshToken", async (_event, filePath: string) => {
+    try {
+      const tokens = scanTokenFiles();
+      const token = tokens.find((t) => t.filePath === filePath);
+
+      if (!token) {
+        return { success: false, error: "Token file not found" };
+      }
+
+      if (token.provider !== "kiro") {
+        return { success: false, error: "Not a Kiro token file" };
+      }
+
+      return await refreshKiroTokenManually(token);
+    } catch (error) {
+      console.error("[IPC] Failed to refresh Kiro token:", error);
+      return { success: false, error: String(error) };
     }
   });
 }

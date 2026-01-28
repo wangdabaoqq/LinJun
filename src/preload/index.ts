@@ -103,6 +103,17 @@ const electronAPI = {
     getAuthUrl: (projectId?: string) =>
       ipcRenderer.invoke("gemini:getAuthUrl", projectId),
   },
+  codex: {
+    getAuthUrl: () => ipcRenderer.invoke("codex:getAuthUrl"),
+  },
+  copilot: {
+    getAuthUrl: () => ipcRenderer.invoke("copilot:getAuthUrl"),
+  },
+  kiro: {
+    importToken: () => ipcRenderer.invoke("kiro:import"),
+    refreshToken: (filePath: string) =>
+      ipcRenderer.invoke("kiro:refreshToken", filePath),
+  },
 };
 
 contextBridge.exposeInMainWorld("electronAPI", electronAPI);

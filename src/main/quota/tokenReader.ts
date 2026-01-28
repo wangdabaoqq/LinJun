@@ -1,6 +1,14 @@
 import fs from "fs";
 import path from "path";
-import { app } from "electron";
+import { proxyManager } from "../proxy/manager";
+
+function getAuthDir(): string {
+  const config = proxyManager.loadConfigFromYaml();
+  if (config?.["auth-dir"]) {
+    return config["auth-dir"];
+  }
+  return proxyManager.getAuthDir();
+}
 
 export type ProviderType =
   | "codex"
@@ -19,7 +27,7 @@ export interface TokenFile {
   refresh_token?: string;
   email?: string;
   expired?: string;
-  type?: ProviderType;
+  type?: ProviderType | "github-copilot";
 
   // Gemini
   token?: {
@@ -41,6 +49,19 @@ export interface TokenFile {
   tier_name?: string;
   paid_tier_id?: string;
   paid_tier_name?: string;
+
+  // Kiro specific (camelCase)
+  accessToken?: string;
+  refreshToken?: string;
+  profileArn?: string;
+  expiresAt?: string;
+  authMethod?: string;
+  provider?: string;
+
+  // GitHub Copilot specific
+  token_type?: string;
+  scope?: string;
+  username?: string;
 }
 
 export interface TokenReadResult {
@@ -54,13 +75,6 @@ export interface TokenReadResult {
   raw: TokenFile;
 }
 
-function getAuthDir(): string {
-  return path.join(app.getPath("userData"), "cli-proxy", "auth");
-}
-
-/**
- * Scan the auth directory and return all token files
- */
 export function scanTokenFiles(): TokenReadResult[] {
   const authDir = getAuthDir();
 
@@ -128,23 +142,29 @@ function readTokenFile(filePath: string): TokenReadResult | null {
     const content = fs.readFileSync(filePath, "utf-8");
     const data: TokenFile = JSON.parse(content);
     const filename = path.basename(filePath);
-    const provider = parseProviderFromFilename(filename) || data.type;
+    let provider: ProviderType | null =
+      parseProviderFromFilename(filename) ||
+      (data.type === "github-copilot" ? "copilot" : data.type) ||
+      null;
 
-    const accessToken = data.access_token || data.token?.access_token;
-    const refreshToken = data.refresh_token || data.token?.refresh_token;
-    const expiredStr = data.expired || data.token?.expiry;
+    const accessToken =
+      data.access_token || data.token?.access_token || data.accessToken;
+    const refreshToken =
+      data.refresh_token || data.token?.refresh_token || data.refreshToken;
+    const expiredStr = data.expired || data.token?.expiry || data.expiresAt;
 
-    if (!provider || !accessToken || !refreshToken) {
+    const isCopilot = provider === "copilot";
+    if (!provider || !accessToken || (!refreshToken && !isCopilot)) {
       console.warn(`[TokenReader] Invalid token file: ${filePath}`);
       return null;
     }
 
     return {
       provider,
-      email: data.email || "unknown",
+      email: data.email || data.username || path.basename(filePath, ".json"),
       accountId: data.account_id,
       accessToken,
-      refreshToken,
+      refreshToken: refreshToken || "",
       expired: expiredStr ? new Date(expiredStr) : new Date(),
       filePath,
       raw: data,

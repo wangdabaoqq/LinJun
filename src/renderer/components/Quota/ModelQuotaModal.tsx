@@ -2,6 +2,7 @@ import { Modal } from "../ui/Modal";
 import { QuotaWindowBar } from "./QuotaWindowBar";
 import { QuotaWindow } from "./AccountQuotaCard";
 import { useTranslations } from "../../stores/settings";
+import { sortModelsByDisplayOrder } from "./modelOrder";
 
 interface ModelQuotaModalProps {
   isOpen: boolean;
@@ -17,47 +18,8 @@ interface ModelQuotaModalProps {
   };
 }
 
-const MODEL_DISPLAY_ORDER = [
-  "claude-opus-4-5-thinking",
-  "Claude Opus 4.5 Thinking",
-  "gemini-3-pro-high",
-  "Gemini 3 High",
-  "gemini-3-pro-image",
-  "Gemini 3 Image",
-  "gemini-3-flash",
-  "Gemini 3 Flash",
-  "gemini-3-pro-low",
-  "Gemini 3 Low",
-  "gemini-2.5-flash",
-  "Gemini 2.5 Flash",
-  "gemini-2.5-flash-thinking",
-  "Gemini 2.5 Flash Thinking",
-  "gemini-2.5-pro",
-  "Gemini 2.5",
-  "claude-sonnet-4-5",
-  "Claude Sonnet 4.5",
-  "claude-sonnet-4-5-thinking",
-  "Claude Sonnet 4.5 Thinking",
-];
-
 function formatModelLabel(label: string): string {
   return label.replace(/(\s|^)(Pro|Plus)(\s|$)/gi, " ").trim();
-}
-
-function getModelSortIndex(label: string): number {
-  const normalizedLabel = label.toLowerCase().replace(/[\s-_]/g, "");
-  for (let i = 0; i < MODEL_DISPLAY_ORDER.length; i++) {
-    const orderItem = MODEL_DISPLAY_ORDER[i]
-      .toLowerCase()
-      .replace(/[\s-_]/g, "");
-    if (
-      normalizedLabel.includes(orderItem) ||
-      orderItem.includes(normalizedLabel)
-    ) {
-      return i;
-    }
-  }
-  return MODEL_DISPLAY_ORDER.length;
 }
 
 export function ModelQuotaModal({
@@ -84,9 +46,7 @@ export function ModelQuotaModal({
     allModels.push(...rateLimits.additional);
   }
 
-  const sortedModels = [...allModels].sort((a, b) => {
-    return getModelSortIndex(a.label) - getModelSortIndex(b.label);
-  });
+  const sortedModels = sortModelsByDisplayOrder(allModels);
 
   const modalTitle = (
     <div className="flex flex-col gap-0.5">

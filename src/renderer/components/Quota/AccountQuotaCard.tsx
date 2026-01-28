@@ -2,6 +2,7 @@ import React from "react";
 import { QuotaWindowBar } from "./QuotaWindowBar";
 import { ModelQuotaModal } from "./ModelQuotaModal";
 import { useTranslations } from "../../stores/settings";
+import { sortModelsByDisplayOrder } from "./modelOrder";
 
 export interface QuotaWindow {
   label: string;
@@ -43,9 +44,11 @@ export function AccountQuotaCard({
   if (rateLimits.codeReview) allModels.push(rateLimits.codeReview);
   if (rateLimits.additional) allModels.push(...rateLimits.additional);
 
+  const sortedModels = sortModelsByDisplayOrder(allModels);
+
   const displayCount = 4;
-  const modelsToShow = allModels.slice(0, displayCount);
-  const hasMoreModels = allModels.length > displayCount;
+  const modelsToShow = sortedModels.slice(0, displayCount);
+  const hasMoreModels = sortedModels.length > displayCount;
 
   const getStatusColor = () => {
     switch (status) {
@@ -78,8 +81,8 @@ export function AccountQuotaCard({
     <>
       <div className="glass-card p-5 hover:shadow-lg transition-all duration-300 group">
         <div className="flex items-start justify-between mb-6">
-          <div className="flex items-center gap-4">
-            <div className="relative flex items-center justify-center w-3 h-3 mt-1.5">
+          <div className="flex items-center gap-4 min-w-0 flex-1">
+            <div className="relative flex items-center justify-center w-3 h-3 mt-1.5 flex-shrink-0">
               <div
                 className={`w-2.5 h-2.5 rounded-full ${getStatusColor()}`}
               ></div>
@@ -90,13 +93,13 @@ export function AccountQuotaCard({
               )}
             </div>
 
-            <div className="flex flex-col">
+            <div className="flex flex-col min-w-0 flex-1">
               <div className="flex items-center gap-2">
-                <h3 className="font-semibold text-[var(--text-primary)] tracking-tight truncate max-w-[200px]">
+                <h3 className="font-semibold text-[var(--text-primary)] tracking-tight truncate">
                   {displayEmail}
                 </h3>
                 {badge && (
-                  <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] border border-[var(--accent-primary)]/20 uppercase tracking-wide">
+                  <span className="flex-shrink-0 px-1.5 py-0.5 rounded text-[10px] font-bold bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] border border-[var(--accent-primary)]/20 uppercase tracking-wide whitespace-nowrap">
                     {badge}
                   </span>
                 )}
@@ -110,7 +113,7 @@ export function AccountQuotaCard({
                 e.stopPropagation();
                 onRefresh();
               }}
-              className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-soft transition-all duration-200"
+              className="flex-shrink-0 ml-2 p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-soft transition-all duration-200"
               title={t.quota.refresh}
             >
               <svg

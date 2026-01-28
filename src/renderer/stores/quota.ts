@@ -92,7 +92,7 @@ export const useQuotaStore = create<QuotaState>((set, get) => ({
     const cachedAccounts = get().cachedAccounts[provider];
     set({
       selectedProvider: provider,
-      accounts: cachedAccounts ?? get().accounts,
+      accounts: cachedAccounts ?? [],
       isLoading: !cachedAccounts,
       error: null,
       loadingProviders: {
@@ -107,7 +107,11 @@ export const useQuotaStore = create<QuotaState>((set, get) => ({
           ...acc,
           lastUpdated: new Date(acc.lastUpdated),
         }));
+        const updatedProviders = get().providers.map((p) =>
+          p.id === provider ? { ...p, accountCount: accounts.length } : p,
+        );
         set({
+          providers: updatedProviders,
           accounts:
             provider === get().selectedProvider ? accounts : get().accounts,
           lastUpdated: new Date(),

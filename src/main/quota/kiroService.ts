@@ -38,6 +38,13 @@ export interface KiroUsageResponse {
   };
 }
 
+export interface KiroRefreshResult {
+  success: boolean;
+  accessToken?: string;
+  expiresAt?: string;
+  error?: string;
+}
+
 async function refreshKiroToken(refreshToken: string): Promise<string> {
   const response = await axios.post(
     KIRO_REFRESH_URL,
@@ -82,12 +89,66 @@ export async function getKiroUsage(
       }
 
       updateTokenFile(token.filePath, {
-        access_token: newAccessToken,
+        accessToken: newAccessToken,
       });
 
       return await fetchKiroUsage(newAccessToken);
     }
 
     throw error;
+  }
+}
+
+export async function isKiroTokenValid(
+  token: TokenReadResult,
+): Promise<boolean> {
+  try {
+    await fetchKiroUsage(token.accessToken);
+    return true;
+  } catch (error) {
+    if (
+      axios.isAxiosError(error) &&
+      (error.response?.status === 401 || error.response?.status === 403)
+    ) {
+      try {
+        const newAccessToken = await refreshKiroToken(token.refreshToken);
+        if (newAccessToken) {
+          updateTokenFile(token.filePath, { accessToken: newAccessToken });
+          return true;
+        }
+      } catch {
+        return false;
+      }
+    }
+    return false;
+  }
+}
+
+export async function refreshKiroTokenManually(
+  token: TokenReadResult,
+): Promise<KiroRefreshResult> {
+  try {
+    const newAccessToken = await refreshKiroToken(token.refreshToken);
+    if (!newAccessToken) {
+      return { success: false, error: "Failed to get new access token" };
+    }
+
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+
+    updateTokenFile(token.filePath, {
+      accessToken: newAccessToken,
+      expiresAt: expiresAt,
+    });
+
+    console.log(`[Kiro] Token refreshed successfully: ${token.filePath}`);
+    return { success: true, accessToken: newAccessToken, expiresAt };
+  } catch (error) {
+    console.error("[Kiro] Failed to refresh token:", error);
+    return {
+      success: false,
+      error: axios.isAxiosError(error)
+        ? error.response?.data?.message || error.message
+        : String(error),
+    };
   }
 }

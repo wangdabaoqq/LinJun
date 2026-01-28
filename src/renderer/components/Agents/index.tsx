@@ -16,6 +16,178 @@ interface ConfigModalProps {
   onClose: () => void;
 }
 
+interface ProviderModels {
+  [modelName: string]: {
+    limit: { context: number; output: number };
+    name: string;
+    options?: Record<string, unknown>;
+    reasoning?: boolean;
+  };
+}
+
+const PROVIDER_MODEL_MAP: Record<string, ProviderModels> = {
+  claude: {
+    "claude-sonnet-4-5": {
+      limit: { context: 200000, output: 64000 },
+      name: "Claude Sonnet 4.5",
+    },
+    "claude-opus-4-5-thinking": {
+      limit: { context: 200000, output: 64000 },
+      name: "Claude Opus 4.5 Thinking",
+      options: { thinking: { budgetTokens: 10000, type: "enabled" } },
+      reasoning: true,
+    },
+  },
+  gemini: {
+    "gemini-2.5-pro": {
+      limit: { context: 1000000, output: 65536 },
+      name: "Gemini 2.5 Pro",
+    },
+    "gemini-2.5-flash": {
+      limit: { context: 1000000, output: 65536 },
+      name: "Gemini 2.5 Flash",
+    },
+  },
+  codex: {
+    "gpt-5": {
+      limit: { context: 400000, output: 32768 },
+      name: "Gpt 5",
+      options: { reasoning: { effort: "medium" } },
+      reasoning: true,
+    },
+    "gpt-5-codex": {
+      limit: { context: 400000, output: 32768 },
+      name: "Gpt 5 Codex",
+      options: { reasoning: { effort: "medium" } },
+      reasoning: true,
+    },
+    "gpt-5-codex-mini": {
+      limit: { context: 400000, output: 32768 },
+      name: "Gpt 5 Codex Mini",
+      options: { reasoning: { effort: "low" } },
+      reasoning: true,
+    },
+    "gpt-5-mini": {
+      limit: { context: 400000, output: 32768 },
+      name: "Gpt 5 Mini",
+      options: { reasoning: { effort: "low" } },
+      reasoning: true,
+    },
+    "gpt-5.1": {
+      limit: { context: 400000, output: 32768 },
+      name: "Gpt 5.1",
+      options: { reasoning: { effort: "medium" } },
+      reasoning: true,
+    },
+    "gpt-5.1-codex": {
+      limit: { context: 400000, output: 32768 },
+      name: "Gpt 5.1 Codex",
+      options: { reasoning: { effort: "medium" } },
+      reasoning: true,
+    },
+    "gpt-5.1-codex-max": {
+      limit: { context: 400000, output: 32768 },
+      name: "Gpt 5.1 Codex Max",
+      options: { reasoning: { effort: "high" } },
+      reasoning: true,
+    },
+    "gpt-5.1-codex-mini": {
+      limit: { context: 400000, output: 32768 },
+      name: "Gpt 5.1 Codex Mini",
+      options: { reasoning: { effort: "low" } },
+      reasoning: true,
+    },
+    "gpt-5.2": {
+      limit: { context: 400000, output: 32768 },
+      name: "Gpt 5.2",
+      options: { reasoning: { effort: "medium" } },
+      reasoning: true,
+    },
+    "gpt-5.2-codex": {
+      limit: { context: 400000, output: 32768 },
+      name: "Gpt 5.2 Codex",
+      options: { reasoning: { effort: "medium" } },
+      reasoning: true,
+    },
+  },
+  kiro: {
+    "kiro-claude-haiku-4-5": {
+      limit: { context: 200000, output: 64000 },
+      name: "Kiro Claude Haiku 4 5",
+    },
+    "kiro-claude-haiku-4-5-agentic": {
+      limit: { context: 200000, output: 64000 },
+      name: "Kiro Claude Haiku 4 5 Agentic",
+    },
+    "kiro-claude-opus-4-5": {
+      limit: { context: 200000, output: 64000 },
+      name: "Kiro Claude Opus 4 5",
+    },
+    "kiro-claude-opus-4-5-agentic": {
+      limit: { context: 200000, output: 64000 },
+      name: "Kiro Claude Opus 4 5 Agentic",
+    },
+    "kiro-claude-sonnet-4": {
+      limit: { context: 200000, output: 64000 },
+      name: "Kiro Claude Sonnet 4",
+    },
+    "kiro-claude-sonnet-4-5": {
+      limit: { context: 200000, output: 64000 },
+      name: "Kiro Claude Sonnet 4 5",
+    },
+    "kiro-claude-sonnet-4-5-agentic": {
+      limit: { context: 200000, output: 64000 },
+      name: "Kiro Claude Sonnet 4 5 Agentic",
+    },
+    "kiro-claude-sonnet-4-agentic": {
+      limit: { context: 200000, output: 64000 },
+      name: "Kiro Claude Sonnet 4 Agentic",
+    },
+  },
+  antigravity: {
+    "gemini-2.5-computer-use-preview-10-2025": {
+      limit: { context: 1048576, output: 65536 },
+      name: "Gemini 2.5 Computer Use Preview 10 2025",
+    },
+    "gemini-2.5-flash": {
+      limit: { context: 1048576, output: 65536 },
+      name: "Gemini 2.5 Flash",
+    },
+    "gemini-2.5-flash-lite": {
+      limit: { context: 1048576, output: 65536 },
+      name: "Gemini 2.5 Flash Lite",
+    },
+    "gemini-3-flash-preview": {
+      limit: { context: 1048576, output: 65536 },
+      name: "Gemini 3 Flash Preview",
+    },
+    "gemini-3-pro-image-preview": {
+      limit: { context: 1048576, output: 65536 },
+      name: "Gemini 3 Pro Image Preview",
+    },
+    "gemini-3-pro-preview": {
+      limit: { context: 1048576, output: 65536 },
+      name: "Gemini 3 Pro Preview",
+    },
+    "gemini-claude-opus-4-5-thinking": {
+      limit: { context: 200000, output: 64000 },
+      name: "Gemini Claude Opus 4 5 Thinking",
+      options: { thinking: { budgetTokens: 10000, type: "enabled" } },
+      reasoning: true,
+    },
+    "gemini-claude-sonnet-4-5": {
+      limit: { context: 200000, output: 64000 },
+      name: "Gemini Claude Sonnet 4 5",
+    },
+    "gemini-claude-sonnet-4-5-thinking": {
+      limit: { context: 200000, output: 64000 },
+      name: "Gemini Claude Sonnet 4 5 Thinking",
+      options: { thinking: { budgetTokens: 10000, type: "enabled" } },
+      reasoning: true,
+    },
+  },
+};
+
 const CACHE_KEY = "cli_tools_cache";
 const CACHE_DURATION = 5 * 60 * 1000;
 
@@ -62,6 +234,7 @@ function ConfigModal({ tool, onClose }: ConfigModalProps) {
   const [saving, setSaving] = useState(false);
   const [proxyUrl, setProxyUrl] = useState(`http://127.0.0.1:${port}`);
   const [apiKey, setApiKey] = useState("");
+  const [activeProviders, setActiveProviders] = useState<string[]>([]);
   const [testingConnection, setTestingConnection] = useState(false);
   const [connectionResult, setConnectionResult] = useState<{
     success: boolean;
@@ -97,6 +270,25 @@ function ConfigModal({ tool, onClose }: ConfigModalProps) {
       }
     };
     loadApiKey();
+  }, []);
+
+  useEffect(() => {
+    const loadProviders = async () => {
+      try {
+        const result = await window.electronAPI?.providers.getAccounts();
+        if (result?.success && result.accounts) {
+          const providerIds = [
+            ...new Set(
+              result.accounts.map((acc: { provider: string }) => acc.provider),
+            ),
+          ] as string[];
+          setActiveProviders(providerIds);
+        }
+      } catch (error) {
+        console.error("Failed to load providers:", error);
+      }
+    };
+    loadProviders();
   }, []);
 
   const getDefaultClaudeConfig = () => {
@@ -157,60 +349,30 @@ export GEMINI_MODEL="gemini-3-pro-preview"`;
   };
 
   const getDefaultOpenCodeConfig = () => {
-    return JSON.stringify(
-      {
-        $schema: "https://opencode.ai/config.json",
-        model: "opencode/minimax-m2.1",
-        provider: {
-          quotio: {
-            models: {
-              "gemini-claude-opus-4-5-thinking": {
-                limit: {
-                  context: 200000,
-                  output: 64000,
-                },
-                name: "Gemini Claude Opus 4 5 Thinking",
-                options: {
-                  thinking: {
-                    budgetTokens: 10000,
-                    type: "enabled",
-                  },
-                },
-                reasoning: true,
-              },
-              "gemini-claude-sonnet-4-5": {
-                limit: {
-                  context: 200000,
-                  output: 64000,
-                },
-                name: "Gemini Claude Sonnet 4 5",
-              },
-              "gpt-5.2-codex": {
-                limit: {
-                  context: 400000,
-                  output: 32768,
-                },
-                name: "Gpt 5.2 Codex",
-                options: {
-                  reasoning: {
-                    effort: "medium",
-                  },
-                },
-                reasoning: true,
-              },
-            },
-            name: "Quotio",
-            npm: "@ai-sdk/anthropic",
-            options: {
-              apiKey: apiKey || "your-api-key",
-              baseURL: `${proxyUrl}/v1`,
-            },
+    const models: ProviderModels = {};
+    for (const providerId of activeProviders) {
+      const providerModels = PROVIDER_MODEL_MAP[providerId];
+      if (providerModels) {
+        Object.assign(models, providerModels);
+      }
+    }
+
+    const config: Record<string, unknown> = {
+      $schema: "https://opencode.ai/config.json",
+      provider: {
+        linjun: {
+          ...(Object.keys(models).length > 0 && { models }),
+          name: "LinJun Proxy",
+          npm: "@ai-sdk/anthropic",
+          options: {
+            apiKey: apiKey || "your-api-key",
+            baseURL: `${proxyUrl}/v1`,
           },
         },
       },
-      null,
-      2,
-    );
+    };
+
+    return JSON.stringify(config, null, 2);
   };
 
   const [configContent, setConfigContent] = useState(
@@ -237,7 +399,7 @@ export GEMINI_MODEL="gemini-3-pro-preview"`;
       setConfigContent(getDefaultCodexConfig());
     }
     setAuthContent(getDefaultCodexAuth());
-  }, [proxyUrl, apiKey]);
+  }, [proxyUrl, apiKey, activeProviders]);
 
   const handleTestConnection = async () => {
     setTestingConnection(true);
@@ -271,7 +433,7 @@ export GEMINI_MODEL="gemini-3-pro-preview"`;
         tool.name === "Claude Code"
           ? `${homeDir}/.claude/settings.json`
           : tool.name === "OpenCode"
-            ? `${homeDir}/.opencode/config.json`
+            ? `${homeDir}/.config/opencode/opencode.json`
             : `${homeDir}/.codex/config.toml`;
 
       const result = await window.electronAPI?.cli.writeConfig(
@@ -564,7 +726,7 @@ export GEMINI_MODEL="gemini-3-pro-preview"`;
                 {tool.name === "Claude Code"
                   ? "~/.claude/settings.json"
                   : tool.name === "OpenCode"
-                    ? "~/.opencode/config.json"
+                    ? "~/.config/opencode/opencode.json"
                     : "~/.codex/config.toml"}
               </span>
               <button

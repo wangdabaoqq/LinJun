@@ -35,8 +35,7 @@ function getDefaultConfig(authDir: string): string {
 host: "127.0.0.1"
 port: 8317
 auth-dir: "${authDir}"
-api-keys:
-  - "clipplus-default-key"
+api-keys: []
 debug: false
 incognito-browser: true
 `;

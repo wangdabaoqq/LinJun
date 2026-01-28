@@ -1,3 +1,5 @@
+import path from "path";
+
 import {
   scanTokenFiles,
   getTokensByProvider,
@@ -16,7 +18,11 @@ import {
   AntigravityModelQuota,
 } from "./antigravityService";
 import { store } from "../utils/store";
-import { getKiroUsage, KiroUsageResponse } from "./kiroService";
+import {
+  getKiroUsage,
+  isKiroTokenValid,
+  KiroUsageResponse,
+} from "./kiroService";
 
 export interface QuotaWindow {
   label: string;
@@ -110,8 +116,31 @@ function convertAntigravityUsageToQuotaAccount(
     (m) => m.usedPercent !== undefined,
   );
 
-  const primaryModel = modelsWithUsage[0];
-  const remainingModels = modelsWithUsage.slice(1);
+  const preferredModelOrder = [
+    "gemini-3-pro-image",
+    "claude-opus-4-5-thinking",
+    "gemini-3-flash",
+    "gemini-3-pro-high",
+  ];
+
+  const normalizedPreferredOrder = preferredModelOrder.map((modelId) =>
+    modelId.toLowerCase().replace(/[-_\s]/g, ""),
+  );
+
+  const sortedModels = [...modelsWithUsage].sort((a, b) => {
+    const normalizedA = a.modelId.toLowerCase().replace(/[-_\s]/g, "");
+    const normalizedB = b.modelId.toLowerCase().replace(/[-_\s]/g, "");
+    const indexA = normalizedPreferredOrder.indexOf(normalizedA);
+    const indexB = normalizedPreferredOrder.indexOf(normalizedB);
+
+    if (indexA === -1 && indexB === -1) return 0;
+    if (indexA === -1) return 1;
+    if (indexB === -1) return -1;
+    return indexA - indexB;
+  });
+
+  const primaryModel = sortedModels[0];
+  const remainingModels = sortedModels.slice(1);
 
   const usedPercent = primaryModel?.usedPercent || 0;
   const isLimited = usedPercent > 95 || !usage.hasQuota;
@@ -218,10 +247,14 @@ function createErrorQuotaAccount(
   token: TokenReadResult,
   error: string,
 ): QuotaAccount {
+  let displayEmail = token.email;
+  if (!displayEmail || displayEmail === "unknown") {
+    displayEmail = path.basename(token.filePath, ".json");
+  }
   return {
-    id: `${token.provider}-${token.email}`,
+    id: `${token.provider}-${displayEmail}`,
     provider: token.provider,
-    email: token.email,
+    email: displayEmail,
     status: "error",
     rateLimits: {
       primary: {
@@ -236,16 +269,35 @@ function createErrorQuotaAccount(
   };
 }
 
-export function getProviders(): ProviderInfo[] {
+export async function getProviders(): Promise<ProviderInfo[]> {
   const summary = getProviderSummary();
+  const results: ProviderInfo[] = [];
 
-  return summary.map(({ provider, accountCount }) => ({
-    id: provider,
-    name: PROVIDER_META[provider]?.name || provider,
-    icon: PROVIDER_META[provider]?.icon || "◈",
-    accountCount,
-    color: PROVIDER_META[provider]?.color || "teal",
-  }));
+  for (const { provider, accountCount } of summary) {
+    let validCount = accountCount;
+
+    if (provider === "kiro") {
+      const tokens = getTokensByProvider(provider);
+      let validKiroCount = 0;
+      for (const token of tokens) {
+        const isValid = await isKiroTokenValid(token);
+        if (isValid) validKiroCount++;
+      }
+      validCount = validKiroCount;
+    }
+
+    if (validCount > 0) {
+      results.push({
+        id: provider,
+        name: PROVIDER_META[provider]?.name || provider,
+        icon: PROVIDER_META[provider]?.icon || "◈",
+        accountCount: validCount,
+        color: PROVIDER_META[provider]?.color || "teal",
+      });
+    }
+  }
+
+  return results;
 }
 
 export async function getQuotaByProvider(
@@ -291,13 +343,15 @@ export async function getQuotaByProvider(
     } else if (provider === "kiro") {
       try {
         const usage = await getKiroUsage(token);
-        const displayEmail = token.email || usage.userInfo?.email || "unknown";
-        const baseName = displayEmail === "unknown" ? "kiro" : displayEmail;
+        let displayEmail = token.email || usage.userInfo?.email || "";
+        if (!displayEmail || displayEmail === "unknown") {
+          displayEmail = path.basename(token.filePath, ".json");
+        }
+        const baseName = displayEmail;
         const count = providerCounts.get(baseName) ?? 0;
         const nextCount = count + 1;
         providerCounts.set(baseName, nextCount);
-        const suffix =
-          baseName === "kiro" && nextCount > 1 ? `-${nextCount}` : "";
+        const suffix = nextCount > 1 ? `-${nextCount}` : "";
         const safeName = `${baseName}${suffix}`;
         const accountId = `${token.provider}-${safeName}`;
         results.push(
@@ -305,14 +359,8 @@ export async function getQuotaByProvider(
         );
       } catch (error) {
         console.error(
-          `[QuotaManager] Failed to fetch Kiro quota for ${token.email}:`,
+          `[QuotaManager] Skipping expired Kiro account ${token.filePath}:`,
           error,
-        );
-        results.push(
-          createErrorQuotaAccount(
-            token,
-            error instanceof Error ? error.message : "Unknown error",
-          ),
         );
       }
     } else {
@@ -379,10 +427,17 @@ export async function refreshQuota(
   if (token.provider === "kiro") {
     try {
       const usage = await getKiroUsage(token);
-      const displayEmail = token.email || usage.userInfo?.email || "unknown";
-      const safeName = displayEmail === "unknown" ? "kiro" : displayEmail;
-      const accountId = `${token.provider}-${safeName}`;
-      return convertKiroUsageToQuotaAccount(token, usage, safeName, accountId);
+      let displayEmail = token.email || usage.userInfo?.email || "";
+      if (!displayEmail || displayEmail === "unknown") {
+        displayEmail = path.basename(token.filePath, ".json");
+      }
+      const accountId = `${token.provider}-${displayEmail}`;
+      return convertKiroUsageToQuotaAccount(
+        token,
+        usage,
+        displayEmail,
+        accountId,
+      );
     } catch (error) {
       return createErrorQuotaAccount(
         token,

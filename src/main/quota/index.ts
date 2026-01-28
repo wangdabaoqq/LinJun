@@ -18,8 +18,16 @@ export type {
   AntigravityModelQuota,
 } from "./antigravityService";
 
-export { getKiroUsage } from "./kiroService";
-export type { KiroUsageResponse, KiroUsageEntry } from "./kiroService";
+export {
+  getKiroUsage,
+  isKiroTokenValid,
+  refreshKiroTokenManually,
+} from "./kiroService";
+export type {
+  KiroUsageResponse,
+  KiroUsageEntry,
+  KiroRefreshResult,
+} from "./kiroService";
 
 export { getProviders, getQuotaByProvider, refreshQuota } from "./quotaManager";
 export type { QuotaAccount, QuotaWindow, ProviderInfo } from "./quotaManager";

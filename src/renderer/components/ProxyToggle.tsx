@@ -57,8 +57,8 @@ export function ProxyToggle() {
           "flex items-center gap-1.5 pl-2.5 pr-1 py-1 rounded-full transition-all duration-300",
           "border",
           localRunning
-            ? "bg-[var(--success)]/5 border-[var(--success)]/20"
-            : "bg-[var(--bg-secondary)] border-[var(--glass-border)]",
+            ? "proxy-toggle-active"
+            : "bg-[var(--glass-bg)] border-[var(--glass-border)]",
         )}
       >
         <div
@@ -67,14 +67,16 @@ export function ProxyToggle() {
             proxyLoading
               ? "bg-[var(--warning)] animate-pulse"
               : localRunning
-                ? "bg-[var(--success)] shadow-[0_0_6px_var(--success)]"
+                ? "bg-[var(--accent-primary)] shadow-[0_0_6px_var(--accent-primary)]"
                 : "bg-[var(--text-dim)]",
           )}
         />
         <span
           className={cn(
             "text-xs font-medium transition-colors duration-300",
-            localRunning ? "text-[var(--success)]" : "text-[var(--text-muted)]",
+            localRunning
+              ? "text-[var(--accent-primary)]"
+              : "text-[var(--text-muted)]",
           )}
         >
           127.0.0.1:{port}
@@ -86,7 +88,7 @@ export function ProxyToggle() {
             "w-6 h-6 flex items-center justify-center rounded-full transition-all duration-200",
             "disabled:opacity-50 disabled:cursor-not-allowed",
             localRunning
-              ? "bg-[var(--success)]/15 text-[var(--success)] hover:bg-[var(--success)]/25"
+              ? "proxy-toggle-btn-active"
               : "bg-[var(--text-dim)]/10 text-[var(--text-secondary)] hover:bg-[var(--text-dim)]/20",
           )}
           title={localRunning ? t.status.stop : t.status.start}

@@ -854,3 +854,17 @@ body {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+.proxy-toggle-active {
+  background: color-mix(in srgb, var(--accent-primary) 8%, transparent);
+  border-color: color-mix(in srgb, var(--accent-primary) 25%, transparent);
+}
+
+.proxy-toggle-btn-active {
+  background: color-mix(in srgb, var(--accent-primary) 15%, transparent);
+  color: var(--accent-primary);
+}
+
+.proxy-toggle-btn-active:hover {
+  background: color-mix(in srgb, var(--accent-primary) 25%, transparent);
+}

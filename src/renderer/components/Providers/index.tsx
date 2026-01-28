@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useTranslations } from "../../stores/settings";
 import Claude from "@lobehub/icons/es/Claude";
 import OpenAI from "@lobehub/icons/es/OpenAI";
@@ -13,6 +13,7 @@ import {
   KiroIcon,
   CustomIcon,
 } from "../icons/ProviderIcons";
+import { useProvidersStore, TokenAccount } from "../../stores/providers";
 
 interface Account {
   id: string;
@@ -38,6 +39,14 @@ interface AddAccountModalProps {
   provider: Omit<Provider, "accounts">;
   onClose: () => void;
   onAdd: (account: Omit<Account, "id" | "status" | "lastUsed">) => void;
+}
+
+interface CopilotAuthInfo {
+  status: "ok" | "error";
+  url: string;
+  state: string;
+  user_code: string;
+  verification_uri: string;
 }
 
 const allProviders: Omit<Provider, "accounts">[] = [
@@ -96,7 +105,6 @@ const allProviders: Omit<Provider, "accounts">[] = [
     color: "teal",
     description: "GPT-4o, Claude 3.5, Gemini 2.0",
     authType: "oauth",
-    badge: "Plus",
   },
   {
     id: "kiro",
@@ -104,7 +112,7 @@ const allProviders: Omit<Provider, "accounts">[] = [
     icon: <KiroIcon />,
     color: "indigo",
     description: "Claude Sonnet 4, Amazon Nova",
-    authType: "import",
+    authType: "oauth",
   },
   {
     id: "vertex",
@@ -113,7 +121,6 @@ const allProviders: Omit<Provider, "accounts">[] = [
     color: "teal",
     description: "Gemini, Claude, Llama via Google Cloud",
     authType: "oauth",
-    badge: "Plus",
   },
   {
     id: "custom",
@@ -135,7 +142,6 @@ function AddAccountModal({ provider, onClose, onAdd }: AddAccountModalProps) {
   const [error, setError] = useState<string | null>(null);
 
   const isCustomProvider = provider.id === "custom";
-  const isImportProvider = provider.authType === "import";
 
   const handleOAuthConnect = async () => {
     setIsLoading(true);
@@ -524,13 +530,18 @@ function ProviderCard({
   provider,
   onAddAccount,
   onRemoveAccount,
+  onRefreshToken,
 }: {
   provider: Provider;
   onAddAccount: (providerId: string) => void;
   onRemoveAccount: (providerId: string, accountId: string) => void;
+  onRefreshToken?: (accountId: string, filePath: string) => void;
 }) {
   const t = useTranslations();
   const [expanded, setExpanded] = useState(true);
+  const [refreshingAccount, setRefreshingAccount] = useState<string | null>(
+    null,
+  );
   const onlineCount = provider.accounts.filter(
     (a) => a.status === "online",
   ).length;
@@ -555,6 +566,16 @@ function ProviderCard({
       }
     }
     return account.email || "Unknown Account";
+  };
+
+  const handleRefreshToken = async (account: Account) => {
+    if (!account.filePath || refreshingAccount) return;
+    setRefreshingAccount(account.id);
+    try {
+      await onRefreshToken?.(account.id, account.filePath);
+    } finally {
+      setRefreshingAccount(null);
+    }
   };
 
   return (
@@ -631,7 +652,20 @@ function ProviderCard({
                   </div>
                 </div>
 
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  {provider.id === "kiro" && account.filePath && (
+                    <button
+                      className="glass-btn text-xs py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRefreshToken(account);
+                      }}
+                      disabled={refreshingAccount === account.id}
+                      title="Refresh Token"
+                    >
+                      {refreshingAccount === account.id ? "⏳" : "🔄"}
+                    </button>
+                  )}
                   <button
                     className="glass-btn text-xs py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity"
                     onClick={(e) => {
@@ -665,8 +699,12 @@ function ProviderCard({
 
 export function Providers() {
   const t = useTranslations();
-  const [providers, setProviders] = useState<Provider[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const providerAccounts = useProvidersStore((state) => state.accounts);
+  const isLoading = useProvidersStore((state) => state.isLoading);
+  const loadAccounts = useProvidersStore((state) => state.loadAccounts);
+  const removeAccountLocal = useProvidersStore(
+    (state) => state.removeAccountLocal,
+  );
   const [showAddModal, setShowAddModal] = useState(false);
   const [addAccountProvider, setAddAccountProvider] = useState<Omit<
     Provider,
@@ -674,80 +712,10 @@ export function Providers() {
   > | null>(null);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
-
-  interface TokenAccount {
-    id: string;
-    provider: string;
-    email: string;
-    status: "online" | "offline";
-    lastUsed: string;
-    filePath: string;
-  }
-
-  const loadAccounts = useCallback(async () => {
-    if (!window.electronAPI?.providers) return;
-
-    try {
-      const result = await window.electronAPI.providers.getAccounts();
-      if (result?.success) {
-        const accountsByProvider = new Map<string, Account[]>();
-
-        (result.accounts as TokenAccount[]).forEach((acc) => {
-          const accounts = accountsByProvider.get(acc.provider) || [];
-          const lastUsedDate = new Date(acc.lastUsed);
-          const now = new Date();
-          const diffMs = now.getTime() - lastUsedDate.getTime();
-          const diffMins = Math.floor(diffMs / 60000);
-          const diffHours = Math.floor(diffMs / 3600000);
-          const diffDays = Math.floor(diffMs / 86400000);
-
-          let lastUsedText = t.quota.justNow;
-          if (diffDays > 0) {
-            lastUsedText = t.quota.daysAgo.replace(
-              "{days}",
-              diffDays.toString(),
-            );
-          } else if (diffHours > 0) {
-            lastUsedText = t.quota.hoursAgo.replace(
-              "{hours}",
-              diffHours.toString(),
-            );
-          } else if (diffMins > 0) {
-            lastUsedText = t.quota.minutesAgo.replace(
-              "{minutes}",
-              diffMins.toString(),
-            );
-          }
-
-          accounts.push({
-            id: acc.id,
-            email: acc.email,
-            status: acc.status,
-            lastUsed: lastUsedText,
-            filePath: acc.filePath,
-          });
-          accountsByProvider.set(acc.provider, accounts);
-        });
-
-        const loadedProviders: Provider[] = [];
-        accountsByProvider.forEach((accounts, providerId) => {
-          const providerMeta = allProviders.find((p) => p.id === providerId);
-          if (providerMeta) {
-            loadedProviders.push({
-              ...providerMeta,
-              accounts,
-            });
-          }
-        });
-
-        setProviders(loadedProviders);
-      }
-    } catch (error) {
-      console.error("[Providers] Failed to load accounts:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [t]);
+  const [copilotAuthInfo, setCopilotAuthInfo] =
+    useState<CopilotAuthInfo | null>(null);
+  const [copilotAuthError, setCopilotAuthError] = useState<string | null>(null);
+  const [copilotCopied, setCopilotCopied] = useState(false);
 
   useEffect(() => {
     loadAccounts();
@@ -771,7 +739,7 @@ export function Providers() {
         const result = await window.electronAPI.qwen?.getAuthUrl();
         if (result?.status === "ok") {
           setTimeout(() => {
-            loadAccounts();
+            loadAccounts({ force: true });
             setIsAuthenticating(false);
           }, 3000);
         } else {
@@ -792,7 +760,7 @@ export function Providers() {
         const result = await window.electronAPI.antigravity?.getAuthUrl();
         if (result?.status === "ok") {
           setTimeout(() => {
-            loadAccounts();
+            loadAccounts({ force: true });
             setIsAuthenticating(false);
           }, 3000);
         } else {
@@ -813,7 +781,7 @@ export function Providers() {
         const result = await window.electronAPI.claude?.getAuthUrl();
         if (result?.status === "ok") {
           setTimeout(() => {
-            loadAccounts();
+            loadAccounts({ force: true });
             setIsAuthenticating(false);
           }, 3000);
         } else {
@@ -834,7 +802,7 @@ export function Providers() {
         const result = await window.electronAPI.gemini?.getAuthUrl();
         if (result?.status === "ok") {
           setTimeout(() => {
-            loadAccounts();
+            loadAccounts({ force: true });
             setIsAuthenticating(false);
           }, 3000);
         } else {
@@ -849,11 +817,66 @@ export function Providers() {
       return;
     }
 
+    if (providerInfo.id === "codex") {
+      console.log("[Auth] Using Codex API OAuth");
+      try {
+        const result = await window.electronAPI.codex?.getAuthUrl();
+        if (result?.status === "ok") {
+          setTimeout(() => {
+            loadAccounts({ force: true });
+            setIsAuthenticating(false);
+          }, 3000);
+        } else {
+          setAuthError("Failed to get Codex authentication URL");
+          setIsAuthenticating(false);
+        }
+      } catch (err) {
+        console.error("[Auth] Codex OAuth error:", err);
+        setAuthError(String(err));
+        setIsAuthenticating(false);
+      }
+      return;
+    }
+
+    if (providerInfo.id === "copilot") {
+      console.log("[Auth] Using Copilot device login");
+      try {
+        const result = await window.electronAPI.copilot?.getAuthUrl();
+        if (result?.status === "ok") {
+          setCopilotAuthInfo(result);
+        } else {
+          setCopilotAuthError(t.providers.copilotDeviceError);
+        }
+      } catch (err) {
+        console.error("[Auth] Copilot login error:", err);
+        setCopilotAuthError(String(err));
+      } finally {
+        setIsAuthenticating(false);
+      }
+      return;
+    }
+
+    if (providerInfo.id === "kiro") {
+      console.log("[Auth] Using Kiro import");
+      try {
+        const result = await window.electronAPI.kiro?.importToken();
+        if (result?.success) {
+          loadAccounts({ force: true });
+          setIsAuthenticating(false);
+        } else {
+          setAuthError(result?.error || "Failed to import Kiro token");
+          setIsAuthenticating(false);
+        }
+      } catch (err) {
+        console.error("[Auth] Kiro import error:", err);
+        setAuthError(String(err));
+        setIsAuthenticating(false);
+      }
+      return;
+    }
+
     const cliProviderMap: Record<string, string> = {
-      codex: "codex",
       iflow: "iflow",
-      copilot: "github-copilot",
-      kiro: "kiro",
       vertex: "vertex",
     };
 
@@ -864,7 +887,7 @@ export function Providers() {
       window.electronAPI.api.cliLogin(cliArg).then((result) => {
         console.log("[Auth] CLI login completed:", result);
         if (result?.success) {
-          loadAccounts();
+          loadAccounts({ force: true });
         } else if (result?.error) {
           setAuthError(result.error);
         }
@@ -886,7 +909,7 @@ export function Providers() {
         console.log("[Auth] Result:", result);
 
         if (result?.success) {
-          await loadAccounts();
+          await loadAccounts({ force: true });
         } else {
           setAuthError(result?.error || "Authentication failed");
         }
@@ -929,21 +952,17 @@ export function Providers() {
     }
   };
 
-  const handleAccountAdded = async (
-    accountData: Omit<
-      Account,
-      "id" | "status" | "lastUsed" | "quotaUsed" | "quotaLimit"
-    >,
-  ) => {
+  const handleAccountAdded = async () => {
     if (!addAccountProvider) return;
 
     setAddAccountProvider(null);
-    await loadAccounts();
+    await loadAccounts({ force: true });
   };
 
   const handleRemoveAccount = async (providerId: string, accountId: string) => {
-    const provider = providers.find((p) => p.id === providerId);
-    const account = provider?.accounts.find((a) => a.id === accountId);
+    const account = providerAccounts.find(
+      (acc) => acc.provider === providerId && acc.id === accountId,
+    );
 
     if (account?.filePath && window.electronAPI?.providers) {
       try {
@@ -951,7 +970,7 @@ export function Providers() {
           account.filePath,
         );
         if (result?.success) {
-          await loadAccounts();
+          await loadAccounts({ force: true });
         } else {
           console.error("[Providers] Failed to remove account:", result?.error);
         }
@@ -959,19 +978,79 @@ export function Providers() {
         console.error("[Providers] Error removing account:", error);
       }
     } else {
-      setProviders((prev) =>
-        prev
-          .map((p) =>
-            p.id === providerId
-              ? { ...p, accounts: p.accounts.filter((a) => a.id !== accountId) }
-              : p,
-          )
-          .filter((p) => p.accounts.length > 0),
-      );
+      removeAccountLocal(providerId, accountId);
     }
   };
 
-  const providersWithAccounts = providers.filter((p) => p.accounts.length > 0);
+  const handleRefreshKiroToken = async (
+    _accountId: string,
+    filePath: string,
+  ) => {
+    try {
+      const result = await window.electronAPI?.kiro.refreshToken(filePath);
+      if (result?.success) {
+        console.log("[Providers] Kiro token refreshed successfully");
+        await loadAccounts({ force: true });
+      } else {
+        console.error(
+          "[Providers] Failed to refresh Kiro token:",
+          result?.error,
+        );
+        alert(`Token refresh failed: ${result?.error}`);
+      }
+    } catch (error) {
+      console.error("[Providers] Error refreshing Kiro token:", error);
+      alert(`Token refresh error: ${String(error)}`);
+    }
+  };
+
+  const accountsByProvider = new Map<string, Account[]>();
+
+  (providerAccounts as TokenAccount[]).forEach((acc) => {
+    const accounts = accountsByProvider.get(acc.provider) || [];
+    const lastUsedDate = new Date(acc.lastUsed);
+    const now = new Date();
+    const diffMs = now.getTime() - lastUsedDate.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    let lastUsedText = t.quota.justNow;
+    if (diffDays > 0) {
+      lastUsedText = t.quota.daysAgo.replace("{days}", diffDays.toString());
+    } else if (diffHours > 0) {
+      lastUsedText = t.quota.hoursAgo.replace("{hours}", diffHours.toString());
+    } else if (diffMins > 0) {
+      lastUsedText = t.quota.minutesAgo.replace(
+        "{minutes}",
+        diffMins.toString(),
+      );
+    }
+
+    accounts.push({
+      id: acc.id,
+      email: acc.email,
+      status: acc.status,
+      lastUsed: lastUsedText,
+      filePath: acc.filePath,
+    });
+    accountsByProvider.set(acc.provider, accounts);
+  });
+
+  const loadedProviders: Provider[] = [];
+  accountsByProvider.forEach((accounts, providerId) => {
+    const providerMeta = allProviders.find((p) => p.id === providerId);
+    if (providerMeta) {
+      loadedProviders.push({
+        ...providerMeta,
+        accounts,
+      });
+    }
+  });
+
+  const providersWithAccounts = loadedProviders.filter(
+    (p) => p.accounts.length > 0,
+  );
 
   return (
     <div className="space-y-6">
@@ -987,7 +1066,7 @@ export function Providers() {
         <div className="flex items-center gap-3">
           <button
             className="glass-btn p-2.5"
-            onClick={() => loadAccounts()}
+            onClick={() => loadAccounts({ force: true })}
             disabled={isLoading}
             title={t.quota.refresh}
           >
@@ -1042,6 +1121,7 @@ export function Providers() {
               provider={provider}
               onAddAccount={handleAddAccount}
               onRemoveAccount={handleRemoveAccount}
+              onRefreshToken={handleRefreshKiroToken}
             />
           ))}
         </div>
@@ -1071,6 +1151,106 @@ export function Providers() {
           onClose={() => setAddAccountProvider(null)}
           onAdd={handleAccountAdded}
         />
+      )}
+
+      {copilotAuthInfo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="fixed inset-0 bg-[var(--overlay-bg)] backdrop-blur-xl animate-fade-in"
+            style={{ WebkitBackdropFilter: "blur(24px)" }}
+            onClick={() => {
+              setCopilotAuthInfo(null);
+              setCopilotCopied(false);
+              setCopilotAuthError(null);
+            }}
+          />
+          <div className="relative glass-card glass-card-teal p-6 w-full max-w-[460px] animate-scale-in">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl bg-[var(--accent-teal)]/10 text-[var(--accent-teal)]">
+                  <GithubCopilot size={24} />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-[var(--text-primary)]">
+                    {t.providers.copilotDeviceTitle}
+                  </h2>
+                  <p className="text-xs text-[var(--text-muted)]">
+                    {t.providers.copilotDeviceSubtitle}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setCopilotAuthInfo(null);
+                  setCopilotCopied(false);
+                  setCopilotAuthError(null);
+                }}
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-soft hover:bg-muted text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-all"
+                aria-label={t.providers.dismiss}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="glass-card p-4 bg-soft">
+                <p className="text-xs text-[var(--text-muted)] mb-2">
+                  {t.providers.copilotDeviceCodeLabel}
+                </p>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="font-mono text-lg font-semibold tracking-[0.2em] text-[var(--text-primary)]">
+                    {copilotAuthInfo.user_code}
+                  </div>
+                  <button
+                    className="glass-btn text-xs py-1 px-2"
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(
+                          copilotAuthInfo.user_code,
+                        );
+                        setCopilotCopied(true);
+                        setTimeout(() => setCopilotCopied(false), 2000);
+                      } catch (error) {
+                        console.error(
+                          "[Providers] Failed to copy code:",
+                          error,
+                        );
+                      }
+                    }}
+                  >
+                    {copilotCopied
+                      ? t.providers.copilotDeviceCodeCopied
+                      : t.providers.copilotDeviceCodeCopy}
+                  </button>
+                </div>
+              </div>
+
+              <div className="glass-card p-4 bg-soft">
+                <p className="text-sm text-[var(--text-muted)] mb-3">
+                  {t.providers.copilotDeviceInstructions}
+                </p>
+                <button
+                  onClick={() =>
+                    window.electronAPI?.app.openExternal(
+                      copilotAuthInfo.url || copilotAuthInfo.verification_uri,
+                    )
+                  }
+                  className="glass-btn glass-btn-teal w-full py-2.5 flex items-center justify-center gap-2"
+                >
+                  {t.providers.copilotDeviceOpen}
+                </button>
+              </div>
+            </div>
+
+            {copilotAuthError && (
+              <div className="mt-4 p-3 rounded-lg bg-[var(--accent-magenta)]/10 border border-[var(--accent-magenta)]/30">
+                <p className="text-sm text-[var(--accent-magenta)]">
+                  {copilotAuthError}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );

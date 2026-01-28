@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useRef, useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useTranslations } from "../../stores/settings";
 import { motion, AnimatePresence } from "motion/react";
@@ -18,6 +18,7 @@ import {
 
 export function ApiKeys() {
   const t = useTranslations();
+  const didAttemptDefaultKey = useRef(false);
   const [keys, setKeys] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -44,7 +45,7 @@ export function ApiKeys() {
       .map((b) => b.toString(16).padStart(2, "0").toUpperCase())
       .join("");
     const timestamp = Date.now().toString(36).toUpperCase();
-    return `clipplus-${randomHex.substring(0, 8)}-${timestamp.slice(-4)}`;
+    return `linjun-${randomHex.substring(0, 8)}-${timestamp.slice(-4)}`;
   };
 
   const loadKeys = async () => {
@@ -53,23 +54,13 @@ export function ApiKeys() {
       const result = await api?.getAll();
       if (result?.success) {
         const currentKeys = result.keys || [];
-        const hasDefaultKey = currentKeys.includes("clipplus-default-key");
 
-        if (
-          currentKeys.length === 0 ||
-          (hasDefaultKey && currentKeys.length === 1)
-        ) {
+        if (currentKeys.length === 0 && !didAttemptDefaultKey.current) {
+          didAttemptDefaultKey.current = true;
           const newKey = generateDefaultKey();
-
-          if (hasDefaultKey) {
-            await api?.delete("clipplus-default-key");
-          }
-
           const addResult = await api?.add(newKey);
           if (addResult?.success) {
             setKeys(addResult.keys);
-          } else {
-            setKeys(currentKeys);
           }
         } else {
           setKeys(currentKeys);
@@ -90,8 +81,8 @@ export function ApiKeys() {
       .map((b) => b.toString(16).padStart(2, "0").toUpperCase())
       .join("");
     const timestamp = Date.now().toString(36).toUpperCase();
-    // Format: clipplus-{8 char random}-{4 char timestamp}
-    const newKey = `clipplus-${randomHex.substring(0, 8)}-${timestamp.slice(-4)}`;
+    // Format: linjun-{8 char random}-{4 char timestamp}
+    const newKey = `linjun-${randomHex.substring(0, 8)}-${timestamp.slice(-4)}`;
     setInputKey(newKey);
   };
 
