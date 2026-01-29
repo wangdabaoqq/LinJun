@@ -39,6 +39,7 @@ import {
   EyeOff,
   Link,
   AlertTriangle,
+  Code,
 } from "lucide-react";
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -539,6 +540,7 @@ export function Settings() {
     language,
     switchProject,
     switchPreviewModel,
+    developerMode,
     setPort,
     setEndpoint,
     getEffectiveEndpoint,
@@ -552,6 +554,7 @@ export function Settings() {
     setLanguage,
     setSwitchProject,
     setSwitchPreviewModel,
+    setDeveloperMode,
   } = useSettingsStore();
 
   const handleCopy = () => {
@@ -1070,6 +1073,13 @@ export function Settings() {
                   label={t.settings.autoStart}
                   desc={t.settings.autoStartDesc}
                   icon={Rocket}
+                />
+                <CustomToggle
+                  value={developerMode}
+                  onChange={setDeveloperMode}
+                  label={t.settings.developerMode}
+                  desc={t.settings.developerModeDesc}
+                  icon={Code}
                 />
               </div>
             </SettingCard>

@@ -47,6 +47,7 @@ const electronAPI = {
       loggingToFile?: boolean;
       switchProject?: boolean;
       switchPreviewModel?: boolean;
+      developerMode?: boolean;
     }) => ipcRenderer.invoke("settings:syncToYaml", updates),
   },
   app: {

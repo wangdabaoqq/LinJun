@@ -12,6 +12,7 @@ interface StoreSchema {
   requestRetry: number;
   maxRetryInterval: number;
   loggingToFile: boolean;
+  developerMode: boolean;
 }
 
 export const store = new Store<StoreSchema>({
@@ -26,5 +27,6 @@ export const store = new Store<StoreSchema>({
     requestRetry: 3,
     maxRetryInterval: 30,
     loggingToFile: false,
+    developerMode: false,
   },
 });

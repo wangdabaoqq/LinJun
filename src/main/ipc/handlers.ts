@@ -201,6 +201,7 @@ export function setupIpcHandlers(): void {
         managementSecret?: string;
         switchProject?: boolean;
         switchPreviewModel?: boolean;
+        developerMode?: boolean;
       },
     ) => {
       try {
@@ -251,6 +252,10 @@ export function setupIpcHandlers(): void {
               "switch-preview-model": updates.switchPreviewModel,
             }),
           };
+        }
+
+        if (updates.developerMode !== undefined) {
+          store.set("developerMode", updates.developerMode);
         }
 
         if (updates.managementSecret !== undefined) {

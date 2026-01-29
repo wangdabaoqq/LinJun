@@ -232,6 +232,8 @@ export const en = {
     autoStartDesc: "Automatically start proxy service when app launches",
     autoLaunch: "Launch at system startup",
     autoLaunchDesc: "Automatically launch application when system starts",
+    developerMode: "Developer Mode",
+    developerModeDesc: "Enable DevTools access via F12 shortcut",
     requestRetry: "Request Retry Count",
     retryConfig: "Retry Config",
     retryConfigDesc: "Configure retry and timeout behavior",

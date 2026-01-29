@@ -50,6 +50,19 @@ function createWindow(): void {
     mainWindow.webContents.openDevTools();
   } else {
     mainWindow.loadFile(path.join(__dirname, "../renderer/index.html"));
+
+    mainWindow.webContents.on("before-input-event", (event, input) => {
+      const devMode = store.get("developerMode");
+      if (!devMode) {
+        const isDevToolsShortcut =
+          input.key === "F12" ||
+          (input.control && input.shift && input.key.toLowerCase() === "i") ||
+          (input.meta && input.alt && input.key.toLowerCase() === "i");
+        if (isDevToolsShortcut) {
+          event.preventDefault();
+        }
+      }
+    });
   }
 
   mainWindow.on("closed", () => {

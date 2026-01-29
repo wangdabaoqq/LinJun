@@ -47,6 +47,7 @@ interface ElectronAPI {
       loggingToFile?: boolean;
       switchProject?: boolean;
       switchPreviewModel?: boolean;
+      developerMode?: boolean;
     }) => Promise<{ success: boolean }>;
   };
   app: {
