@@ -4,6 +4,7 @@ import fs from "fs";
 import { app } from "electron";
 import { EventEmitter } from "events";
 import yaml from "js-yaml";
+import { DEFAULT_PORT } from "../../shared/constants";
 
 export interface OpenAICompatibilityApiKeyEntry {
   "api-key": string;
@@ -80,7 +81,7 @@ export interface ProxyConfig {
 function getDefaultConfig(authDir: string): string {
   return `# CLIProxyAPIPlus Configuration (managed by linjun)
 host: "127.0.0.1"
-port: 8317
+port: ${DEFAULT_PORT}
 auth-dir: "${authDir}"
 api-keys: []
 debug: false
@@ -90,7 +91,7 @@ incognito-browser: true
 
 class ProxyManager extends EventEmitter {
   private process: ChildProcess | null = null;
-  private port: number = 8317;
+  private port: number = DEFAULT_PORT;
 
   getConfigDir(): string {
     return path.join(app.getPath("userData"), "cli-proxy");

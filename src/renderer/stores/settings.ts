@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { Language, getTranslations, Translations } from "../i18n";
+import { DEFAULT_PORT } from "../../shared/constants";
 
 export type ThemeType = "dark" | "light";
 
@@ -102,7 +103,7 @@ export const useSettingsStore = create<SettingsState>()(
     (set, get) => ({
       language: "zh",
       theme: DEFAULT_THEME,
-      port: 8080,
+      port: DEFAULT_PORT,
       endpoint: "",
       managementSecret: "",
       autoStart: true,

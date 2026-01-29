@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useTranslations, useSettingsStore } from "../../stores/settings";
 import { X, Zap, Box, Globe, RefreshCw } from "lucide-react";
+import { DEFAULT_PORT } from "../../../shared/constants";
 
 interface CLIToolInfo {
   name: string;
@@ -334,7 +335,7 @@ wire_api = "responses"`;
   };
 
   const getDefaultClaudeEnv = () => {
-    const port = proxyUrl.split(":").pop() || "8317";
+    const port = proxyUrl.split(":").pop() || String(DEFAULT_PORT);
     return `# CLIProxyAPI Configuration for Claude Code
 export ANTHROPIC_BASE_URL="${proxyUrl}"
 export ANTHROPIC_AUTH_TOKEN="${apiKey}"
@@ -577,7 +578,7 @@ export GEMINI_MODEL="gemini-3-pro-preview"`;
                     value={proxyUrl}
                     onChange={(e) => setProxyUrl(e.target.value)}
                     className="glass-input w-full bg-[var(--bg-deep)] border-white/10 text-[var(--text-primary)] font-mono"
-                    placeholder="http://127.0.0.1:8317"
+                    placeholder={`http://127.0.0.1:${DEFAULT_PORT}`}
                   />
                 </div>
 

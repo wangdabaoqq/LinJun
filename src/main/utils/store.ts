@@ -1,4 +1,5 @@
 import Store from "electron-store";
+import { DEFAULT_PORT } from "../../shared/constants";
 
 interface StoreSchema {
   port: number;
@@ -15,7 +16,7 @@ interface StoreSchema {
 
 export const store = new Store<StoreSchema>({
   defaults: {
-    port: 8080,
+    port: DEFAULT_PORT,
     autoStart: true,
     autoLaunch: false,
     routingStrategy: "round-robin",

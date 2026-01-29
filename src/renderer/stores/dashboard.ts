@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { DEFAULT_PORT } from "../../shared/constants";
 
 export interface ProxyStatus {
   running: boolean;
@@ -106,7 +107,7 @@ function parseTimeAgo(resetAt: string): number {
 }
 
 export const useDashboardStore = create<DashboardState>((set, get) => ({
-  proxyStatus: { running: false, port: 8317, version: "unknown" },
+  proxyStatus: { running: false, port: DEFAULT_PORT, version: "unknown" },
   accounts: [],
   quotas: [],
   logs: [],
