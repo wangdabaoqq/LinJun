@@ -236,22 +236,22 @@ function inferProviderFromUrl(url?: string): string | undefined {
   const urlLower = url.toLowerCase();
 
   if (urlLower.includes("chatgpt.com") || urlLower.includes("openai.com")) {
-    return "openai";
+    return "OpenAI";
   }
   if (urlLower.includes("anthropic.com") || urlLower.includes("claude.ai")) {
-    return "claude";
+    return "Claude";
   }
   if (
     urlLower.includes("googleapis.com") ||
     urlLower.includes("generativelanguage")
   ) {
-    return "gemini";
+    return "Gemini";
   }
   if (urlLower.includes("github.com") || urlLower.includes("copilot")) {
-    return "copilot";
+    return "Copilot";
   }
   if (urlLower.includes("qwen") || urlLower.includes("dashscope")) {
-    return "qwen";
+    return "Qwen";
   }
 
   return undefined;
@@ -272,15 +272,15 @@ function normalizeProvider(
     m.includes("o1") ||
     m.includes("o3")
   ) {
-    return "openai";
+    return "OpenAI";
   }
 
   if (p === "claude" || m.includes("claude")) {
-    return "claude";
+    return "Claude";
   }
 
   if (p === "gemini" || m.includes("gemini")) {
-    return "gemini";
+    return "Gemini";
   }
 
   return provider;

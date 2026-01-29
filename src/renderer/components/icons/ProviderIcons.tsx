@@ -4,7 +4,6 @@ import OpenAI from "@lobehub/icons/es/OpenAI";
 import Gemini from "@lobehub/icons/es/Gemini";
 import GithubCopilot from "@lobehub/icons/es/GithubCopilot";
 import Qwen from "@lobehub/icons/es/Qwen";
-import VertexAI from "@lobehub/icons/es/VertexAI";
 
 // Custom icons for providers not in @lobehub/icons
 export const AntigravityIcon = ({ className }: { className?: string }) => (
@@ -64,14 +63,7 @@ export const CustomIcon = ({ className }: { className?: string }) => (
       strokeLinejoin="round"
     />
     <path
-      d="M12 8V16"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-    <path
-      d="M8 12H16"
+      d="M12 6V12L16 14"
       stroke="currentColor"
       strokeWidth="2"
       strokeLinecap="round"
@@ -85,11 +77,13 @@ export function getProviderIcon(
   className: string = "w-full h-full",
 ): React.ReactNode {
   const size = 16;
+  const id = providerId?.toLowerCase() || "";
 
-  switch (providerId) {
+  switch (id) {
     case "claude":
       return <Claude.Color size={size} />;
     case "codex":
+    case "openai":
       return <OpenAI size={size} />;
     case "gemini":
       return <Gemini.Color size={size} />;
@@ -101,8 +95,6 @@ export function getProviderIcon(
       return <Qwen.Color size={size} />;
     case "kiro":
       return <KiroIcon className={className} />;
-    case "vertex":
-      return <VertexAI.Color size={size} />;
     case "iflow":
       return <IFlowIcon className={className} />;
     case "custom":
@@ -147,11 +139,6 @@ export function inferProviderFromLabel(label: string): string {
   // Qwen models
   if (lowerLabel.includes("qwen") || lowerLabel.includes("tongyi")) {
     return "qwen";
-  }
-
-  // Vertex AI
-  if (lowerLabel.includes("vertex")) {
-    return "vertex";
   }
 
   // Copilot

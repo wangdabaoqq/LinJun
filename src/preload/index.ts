@@ -9,7 +9,6 @@ export type Provider =
   | "iflow"
   | "copilot"
   | "kiro"
-  | "vertex"
   | "custom";
 
 const electronAPI = {
@@ -95,6 +94,9 @@ const electronAPI = {
   },
   antigravity: {
     getAuthUrl: () => ipcRenderer.invoke("antigravity:getAuthUrl"),
+  },
+  iflow: {
+    getAuthUrl: () => ipcRenderer.invoke("iflow:getAuthUrl"),
   },
   claude: {
     getAuthUrl: () => ipcRenderer.invoke("claude:getAuthUrl"),

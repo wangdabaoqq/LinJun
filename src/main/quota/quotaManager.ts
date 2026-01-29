@@ -67,7 +67,6 @@ const PROVIDER_META: Record<
   copilot: { name: "Copilot", icon: "⬡", color: "indigo" },
   qwen: { name: "Qwen", icon: "◎", color: "teal" },
   iflow: { name: "iFlow", icon: "◉", color: "magenta" },
-  vertex: { name: "Vertex", icon: "▲", color: "indigo" },
 };
 
 function convertCodexUsageToQuotaAccount(

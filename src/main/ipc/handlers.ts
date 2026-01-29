@@ -555,6 +555,19 @@ export function setupIpcHandlers(): void {
     }
   });
 
+  ipcMain.handle("iflow:getAuthUrl", async () => {
+    try {
+      const result = await managementAPI.getIFlowAuthUrl();
+      if (result.status === "ok" && result.url) {
+        await shell.openExternal(result.url);
+      }
+      return result;
+    } catch (error) {
+      console.error("[IPC] Failed to get iFlow auth URL:", error);
+      return { status: "error", url: "", state: "" };
+    }
+  });
+
   ipcMain.handle("claude:getAuthUrl", async () => {
     try {
       const result = await managementAPI.getClaudeAuthUrl();

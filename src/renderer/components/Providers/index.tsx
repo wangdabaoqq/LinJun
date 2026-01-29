@@ -5,7 +5,6 @@ import OpenAI from "@lobehub/icons/es/OpenAI";
 import Gemini from "@lobehub/icons/es/Gemini";
 import GithubCopilot from "@lobehub/icons/es/GithubCopilot";
 import Qwen from "@lobehub/icons/es/Qwen";
-import VertexAI from "@lobehub/icons/es/VertexAI";
 
 import {
   AntigravityIcon,
@@ -31,7 +30,6 @@ interface Provider {
   color: "teal" | "magenta" | "indigo";
   description: string;
   authType: "oauth" | "apikey" | "import" | "oauth-project";
-  badge?: string;
   accounts: Account[];
 }
 
@@ -112,14 +110,6 @@ const allProviders: Omit<Provider, "accounts">[] = [
     icon: <KiroIcon />,
     color: "indigo",
     description: "Claude Sonnet 4, Amazon Nova",
-    authType: "oauth",
-  },
-  {
-    id: "vertex",
-    name: "Vertex AI",
-    icon: <VertexAI.Color size={24} />,
-    color: "teal",
-    description: "Gemini, Claude, Llama via Google Cloud",
     authType: "oauth",
   },
   {
@@ -429,14 +419,6 @@ function AddAccountModal({ provider, onClose, onAdd }: AddAccountModalProps) {
             <p className="text-sm text-[var(--accent-magenta)]">{error}</p>
           </div>
         )}
-
-        <p className="text-xs text-[var(--text-dim)] mt-4 text-center">
-          {provider.badge && (
-            <span className="text-[var(--accent-magenta)]">
-              {t.providers.plusRequired}
-            </span>
-          )}
-        </p>
       </div>
     </div>
   );
@@ -490,11 +472,6 @@ function AddProviderModal({
                       <h3 className="font-semibold text-[var(--text-primary)] text-sm">
                         {provider.name}
                       </h3>
-                      {provider.badge && (
-                        <span className="px-1.5 py-0.5 text-[10px] rounded-full bg-[var(--accent-magenta)]/15 text-[var(--accent-magenta)] border border-[var(--accent-magenta)]/20 font-medium">
-                          {provider.badge}
-                        </span>
-                      )}
                     </div>
                     <div className="mt-1.5">
                       <span
@@ -530,18 +507,13 @@ function ProviderCard({
   provider,
   onAddAccount,
   onRemoveAccount,
-  onRefreshToken,
 }: {
   provider: Provider;
   onAddAccount: (providerId: string) => void;
   onRemoveAccount: (providerId: string, accountId: string) => void;
-  onRefreshToken?: (accountId: string, filePath: string) => void;
 }) {
   const t = useTranslations();
   const [expanded, setExpanded] = useState(true);
-  const [refreshingAccount, setRefreshingAccount] = useState<string | null>(
-    null,
-  );
   const onlineCount = provider.accounts.filter(
     (a) => a.status === "online",
   ).length;
@@ -559,23 +531,13 @@ function ProviderCard({
       if (filename) {
         return filename
           .replace(
-            /^(claude|gemini|codex|antigravity|qwen|iflow|github-copilot|kiro|vertex)-/i,
+            /^(claude|gemini|codex|antigravity|qwen|iflow|github-copilot|kiro)-/i,
             "",
           )
           .replace(/\.json$/i, "");
       }
     }
     return account.email || "Unknown Account";
-  };
-
-  const handleRefreshToken = async (account: Account) => {
-    if (!account.filePath || refreshingAccount) return;
-    setRefreshingAccount(account.id);
-    try {
-      await onRefreshToken?.(account.id, account.filePath);
-    } finally {
-      setRefreshingAccount(null);
-    }
   };
 
   return (
@@ -601,11 +563,6 @@ function ProviderCard({
                 >
                   {provider.accounts.length}
                 </span>
-                {provider.badge && (
-                  <span className="px-1.5 py-0.5 text-[10px] rounded bg-[var(--accent-magenta)]/20 text-[var(--accent-magenta)] border border-[var(--accent-magenta)]/30">
-                    {provider.badge}
-                  </span>
-                )}
               </div>
               <p className="text-xs text-[var(--text-muted)] mt-0.5">
                 {onlineCount}/{provider.accounts.length}{" "}
@@ -653,19 +610,6 @@ function ProviderCard({
                 </div>
 
                 <div className="flex items-center gap-2">
-                  {provider.id === "kiro" && account.filePath && (
-                    <button
-                      className="glass-btn text-xs py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleRefreshToken(account);
-                      }}
-                      disabled={refreshingAccount === account.id}
-                      title="Refresh Token"
-                    >
-                      {refreshingAccount === account.id ? "⏳" : "🔄"}
-                    </button>
-                  )}
                   <button
                     className="glass-btn text-xs py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity"
                     onClick={(e) => {
@@ -775,6 +719,27 @@ export function Providers() {
       return;
     }
 
+    if (providerInfo.id === "iflow") {
+      console.log("[Auth] Using iFlow API OAuth");
+      try {
+        const result = await window.electronAPI.iflow?.getAuthUrl();
+        if (result?.status === "ok") {
+          setTimeout(() => {
+            loadAccounts({ force: true });
+            setIsAuthenticating(false);
+          }, 3000);
+        } else {
+          setAuthError("Failed to get iFlow authentication URL");
+          setIsAuthenticating(false);
+        }
+      } catch (err) {
+        console.error("[Auth] iFlow OAuth error:", err);
+        setAuthError(String(err));
+        setIsAuthenticating(false);
+      }
+      return;
+    }
+
     if (providerInfo.id === "claude") {
       console.log("[Auth] Using Claude API OAuth");
       try {
@@ -875,50 +840,26 @@ export function Providers() {
       return;
     }
 
-    const cliProviderMap: Record<string, string> = {
-      iflow: "iflow",
-      vertex: "vertex",
-    };
+    try {
+      console.log("[Auth] Using OAuth for:", providerInfo.id);
+      const result = await window.electronAPI.api.startAuth(
+        providerInfo.id as Parameters<
+          typeof window.electronAPI.api.startAuth
+        >[0],
+      );
 
-    const cliArg = cliProviderMap[providerInfo.id];
+      console.log("[Auth] Result:", result);
 
-    if (cliArg) {
-      console.log("[Auth] Using CLI login:", cliArg);
-      window.electronAPI.api.cliLogin(cliArg).then((result) => {
-        console.log("[Auth] CLI login completed:", result);
-        if (result?.success) {
-          loadAccounts({ force: true });
-        } else if (result?.error) {
-          setAuthError(result.error);
-        }
-        setIsAuthenticating(false);
-      });
-
-      setTimeout(() => {
-        setIsAuthenticating(false);
-      }, 1500);
-    } else {
-      try {
-        console.log("[Auth] Using OAuth for:", providerInfo.id);
-        const result = await window.electronAPI.api.startAuth(
-          providerInfo.id as Parameters<
-            typeof window.electronAPI.api.startAuth
-          >[0],
-        );
-
-        console.log("[Auth] Result:", result);
-
-        if (result?.success) {
-          await loadAccounts({ force: true });
-        } else {
-          setAuthError(result?.error || "Authentication failed");
-        }
-      } catch (err) {
-        console.error("[Auth] Error:", err);
-        setAuthError(String(err));
-      } finally {
-        setIsAuthenticating(false);
+      if (result?.success) {
+        await loadAccounts({ force: true });
+      } else {
+        setAuthError(result?.error || "Authentication failed");
       }
+    } catch (err) {
+      console.error("[Auth] Error:", err);
+      setAuthError(String(err));
+    } finally {
+      setIsAuthenticating(false);
     }
   };
 
@@ -979,28 +920,6 @@ export function Providers() {
       }
     } else {
       removeAccountLocal(providerId, accountId);
-    }
-  };
-
-  const handleRefreshKiroToken = async (
-    _accountId: string,
-    filePath: string,
-  ) => {
-    try {
-      const result = await window.electronAPI?.kiro.refreshToken(filePath);
-      if (result?.success) {
-        console.log("[Providers] Kiro token refreshed successfully");
-        await loadAccounts({ force: true });
-      } else {
-        console.error(
-          "[Providers] Failed to refresh Kiro token:",
-          result?.error,
-        );
-        alert(`Token refresh failed: ${result?.error}`);
-      }
-    } catch (error) {
-      console.error("[Providers] Error refreshing Kiro token:", error);
-      alert(`Token refresh error: ${String(error)}`);
     }
   };
 
@@ -1121,7 +1040,6 @@ export function Providers() {
               provider={provider}
               onAddAccount={handleAddAccount}
               onRemoveAccount={handleRemoveAccount}
-              onRefreshToken={handleRefreshKiroToken}
             />
           ))}
         </div>

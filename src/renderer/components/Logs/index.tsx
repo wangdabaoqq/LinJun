@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useTranslations } from "../../stores/settings";
+import { getProviderIcon } from "../icons/ProviderIcons";
 import { useRequestLogs } from "../../hooks/useRequestLogs";
 import { RequestLogEntry } from "../../types/logs";
 
@@ -579,13 +580,11 @@ export function Logs() {
                   </div>
 
                   <div className="flex items-center gap-2 min-w-0">
-                    <div
-                      className={`w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)] transition-all duration-300 ${
-                        log.provider
-                          ? "opacity-60 group-hover:opacity-100 group-hover:scale-125 shadow-[0_0_8px_var(--accent-primary)]"
-                          : "opacity-0"
-                      }`}
-                    />
+                    {log.provider ? (
+                      <span className="w-5 h-5 flex items-center justify-center text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors flex-shrink-0">
+                        {getProviderIcon(log.provider, "w-5 h-5")}
+                      </span>
+                    ) : null}
                     <span
                       className="truncate font-medium text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors"
                       title={log.provider}
@@ -697,7 +696,13 @@ export function Logs() {
                         value: formatTimestamp(selectedLog.timestamp),
                         font: "font-mono",
                       },
-                      { label: t.logs.provider, value: selectedLog.provider },
+                      {
+                        label: t.logs.provider,
+                        value: selectedLog.provider,
+                        icon: selectedLog.provider
+                          ? getProviderIcon(selectedLog.provider, "w-4 h-4")
+                          : null,
+                      },
                       {
                         label: t.logs.model,
                         value: selectedLog.model,
@@ -719,10 +724,15 @@ export function Logs() {
                           {item.label}
                         </label>
                         <div
-                          className={`text-sm text-[var(--text-primary)] font-medium relative z-10 ${item.truncate ? "truncate" : ""} ${item.font || ""} ${item.color || ""}`}
+                          className={`text-sm text-[var(--text-primary)] font-medium relative z-10 flex items-center gap-2 ${item.truncate ? "truncate" : ""} ${item.font || ""} ${item.color || ""}`}
                           title={item.value}
                         >
-                          {item.value || "-"}
+                          {item.icon && (
+                            <span className="flex-shrink-0">{item.icon}</span>
+                          )}
+                          <span className={item.truncate ? "truncate" : ""}>
+                            {item.value || "-"}
+                          </span>
                         </div>
                       </div>
                     ))}

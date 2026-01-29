@@ -132,6 +132,22 @@ class ManagementAPI {
     }
   }
 
+  async getIFlowAuthUrl(): Promise<QwenAuthUrlResponse> {
+    try {
+      const res = await this.client.get(
+        `${this.baseURL}/v0/management/iflow-auth-url`,
+        {
+          params: { is_webui: true },
+          headers: this.getAuthHeaders(),
+        },
+      );
+      return res.data;
+    } catch (error) {
+      console.error("[ManagementAPI] Failed to get iFlow auth URL:", error);
+      return { status: "error", url: "", state: "" };
+    }
+  }
+
   async getClaudeAuthUrl(): Promise<QwenAuthUrlResponse> {
     try {
       const res = await this.client.get(
@@ -229,7 +245,6 @@ export type Provider =
   | "iflow"
   | "copilot"
   | "kiro"
-  | "vertex"
   | "custom";
 
 export interface Account {

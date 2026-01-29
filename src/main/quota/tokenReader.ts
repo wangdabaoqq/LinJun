@@ -18,8 +18,7 @@ export type ProviderType =
   | "kiro"
   | "copilot"
   | "qwen"
-  | "iflow"
-  | "vertex";
+  | "iflow";
 
 export interface TokenFile {
   // Common fields
@@ -123,7 +122,6 @@ function parseProviderFromFilename(filename: string): ProviderType | null {
     "copilot",
     "qwen",
     "iflow",
-    "vertex",
   ];
 
   for (const provider of providers) {
