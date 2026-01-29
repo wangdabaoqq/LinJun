@@ -196,9 +196,9 @@ export function ApiKeys() {
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           onClick={openCreateModal}
-          className="glass-btn glass-btn-teal flex items-center gap-2"
+          className="glass-btn glass-btn-teal flex items-center gap-2 group transition-all duration-300 hover:shadow-teal-500/20 shadow-lg"
         >
-          <Plus className="w-4 h-4" />
+          <Plus className="w-4 h-4 group-hover:scale-125 group-hover:rotate-90 transition-all duration-300" />
           {t.apiKeys.createKey}
         </motion.button>
       </div>
@@ -287,13 +287,12 @@ export function ApiKeys() {
                   </motion.button>
 
                   <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
                     onClick={() => setShowDeleteConfirm(key)}
-                    className="glass-btn glass-btn-magenta text-xs py-1.5 px-3 flex items-center gap-1.5"
+                    className="p-2 text-red-500/70 hover:text-red-500 transition-all"
                   >
-                    <Trash2 className="w-3 h-3" />
-                    <span>{t.apiKeys.delete}</span>
+                    <Trash2 className="w-4 h-4" />
                   </motion.button>
                 </div>
               </motion.div>
@@ -347,10 +346,10 @@ export function ApiKeys() {
                     modalMode === "create" ? handleCreate() : handleUpdate();
                   }}
                 >
-                  <div className="bg-[var(--bg-secondary)]/20 rounded-xl border border-white/5 p-6 space-y-6">
+                  <div className="bg-[var(--bg-secondary)]/20 rounded-xl border border-[var(--glass-border)] p-6 space-y-6">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="p-2.5 rounded-lg bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] border border-[var(--accent-primary)]/20 shadow-[0_0_15px_rgba(var(--accent-rgb),0.15)]">
+                        <div className="p-2.5 rounded-lg bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] border border-[var(--accent-primary)]/20 shadow-lg">
                           {modalMode === "create" ? (
                             <Sparkles className="w-5 h-5" />
                           ) : (
@@ -363,7 +362,7 @@ export function ApiKeys() {
                               ? t.apiKeys.createTitle
                               : t.apiKeys.editTitle}
                           </h3>
-                          <p className="text-xs text-[var(--text-muted)] font-medium">
+                          <p className="text-xs text-[var(--text-primary)]/70 font-bold">
                             {modalMode === "create"
                               ? t.apiKeys.createSubtitle
                               : t.apiKeys.editSubtitle}
@@ -374,7 +373,7 @@ export function ApiKeys() {
                       <button
                         type="button"
                         onClick={closeModal}
-                        className="p-2 rounded-full text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-all duration-200"
+                        className="p-2 rounded-full text-[var(--text-primary)]/60 hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-all duration-200"
                       >
                         <X className="w-5 h-5" />
                       </button>
@@ -382,24 +381,24 @@ export function ApiKeys() {
 
                     <div className="space-y-5">
                       <div className="space-y-2">
-                        <label className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider ml-1 flex items-center gap-2">
+                        <label className="text-xs font-bold text-[var(--text-primary)]/80 uppercase tracking-widest ml-1 flex items-center gap-2">
                           <Key className="w-3.5 h-3.5" />
                           {t.apiKeys.keyValueLabel}
                         </label>
                         <div className="relative group">
-                          <div className="absolute -inset-0.5 bg-gradient-to-r from-[var(--accent-primary)]/30 to-[var(--accent-secondary)]/30 rounded-xl opacity-0 group-focus-within:opacity-100 transition-duration-300 blur-sm" />
+                          <div className="absolute -inset-0.5 bg-gradient-to-r from-[var(--accent-primary)]/30 to-[var(--accent-secondary)]/30 rounded-xl opacity-0 group-focus-within:opacity-100 transition-all blur-sm" />
                           <div className="relative flex items-center">
                             <input
                               type={showPassword ? "text" : "password"}
                               value={inputKey}
                               onChange={(e) => setInputKey(e.target.value)}
                               placeholder={t.apiKeys.keyPlaceholder}
-                              className="w-full bg-[var(--bg-primary)]/80 border border-[var(--glass-border)] rounded-xl pl-4 pr-12 py-3.5 font-mono text-sm text-[var(--text-primary)] placeholder:text-[var(--text-dim)] focus:outline-none focus:border-[var(--accent-primary)]/50 focus:bg-[var(--bg-primary)] transition-all shadow-inner"
+                              className="w-full bg-[var(--bg-deep)] border border-[var(--glass-border)] rounded-xl pl-4 pr-12 py-3.5 font-mono text-sm text-[var(--text-primary)] placeholder:text-[var(--text-primary)]/30 focus:outline-none focus:border-[var(--accent-primary)]/50 transition-all shadow-inner"
                             />
                             <button
                               type="button"
                               onClick={() => setShowPassword(!showPassword)}
-                              className="absolute right-3 p-1.5 text-[var(--text-dim)] hover:text-[var(--text-primary)] transition-colors rounded-md hover:bg-[var(--bg-secondary)]"
+                              className="absolute right-3 p-1.5 text-[var(--text-primary)]/40 hover:text-[var(--text-primary)] transition-colors rounded-md"
                             >
                               {showPassword ? (
                                 <EyeOff className="w-4 h-4" />
@@ -417,7 +416,7 @@ export function ApiKeys() {
                           whileHover={{ scale: 1.01 }}
                           whileTap={{ scale: 0.99 }}
                           onClick={generateRandomKey}
-                          className="w-full py-3 px-4 rounded-xl bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] hover:bg-[var(--bg-secondary)]/50 hover:border-[var(--glass-border-hover)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-all text-sm font-medium flex items-center justify-center gap-2 group"
+                          className="w-full py-3 px-4 rounded-xl bg-[var(--bg-primary)]/20 border border-[var(--glass-border)] hover:bg-[var(--bg-primary)]/40 text-[var(--text-primary)]/80 hover:text-[var(--text-primary)] transition-all text-sm font-bold flex items-center justify-center gap-2 group"
                         >
                           <RefreshCw className="w-4 h-4 transition-transform duration-500 group-hover:rotate-180 text-[var(--accent-primary)]" />
                           <span>{t.apiKeys.generateNewRandom}</span>
@@ -445,24 +444,24 @@ export function ApiKeys() {
                       <button
                         type="button"
                         onClick={closeModal}
-                        className="flex-1 py-3.5 rounded-xl border border-[var(--glass-border)] text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-all font-medium text-sm"
+                        className="flex-1 py-3.5 rounded-xl bg-white/5 hover:bg-white/10 text-[var(--text-primary)] transition-all font-bold text-sm active:scale-95"
                       >
                         {t.apiKeys.cancel}
                       </button>
 
                       <button
                         type="submit"
-                        className="flex-[2] py-3.5 rounded-xl bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] text-white font-bold text-sm shadow-[0_0_20px_rgba(var(--accent-rgb),0.3)] hover:shadow-[0_0_30px_rgba(var(--accent-rgb),0.5)] hover:brightness-110 transition-all active:scale-[0.98] border border-white/20 relative overflow-hidden group"
+                        className="flex-[2] py-3.5 rounded-xl bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] text-white font-bold text-sm shadow-[0_0_20px_rgba(var(--accent-rgb),0.3)] hover:brightness-110 transition-all active:scale-[0.98] border border-white/10 relative overflow-hidden group"
                       >
                         <span className="relative z-10 flex items-center justify-center gap-2">
                           {modalMode === "create" ? (
                             <>
-                              <Plus className="w-4 h-4" />
+                              <Plus className="w-4 h-4 group-hover:scale-125 group-hover:rotate-90 transition-all duration-300" />
                               {t.apiKeys.create}
                             </>
                           ) : (
                             <>
-                              <Check className="w-4 h-4" />
+                              <Check className="w-4 h-4 group-hover:scale-110 transition-transform" />
                               {t.apiKeys.save}
                             </>
                           )}

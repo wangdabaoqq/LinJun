@@ -45,6 +45,8 @@ interface ElectronAPI {
       requestRetry?: number;
       maxRetryInterval?: number;
       loggingToFile?: boolean;
+      switchProject?: boolean;
+      switchPreviewModel?: boolean;
     }) => Promise<{ success: boolean }>;
   };
   app: {

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useTranslations, useSettingsStore } from "../../stores/settings";
+import { X, Zap, Box, Globe, RefreshCw } from "lucide-react";
 
 interface CLIToolInfo {
   name: string;
@@ -488,335 +489,322 @@ export GEMINI_MODEL="gemini-3-pro-preview"`;
       <div
         className="fixed inset-0 bg-[var(--overlay-bg)] backdrop-blur-xl animate-fade-in"
         style={{ WebkitBackdropFilter: "blur(24px)" }}
-        onClick={onClose}
       />
-      <div className="relative glass-card glass-card-teal p-6 w-full max-w-[800px] max-h-[80vh] overflow-y-auto animate-scale-in">
-        <div className="flex items-center justify-between mb-6">
+      <div className="relative w-full max-w-[800px] max-h-[85vh] flex flex-col overflow-hidden animate-scale-in shadow-[0_0_60px_-15px_rgba(0,0,0,0.3)] border border-[var(--glass-border)] rounded-2xl">
+        <div className="absolute inset-0 bg-gradient-to-br from-[var(--bg-primary)] via-[var(--bg-secondary)] to-[var(--bg-primary)] z-0" />
+        <div className="absolute inset-0 bg-[var(--bg-primary)]/60 backdrop-blur-2xl z-0" />
+
+        <div className="relative z-10 flex items-center justify-between p-6 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/30">
           <div>
-            <h2 className="text-xl font-bold text-[var(--text-primary)]">
-              {tool.name} 配置
+            <h2 className="text-xl font-bold text-[var(--text-primary)] tracking-tight">
+              {tool.name} {t.agents.proxyConfig || "配置"}
             </h2>
-            <p className="text-xs text-[var(--text-muted)] mt-1">
+            <p className="text-xs text-[var(--text-primary)]/70 mt-1 font-mono">
               {tool.path || "未找到安装路径"}
             </p>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-full bg-soft hover:bg-muted text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-all"
+            className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-white/10 text-[var(--text-primary)]/60 hover:text-[var(--text-primary)] transition-all"
           >
-            ✕
+            <X className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="flex gap-2 mb-6 border-b border-subtle">
-          <button
-            className={`px-4 py-2 text-sm font-medium transition-colors ${
-              activeTab === "connection"
-                ? "text-[var(--accent-teal)] border-b-2 border-[var(--accent-teal)]"
-                : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-            }`}
-            onClick={() => setActiveTab("connection")}
-          >
-            连接信息
-          </button>
-          {hasConfigFiles && (
+        <div className="relative z-10 flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+          <div className="flex gap-2 p-1 bg-[var(--bg-deep)] rounded-xl border border-white/5">
             <button
-              className={`px-4 py-2 text-sm font-medium transition-colors ${
-                activeTab === "config"
-                  ? "text-[var(--accent-teal)] border-b-2 border-[var(--accent-teal)]"
-                  : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+              className={`flex-1 px-4 py-2 text-xs font-bold uppercase tracking-widest rounded-lg transition-all ${
+                activeTab === "connection"
+                  ? "bg-white/10 text-[var(--accent-teal)] shadow-sm"
+                  : "text-[var(--text-primary)]/60 hover:text-[var(--text-primary)] hover:bg-white/5"
               }`}
-              onClick={() => setActiveTab("config")}
+              onClick={() => setActiveTab("connection")}
             >
-              {tool.name === "Claude Code"
-                ? "settings.json"
-                : tool.name === "OpenCode"
-                  ? "config.json"
-                  : "config.toml"}
+              连接信息
             </button>
-          )}
-          {hasAuthFile && (
-            <button
-              className={`px-4 py-2 text-sm font-medium transition-colors ${
-                activeTab === "auth"
-                  ? "text-[var(--accent-teal)] border-b-2 border-[var(--accent-teal)]"
-                  : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-              }`}
-              onClick={() => setActiveTab("auth")}
-            >
-              auth.json
-            </button>
-          )}
-          {hasEnvConfig && (
-            <button
-              className={`px-4 py-2 text-sm font-medium transition-colors ${
-                activeTab === "env"
-                  ? "text-[var(--accent-teal)] border-b-2 border-[var(--accent-teal)]"
-                  : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-              }`}
-              onClick={() => setActiveTab("env")}
-            >
-              环境变量
-            </button>
-          )}
-        </div>
-
-        {activeTab === "connection" && (
-          <div className="space-y-4">
-            <div>
-              <label className="block text-xs text-[var(--text-muted)] mb-2 uppercase tracking-wider">
-                代理服务器 URL
-              </label>
-              <input
-                type="text"
-                value={proxyUrl}
-                onChange={(e) => setProxyUrl(e.target.value)}
-                className="glass-input w-full"
-                placeholder="http://127.0.0.1:8317"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs text-[var(--text-muted)] mb-2 uppercase tracking-wider">
-                API 密钥 (可选)
-              </label>
-              <input
-                type="text"
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                className="glass-input w-full"
-                placeholder="输入 API 密钥"
-              />
-            </div>
-
-            <button
-              onClick={handleTestConnection}
-              disabled={testingConnection}
-              className={`w-full py-3 rounded-xl flex items-center justify-center gap-2 transition-all duration-300 font-medium group ${
-                testingConnection
-                  ? "bg-[var(--bg-secondary)] text-[var(--text-muted)] cursor-not-allowed border border-transparent"
-                  : "glass-btn glass-btn-teal shadow-lg hover:shadow-teal-500/20 active:scale-[0.99]"
-              }`}
-            >
-              {testingConnection ? (
-                <>
-                  <svg
-                    className="animate-spin h-5 w-5 text-[var(--text-muted)]"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
-                  </svg>
-                  <span>正在连接...</span>
-                </>
-              ) : (
-                <>
-                  <span className="text-lg transition-transform group-hover:scale-110 duration-300">
-                    ⚡
-                  </span>
-                  <span>测试连接</span>
-                </>
-              )}
-            </button>
-
-            {connectionResult && (
-              <div
-                className={`mt-4 overflow-hidden rounded-xl border backdrop-blur-md transition-all duration-500 animate-scale-in origin-top ${
-                  connectionResult.success
-                    ? "bg-[var(--accent-teal)]/10 border-[var(--accent-teal)]/30 shadow-[0_4px_20px_-10px_rgba(var(--accent-teal-rgb),0.3)]"
-                    : "bg-[var(--accent-magenta)]/10 border-[var(--accent-magenta)]/30 shadow-[0_4px_20px_-10px_rgba(var(--accent-magenta-rgb),0.3)]"
+            {hasConfigFiles && (
+              <button
+                className={`flex-1 px-4 py-2 text-xs font-bold uppercase tracking-widest rounded-lg transition-all ${
+                  activeTab === "config"
+                    ? "bg-white/10 text-[var(--accent-teal)] shadow-sm"
+                    : "text-[var(--text-primary)]/60 hover:text-[var(--text-primary)] hover:bg-white/5"
                 }`}
+                onClick={() => setActiveTab("config")}
               >
-                <div className="p-4 flex items-start gap-4">
+                {tool.name === "Claude Code"
+                  ? "settings.json"
+                  : tool.name === "OpenCode"
+                    ? "config.json"
+                    : "config.toml"}
+              </button>
+            )}
+            {hasAuthFile && (
+              <button
+                className={`flex-1 px-4 py-2 text-xs font-bold uppercase tracking-widest rounded-lg transition-all ${
+                  activeTab === "auth"
+                    ? "bg-white/10 text-[var(--accent-teal)] shadow-sm"
+                    : "text-[var(--text-primary)]/60 hover:text-[var(--text-primary)] hover:bg-white/5"
+                }`}
+                onClick={() => setActiveTab("auth")}
+              >
+                auth.json
+              </button>
+            )}
+            {hasEnvConfig && (
+              <button
+                className={`flex-1 px-4 py-2 text-xs font-bold uppercase tracking-widest rounded-lg transition-all ${
+                  activeTab === "env"
+                    ? "bg-white/10 text-[var(--accent-teal)] shadow-sm"
+                    : "text-[var(--text-primary)]/60 hover:text-[var(--text-primary)] hover:bg-white/5"
+                }`}
+                onClick={() => setActiveTab("env")}
+              >
+                环境变量
+              </button>
+            )}
+          </div>
+
+          <div className="animate-fade-in">
+            {activeTab === "connection" && (
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-xs font-bold text-[var(--text-primary)]/70 uppercase tracking-widest mb-2 px-1">
+                    代理服务器 URL
+                  </label>
+                  <input
+                    type="text"
+                    value={proxyUrl}
+                    onChange={(e) => setProxyUrl(e.target.value)}
+                    className="glass-input w-full bg-[var(--bg-deep)] border-white/10 text-[var(--text-primary)] font-mono"
+                    placeholder="http://127.0.0.1:8317"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-[var(--text-primary)]/70 uppercase tracking-widest mb-2 px-1">
+                    API 密钥 (可选)
+                  </label>
+                  <input
+                    type="text"
+                    value={apiKey}
+                    onChange={(e) => setApiKey(e.target.value)}
+                    className="glass-input w-full bg-[var(--bg-deep)] border-white/10 text-[var(--text-primary)] font-mono"
+                    placeholder="输入 API 密钥"
+                  />
+                </div>
+
+                <button
+                  onClick={handleTestConnection}
+                  disabled={testingConnection}
+                  className={`w-full py-3.5 rounded-xl flex items-center justify-center gap-3 transition-all duration-300 font-bold shadow-lg active:scale-95 group ${
+                    testingConnection
+                      ? "bg-white/10 text-[var(--text-primary)]/50 cursor-not-allowed"
+                      : "bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] text-white shadow-blue-500/20"
+                  }`}
+                >
+                  {testingConnection ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <span>正在测试...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Zap className="w-5 h-5 fill-white/20 group-hover:scale-125 group-hover:rotate-12 transition-transform" />
+                      <span>测试连接</span>
+                    </>
+                  )}
+                </button>
+
+                {connectionResult && (
                   <div
-                    className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center shadow-inner ${
+                    className={`overflow-hidden rounded-2xl border backdrop-blur-md transition-all duration-500 animate-scale-in origin-top ${
                       connectionResult.success
-                        ? "bg-[var(--accent-teal)]/20 text-[var(--accent-teal)]"
-                        : "bg-[var(--accent-magenta)]/20 text-[var(--accent-magenta)]"
+                        ? "bg-[var(--accent-primary)]/10 border-[var(--accent-primary)]/30 shadow-[0_0_20px_-5px_rgba(var(--accent-primary-rgb),0.3)]"
+                        : "bg-red-500/10 border-red-500/30"
                     }`}
                   >
-                    {connectionResult.success ? (
-                      <svg
-                        className="w-5 h-5 animate-[scale-in_0.3s_ease-out_0.1s_both]"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
+                    <div className="p-5 flex items-start gap-4">
+                      <div
+                        className={`flex-shrink-0 w-12 h-12 rounded-2xl flex items-center justify-center shadow-inner ${
+                          connectionResult.success
+                            ? "bg-[var(--accent-primary)] text-white shadow-blue-500/20"
+                            : "bg-red-500 text-white"
+                        }`}
                       >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2.5}
-                          d="M5 13l4 4L19 7"
-                        />
-                      </svg>
-                    ) : (
-                      <svg
-                        className="w-5 h-5 animate-[scale-in_0.3s_ease-out_0.1s_both]"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2.5}
-                          d="M6 18L18 6M6 6l12 12"
-                        />
-                      </svg>
-                    )}
-                  </div>
+                        {connectionResult.success ? (
+                          <Zap className="w-6 h-6" />
+                        ) : (
+                          <X className="w-6 h-6" />
+                        )}
+                      </div>
 
-                  <div className="flex-1 min-w-0">
-                    <h4
-                      className={`font-semibold mb-1 flex items-center gap-2 ${
-                        connectionResult.success
-                          ? "text-[var(--accent-teal)]"
-                          : "text-[var(--accent-magenta)]"
-                      }`}
-                    >
-                      {connectionResult.success ? "连接成功" : "连接失败"}
-                    </h4>
-
-                    {connectionResult.success && (
-                      <div className="flex items-center gap-2 text-sm text-[var(--accent-teal)]/80">
-                        <span>响应时间:</span>
-                        <span
-                          className={`font-mono font-bold ${
-                            (connectionResult.latency || 0) < 200
-                              ? "text-[var(--accent-teal)]"
-                              : (connectionResult.latency || 0) < 500
-                                ? "text-[var(--accent-yellow)]"
-                                : "text-[var(--accent-orange)]"
+                      <div className="flex-1 min-w-0">
+                        <h4
+                          className={`text-lg font-bold mb-1 ${
+                            connectionResult.success
+                              ? "text-[var(--accent-primary)]"
+                              : "text-red-500"
                           }`}
                         >
-                          {connectionResult.latency}ms
-                        </span>
-                      </div>
-                    )}
+                          {connectionResult.success ? "连接成功" : "连接失败"}
+                        </h4>
 
-                    {connectionResult.error && (
-                      <div className="mt-3 text-xs font-mono bg-[var(--accent-magenta)]/10 p-3 rounded-lg border border-[var(--accent-magenta)]/20 text-[var(--accent-magenta)] break-all shadow-inner">
-                        {connectionResult.error}
+                        {connectionResult.success && (
+                          <div className="flex items-center gap-2 text-sm text-[var(--text-primary)] font-medium">
+                            <span className="opacity-70">响应时间:</span>
+                            <span
+                              className={`font-mono font-bold px-2 py-0.5 rounded-lg bg-black/20 ${
+                                (connectionResult.latency || 0) < 200
+                                  ? "text-[var(--success)]"
+                                  : (connectionResult.latency || 0) < 500
+                                    ? "text-[var(--warning)]"
+                                    : "text-[var(--error)]"
+                              }`}
+                            >
+                              {connectionResult.latency}ms
+                            </span>
+                          </div>
+                        )}
+
+                        {connectionResult.error && (
+                          <div className="mt-3 text-xs font-mono bg-black/40 p-3 rounded-xl border border-white/5 text-red-400 break-all shadow-inner leading-relaxed">
+                            {connectionResult.error}
+                          </div>
+                        )}
                       </div>
-                    )}
+                    </div>
                   </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === "config" && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between mb-2 px-1">
+                  <span className="text-xs font-bold text-[var(--text-primary)]/50 font-mono">
+                    {tool.name === "Claude Code"
+                      ? "~/.claude/settings.json"
+                      : tool.name === "OpenCode"
+                        ? "~/.config/opencode/opencode.json"
+                        : "~/.codex/config.toml"}
+                  </span>
+                  <button
+                    onClick={() => handleCopyToClipboard(configContent)}
+                    className="glass-btn text-[10px] font-bold uppercase tracking-widest py-1 px-3 bg-white/5 hover:bg-white/10"
+                  >
+                    复制内容
+                  </button>
+                </div>
+                <div className="relative group">
+                  <textarea
+                    value={configContent}
+                    onChange={(e) => setConfigContent(e.target.value)}
+                    className="glass-input w-full h-72 font-mono text-xs bg-[var(--bg-deep)] border-white/10 text-[var(--text-primary)] focus:border-[var(--accent-teal)]/50 resize-none custom-scrollbar"
+                    spellCheck={false}
+                  />
+                  <div className="absolute top-0 right-0 p-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Box className="w-4 h-4 text-white/10" />
+                  </div>
+                </div>
+                <button
+                  onClick={handleSaveConfig}
+                  disabled={saving}
+                  className="w-full py-3 rounded-xl font-bold text-sm bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] text-white shadow-lg shadow-blue-500/20 active:scale-[0.98] transition-all disabled:opacity-50"
+                >
+                  {saving ? "保存中..." : "保存配置文件"}
+                </button>
+                <p className="text-[10px] text-[var(--text-primary)]/40 text-center font-medium">
+                  💡 保存时会自动备份现有配置文件
+                </p>
+              </div>
+            )}
+
+            {activeTab === "auth" && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between mb-2 px-1">
+                  <span className="text-xs font-bold text-[var(--text-primary)]/50 font-mono">
+                    ~/.codex/auth.json
+                  </span>
+                  <button
+                    onClick={() => handleCopyToClipboard(authContent)}
+                    className="glass-btn text-[10px] font-bold uppercase tracking-widest py-1 px-3 bg-white/5 hover:bg-white/10"
+                  >
+                    复制内容
+                  </button>
+                </div>
+                <textarea
+                  value={authContent}
+                  onChange={(e) => setAuthContent(e.target.value)}
+                  className="glass-input w-full h-72 font-mono text-xs bg-[var(--bg-deep)] border-white/10 text-[var(--text-primary)] focus:border-[var(--accent-teal)]/50 resize-none custom-scrollbar"
+                  spellCheck={false}
+                />
+                <button
+                  onClick={handleSaveAuth}
+                  disabled={saving}
+                  className="w-full py-3 rounded-xl font-bold text-sm bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] text-white shadow-lg shadow-blue-500/20 active:scale-[0.98] transition-all disabled:opacity-50"
+                >
+                  {saving ? "保存中..." : "保存认证文件"}
+                </button>
+              </div>
+            )}
+
+            {activeTab === "env" && (
+              <div className="space-y-5">
+                <div className="flex items-center justify-between mb-2 px-1">
+                  <span className="text-xs font-bold text-[var(--text-primary)]/50 font-mono uppercase tracking-wider">
+                    ENV CONFIG (bash/zsh)
+                  </span>
+                  <button
+                    onClick={() => handleCopyToClipboard(envContent)}
+                    className="glass-btn text-[10px] font-bold uppercase tracking-widest py-1 px-3 bg-white/5 hover:bg-white/10"
+                  >
+                    复制命令
+                  </button>
+                </div>
+                <div className="relative">
+                  <textarea
+                    value={envContent}
+                    readOnly
+                    className="glass-input w-full h-72 font-mono text-xs bg-[var(--bg-deep)] border-white/10 text-[var(--text-primary)] resize-none custom-scrollbar leading-relaxed"
+                    spellCheck={false}
+                  />
+                  <div className="absolute top-4 right-4 animate-pulse">
+                    <div className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)] shadow-[0_0_8px_var(--accent-primary)]" />
+                  </div>
+                </div>
+                <div className="bg-white/5 rounded-2xl p-5 border border-white/5 space-y-3">
+                  <p className="text-xs font-bold text-[var(--text-primary)] uppercase tracking-widest flex items-center gap-2">
+                    <Globe className="w-3.5 h-3.5" />
+                    使用指南
+                  </p>
+                  <ol className="text-xs text-[var(--text-primary)]/70 space-y-2.5 ml-4 list-decimal font-medium leading-relaxed">
+                    <li>复制上面的环境变量配置</li>
+                    <li>粘贴到终端执行（立即在该终端窗口生效）</li>
+                    <li>
+                      或将其添加到{" "}
+                      <code className="bg-black/30 px-1 rounded text-[var(--accent-teal)]">
+                        ~/.bashrc
+                      </code>{" "}
+                      或{" "}
+                      <code className="bg-black/30 px-1 rounded text-[var(--accent-teal)]">
+                        ~/.zshrc
+                      </code>{" "}
+                      中（全局永久生效）
+                    </li>
+                    <li>
+                      执行{" "}
+                      <code className="bg-black/30 px-1 rounded text-[var(--accent-teal)]">
+                        source ~/.zshrc
+                      </code>{" "}
+                      使其立即生效
+                    </li>
+                  </ol>
                 </div>
               </div>
             )}
           </div>
-        )}
-
-        {activeTab === "config" && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-[var(--text-muted)]">
-                {tool.name === "Claude Code"
-                  ? "~/.claude/settings.json"
-                  : tool.name === "OpenCode"
-                    ? "~/.config/opencode/opencode.json"
-                    : "~/.codex/config.toml"}
-              </span>
-              <button
-                onClick={() => handleCopyToClipboard(configContent)}
-                className="glass-btn text-xs py-1 px-3"
-              >
-                复制
-              </button>
-            </div>
-            <textarea
-              value={configContent}
-              onChange={(e) => setConfigContent(e.target.value)}
-              className="glass-input w-full h-64 font-mono text-xs"
-              spellCheck={false}
-            />
-            <button
-              onClick={handleSaveConfig}
-              disabled={saving}
-              className="glass-btn glass-btn-teal w-full py-2 disabled:opacity-50"
-            >
-              {saving ? "保存中..." : "保存配置"}
-            </button>
-            <p className="text-xs text-[var(--text-muted)] text-center">
-              保存时会自动备份现有配置文件
-            </p>
-          </div>
-        )}
-
-        {activeTab === "auth" && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-[var(--text-muted)]">
-                ~/.codex/auth.json
-              </span>
-              <button
-                onClick={() => handleCopyToClipboard(authContent)}
-                className="glass-btn text-xs py-1 px-3"
-              >
-                复制
-              </button>
-            </div>
-            <textarea
-              value={authContent}
-              onChange={(e) => setAuthContent(e.target.value)}
-              className="glass-input w-full h-64 font-mono text-xs"
-              spellCheck={false}
-            />
-            <button
-              onClick={handleSaveAuth}
-              disabled={saving}
-              className="glass-btn glass-btn-teal w-full py-2 disabled:opacity-50"
-            >
-              {saving ? "保存中..." : "保存配置"}
-            </button>
-            <p className="text-xs text-[var(--text-muted)] text-center">
-              保存时会自动备份现有配置文件
-            </p>
-          </div>
-        )}
-
-        {activeTab === "env" && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-[var(--text-muted)]">
-                环境变量配置 (bash/zsh)
-              </span>
-              <button
-                onClick={() => handleCopyToClipboard(envContent)}
-                className="glass-btn text-xs py-1 px-3"
-              >
-                复制
-              </button>
-            </div>
-            <textarea
-              value={envContent}
-              readOnly
-              className="glass-input w-full h-64 font-mono text-xs bg-[var(--bg-secondary)]"
-              spellCheck={false}
-            />
-            <div className="space-y-2">
-              <p className="text-xs text-[var(--text-muted)]">💡 使用方法：</p>
-              <ol className="text-xs text-[var(--text-muted)] space-y-1 ml-4 list-decimal">
-                <li>复制上面的环境变量配置</li>
-                <li>粘贴到终端执行（临时生效）</li>
-                <li>或添加到 ~/.bashrc 或 ~/.zshrc（永久生效）</li>
-                <li>执行 source ~/.bashrc 或 source ~/.zshrc 重新加载</li>
-              </ol>
-            </div>
-          </div>
-        )}
+        </div>
       </div>
     </div>
   );
@@ -899,7 +887,7 @@ export function Agents() {
             {t.agents.detectedAgents}
           </h3>
           <button
-            className="glass-btn glass-btn-teal text-xs py-1.5"
+            className="glass-btn glass-btn-teal text-xs py-1.5 flex items-center gap-2 group active:scale-95 transition-all"
             onClick={() => detectTools(true)}
             disabled={scanning}
           >
@@ -909,7 +897,10 @@ export function Agents() {
                 扫描中...
               </>
             ) : (
-              t.agents.scanSystem
+              <>
+                <RefreshCw className="w-3.5 h-3.5 group-hover:rotate-180 transition-transform duration-500" />
+                {t.agents.scanSystem}
+              </>
             )}
           </button>
         </div>
@@ -951,9 +942,10 @@ export function Agents() {
                   )}
                   {agent.status === "installed" ? (
                     <button
-                      className="glass-btn glass-btn-teal text-xs py-1 px-3"
+                      className="glass-btn glass-btn-teal text-xs py-1 px-4 flex items-center gap-1.5 group active:scale-95 transition-all"
                       onClick={() => setSelectedTool(agent)}
                     >
+                      <Box className="w-3 h-3 group-hover:scale-110 transition-transform" />
                       配置
                     </button>
                   ) : (

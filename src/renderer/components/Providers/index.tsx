@@ -5,6 +5,7 @@ import OpenAI from "@lobehub/icons/es/OpenAI";
 import Gemini from "@lobehub/icons/es/Gemini";
 import GithubCopilot from "@lobehub/icons/es/GithubCopilot";
 import Qwen from "@lobehub/icons/es/Qwen";
+import { Trash2, Edit2, X, Plus } from "lucide-react";
 
 import {
   AntigravityIcon,
@@ -13,6 +14,14 @@ import {
   CustomIcon,
 } from "../icons/ProviderIcons";
 import { useProvidersStore, TokenAccount } from "../../stores/providers";
+import { CustomProviderForm } from "./CustomProviderForm";
+
+interface OpenAICompatProvider {
+  name: string;
+  "base-url": string;
+  "api-key-entries": { "api-key": string; "proxy-url"?: string }[];
+  models?: { name: string; alias?: string }[];
+}
 
 interface Account {
   id: string;
@@ -229,196 +238,220 @@ function AddAccountModal({ provider, onClose, onAdd }: AddAccountModalProps) {
       <div
         className="fixed inset-0 bg-[var(--overlay-bg)] backdrop-blur-xl animate-fade-in"
         style={{ WebkitBackdropFilter: "blur(24px)" }}
-        onClick={onClose}
       />
       <div
-        className={`relative glass-card glass-card-${provider.color} p-6 w-full max-w-[420px] animate-scale-in`}
+        className={`relative w-full max-w-[420px] overflow-hidden animate-scale-in shadow-[0_0_60px_-15px_rgba(0,0,0,0.3)] border border-[var(--glass-border)] rounded-2xl flex flex-col`}
       >
-        <div className="flex items-center justify-between mb-6">
+        <div className="absolute inset-0 bg-gradient-to-br from-[var(--bg-primary)] via-[var(--bg-secondary)] to-[var(--bg-primary)] z-0" />
+        <div className="absolute inset-0 bg-[var(--bg-primary)]/60 backdrop-blur-2xl z-0" />
+
+        <div className="relative z-10 flex items-center justify-between p-6 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/30">
           <div className="flex items-center gap-3">
             <div
-              className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl bg-[var(--accent-${provider.color})]/10 text-[var(--accent-${provider.color})]`}
+              className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl bg-[var(--accent-${provider.color})]/10 text-[var(--accent-${provider.color})] shadow-inner`}
             >
               {provider.icon}
             </div>
             <div>
-              <h2 className="text-lg font-bold text-[var(--text-primary)]">
+              <h2 className="text-lg font-bold text-[var(--text-primary)] tracking-tight">
                 {t.providers.addAccountTo}
               </h2>
-              <p className="text-xs text-[var(--text-muted)]">
-                {provider.name}
+              <p className="text-xs text-[var(--text-primary)]/70 font-medium">
+                {provider.id === "custom"
+                  ? t.providers.customProvider
+                  : provider.name}
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-full bg-soft hover:bg-muted text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-all"
+            className="p-2 rounded-lg text-[var(--text-primary)]/60 hover:text-[var(--text-primary)] hover:bg-white/10 transition-all"
             aria-label={t.providers.dismiss}
           >
-            ✕
+            <X className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="mb-4">
-          <label className="block text-xs text-[var(--text-muted)] mb-2 uppercase tracking-wider">
-            {t.providers.nickname} ({t.providers.optional})
-          </label>
-          <input
-            type="text"
-            value={nickname}
-            onChange={(e) => setNickname(e.target.value)}
-            placeholder={t.providers.nicknamePlaceholder}
-            className="glass-input w-full"
-          />
-        </div>
+        <div className="relative z-10 p-6 space-y-6">
+          <div>
+            <label className="block text-xs font-bold text-[var(--text-primary)] uppercase tracking-widest mb-2 px-1">
+              {t.providers.nickname} ({t.providers.optional})
+            </label>
+            <input
+              type="text"
+              value={nickname}
+              onChange={(e) => setNickname(e.target.value)}
+              placeholder={t.providers.nicknamePlaceholder}
+              className="glass-input w-full bg-[var(--bg-deep)] border-white/10 text-[var(--text-primary)]"
+            />
+          </div>
 
-        {provider.authType === "oauth" ? (
-          <div className="space-y-4">
-            <div className="glass-card p-4 bg-soft">
-              <p className="text-sm text-[var(--text-muted)] mb-3">
-                {t.providers.oauthDescription}
-              </p>
-              <button
-                onClick={handleOAuthConnect}
-                disabled={isLoading}
-                className={`glass-btn glass-btn-${provider.color} w-full py-2.5 flex items-center justify-center gap-2 disabled:opacity-50`}
-              >
-                {isLoading ? (
-                  <>
-                    <span className="animate-spin">◌</span>
-                    {t.providers.connecting}
-                  </>
-                ) : (
-                  <>
-                    <span>◎</span>
-                    {t.providers.connectOAuth}
-                  </>
-                )}
-              </button>
+          {provider.authType === "oauth" ? (
+            <div className="space-y-4">
+              <div className="glass-card p-4 bg-white/5 border-white/10">
+                <p className="text-sm text-[var(--text-primary)]/90 leading-relaxed mb-4">
+                  {t.providers.oauthDescription}
+                </p>
+                <button
+                  onClick={handleOAuthConnect}
+                  disabled={isLoading}
+                  className={`w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95 ${
+                    provider.color === "teal"
+                      ? "bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] text-white"
+                      : provider.color === "magenta"
+                        ? "bg-gradient-to-r from-[var(--accent-secondary)] to-[var(--accent-tertiary)] text-white"
+                        : "bg-gradient-to-r from-[var(--accent-tertiary)] to-[var(--accent-secondary)] text-white"
+                  }`}
+                >
+                  {isLoading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      {t.providers.connecting}
+                    </>
+                  ) : (
+                    <>
+                      <span>◎</span>
+                      {t.providers.connectOAuth}
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
-          </div>
-        ) : provider.authType === "oauth-project" ? (
-          <div className="space-y-4">
-            <div>
-              <label className="block text-xs text-[var(--text-muted)] mb-2 uppercase tracking-wider">
-                {t.providers.projectIdLabel} ({t.providers.optional})
-              </label>
-              <input
-                type="text"
-                value={projectId}
-                onChange={(e) => setProjectId(e.target.value)}
-                placeholder={t.providers.projectIdPlaceholder}
-                className="glass-input w-full"
-              />
-              <p className="text-xs text-[var(--text-dim)] mt-1.5">
-                {t.providers.projectIdDescription}
-              </p>
-            </div>
-            <div className="glass-card p-4 bg-soft">
-              <p className="text-sm text-[var(--text-muted)] mb-3">
-                {t.providers.oauthDescription}
-              </p>
-              <button
-                onClick={handleOAuthProjectConnect}
-                disabled={isLoading}
-                className={`glass-btn glass-btn-${provider.color} w-full py-2.5 flex items-center justify-center gap-2 disabled:opacity-50`}
-              >
-                {isLoading ? (
-                  <>
-                    <span className="animate-spin">◌</span>
-                    {t.providers.connecting}
-                  </>
-                ) : (
-                  <>
-                    <span>◎</span>
-                    {t.providers.connectOAuth}
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        ) : provider.authType === "import" ? (
-          <div className="space-y-4">
-            <div className="glass-card p-4 bg-soft">
-              <p className="text-sm text-[var(--text-muted)] mb-3">
-                {t.providers.importDescription}
-              </p>
-              <button
-                onClick={handleImport}
-                disabled={isLoading}
-                className={`glass-btn glass-btn-${provider.color} w-full py-2.5 flex items-center justify-center gap-2 disabled:opacity-50`}
-              >
-                {isLoading ? (
-                  <>
-                    <span className="animate-spin">◌</span>
-                    {t.providers.importing}
-                  </>
-                ) : (
-                  <>
-                    <span>↓</span>
-                    {t.providers.importFromIDE}
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {isCustomProvider && (
+          ) : provider.authType === "oauth-project" ? (
+            <div className="space-y-4">
               <div>
-                <label className="block text-xs text-[var(--text-muted)] mb-2 uppercase tracking-wider">
-                  {t.providers.endpointLabel}
+                <label className="block text-xs font-bold text-[var(--text-primary)] uppercase tracking-widest mb-2 px-1">
+                  {t.providers.projectIdLabel} ({t.providers.optional})
                 </label>
                 <input
                   type="text"
-                  value={endpoint}
-                  onChange={(e) => setEndpoint(e.target.value)}
-                  placeholder={t.providers.endpointPlaceholder}
-                  className="glass-input w-full"
+                  value={projectId}
+                  onChange={(e) => setProjectId(e.target.value)}
+                  placeholder={t.providers.projectIdPlaceholder}
+                  className="glass-input w-full bg-[var(--bg-deep)] border-white/10 text-[var(--text-primary)]"
+                />
+                <p className="text-xs text-[var(--text-primary)]/60 mt-2 px-1">
+                  {t.providers.projectIdDescription}
+                </p>
+              </div>
+              <div className="glass-card p-4 bg-white/5 border-white/10">
+                <p className="text-sm text-[var(--text-primary)]/90 leading-relaxed mb-4">
+                  {t.providers.oauthDescription}
+                </p>
+                <button
+                  onClick={handleOAuthProjectConnect}
+                  disabled={isLoading}
+                  className={`w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95 ${
+                    provider.color === "teal"
+                      ? "bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] text-white"
+                      : provider.color === "magenta"
+                        ? "bg-gradient-to-r from-[var(--accent-secondary)] to-[var(--accent-tertiary)] text-white"
+                        : "bg-gradient-to-r from-[var(--accent-tertiary)] to-[var(--accent-secondary)] text-white"
+                  }`}
+                >
+                  {isLoading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      {t.providers.connecting}
+                    </>
+                  ) : (
+                    <>
+                      <span>◎</span>
+                      {t.providers.connectOAuth}
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          ) : provider.authType === "import" ? (
+            <div className="space-y-4">
+              <div className="glass-card p-4 bg-white/5 border-white/10">
+                <p className="text-sm text-[var(--text-primary)]/90 leading-relaxed mb-4">
+                  {t.providers.importDescription}
+                </p>
+                <button
+                  onClick={handleImport}
+                  disabled={isLoading}
+                  className={`w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95 ${
+                    provider.color === "teal"
+                      ? "bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] text-white"
+                      : provider.color === "magenta"
+                        ? "bg-gradient-to-r from-[var(--accent-secondary)] to-[var(--accent-tertiary)] text-white"
+                        : "bg-gradient-to-r from-[var(--accent-tertiary)] to-[var(--accent-secondary)] text-white"
+                  }`}
+                >
+                  {isLoading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      {t.providers.importing}
+                    </>
+                  ) : (
+                    <>
+                      <span>↓</span>
+                      {t.providers.importFromIDE}
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-5">
+              {isCustomProvider && (
+                <div>
+                  <label className="block text-xs font-bold text-[var(--text-primary)] uppercase tracking-widest mb-2 px-1">
+                    {t.providers.endpointLabel}
+                  </label>
+                  <input
+                    type="text"
+                    value={endpoint}
+                    onChange={(e) => setEndpoint(e.target.value)}
+                    placeholder={t.providers.endpointPlaceholder}
+                    className="glass-input w-full bg-[var(--bg-deep)] border-white/10 text-[var(--text-primary)]"
+                  />
+                </div>
+              )}
+              <div>
+                <label className="block text-xs font-bold text-[var(--text-primary)] uppercase tracking-widest mb-2 px-1">
+                  {t.providers.apiKeyLabel}
+                </label>
+                <input
+                  type="password"
+                  value={apiKey}
+                  onChange={(e) => setApiKey(e.target.value)}
+                  placeholder={t.providers.apiKeyPlaceholder}
+                  className="glass-input w-full bg-[var(--bg-deep)] border-white/10 text-[var(--text-primary)]"
                 />
               </div>
-            )}
-            <div>
-              <label className="block text-xs text-[var(--text-muted)] mb-2 uppercase tracking-wider">
-                {t.providers.apiKeyLabel}
-              </label>
-              <input
-                type="password"
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                placeholder={t.providers.apiKeyPlaceholder}
-                className="glass-input w-full"
-              />
+              <button
+                onClick={handleApiKeySubmit}
+                disabled={
+                  isLoading ||
+                  !apiKey.trim() ||
+                  (isCustomProvider && !endpoint.trim())
+                }
+                className="w-full py-3.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95 bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] text-white shadow-blue-500/20 group"
+              >
+                {isLoading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    {t.providers.validating}
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-4 h-4 group-hover:scale-125 group-hover:rotate-90 transition-all duration-300" />
+                    {t.providers.addAccount}
+                  </>
+                )}
+              </button>
             </div>
-            <button
-              onClick={handleApiKeySubmit}
-              disabled={
-                isLoading ||
-                !apiKey.trim() ||
-                (isCustomProvider && !endpoint.trim())
-              }
-              className={`glass-btn glass-btn-${provider.color} w-full py-2.5 flex items-center justify-center gap-2 disabled:opacity-50`}
-            >
-              {isLoading ? (
-                <>
-                  <span className="animate-spin">◌</span>
-                  {t.providers.validating}
-                </>
-              ) : (
-                <>
-                  <span>+</span>
-                  {t.providers.addAccount}
-                </>
-              )}
-            </button>
-          </div>
-        )}
+          )}
 
-        {error && (
-          <div className="mb-4 p-3 rounded-lg bg-[var(--accent-magenta)]/10 border border-[var(--accent-magenta)]/30">
-            <p className="text-sm text-[var(--accent-magenta)]">{error}</p>
-          </div>
-        )}
+          {error && (
+            <div className="p-3.5 rounded-xl bg-red-500/20 border border-red-500/40 text-red-100 text-xs font-bold animate-shake">
+              {error}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -438,65 +471,69 @@ function AddProviderModal({
       <div
         className="fixed inset-0 bg-[var(--overlay-bg)] backdrop-blur-xl animate-fade-in"
         style={{ WebkitBackdropFilter: "blur(24px)" }}
-        onClick={onClose}
       />
-      <div className="relative glass-card p-6 w-full max-w-[600px] max-h-[80vh] overflow-y-auto animate-scale-in">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-[var(--text-primary)]">
+      <div className="relative w-full max-w-[640px] max-h-[85vh] flex flex-col overflow-hidden animate-scale-in shadow-[0_0_60px_-15px_rgba(0,0,0,0.3)] border border-[var(--glass-border)] rounded-2xl">
+        <div className="absolute inset-0 bg-gradient-to-br from-[var(--bg-primary)] via-[var(--bg-secondary)] to-[var(--bg-primary)] z-0" />
+        <div className="absolute inset-0 bg-[var(--bg-primary)]/60 backdrop-blur-2xl z-0" />
+
+        <div className="relative z-10 flex items-center justify-between p-6 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/30">
+          <h2 className="text-xl font-bold text-[var(--text-primary)] tracking-tight">
             {t.providers.addProvider}
           </h2>
           <button
             onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-full bg-soft hover:bg-muted text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-all"
+            className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-white/10 text-[var(--text-primary)]/60 hover:text-[var(--text-primary)] transition-all"
           >
-            ✕
+            <X className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          {allProviders.map((provider) => {
-            return (
-              <div
-                key={provider.id}
-                className={`group glass-card glass-card-hover p-4 cursor-pointer glass-card-${provider.color} transition-all duration-200 hover:scale-[1.02]`}
-                onClick={() => onSelectProvider(provider)}
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl bg-[var(--accent-${provider.color})]/10 text-[var(--accent-${provider.color})] group-hover:scale-110 transition-transform`}
-                  >
-                    {provider.icon}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="font-semibold text-[var(--text-primary)] text-sm">
-                        {provider.name}
-                      </h3>
+        <div className="relative z-10 p-6 overflow-y-auto custom-scrollbar">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {allProviders.map((provider) => {
+              return (
+                <div
+                  key={provider.id}
+                  className={`group glass-card p-4 cursor-pointer transition-all duration-200 hover:scale-[1.02] bg-[var(--bg-secondary)]/40 border-[var(--glass-border)] hover:border-[var(--accent-${provider.color})]/40 shadow-sm hover:shadow-md`}
+                  onClick={() => onSelectProvider(provider)}
+                >
+                  <div className="flex items-center gap-4">
+                    <div
+                      className={`w-12 h-12 rounded-2xl flex items-center justify-center text-2xl bg-[var(--accent-${provider.color})]/10 text-[var(--accent-${provider.color})] group-hover:scale-110 transition-transform shadow-inner`}
+                    >
+                      {provider.icon}
                     </div>
-                    <div className="mt-1.5">
-                      <span
-                        className={`px-2 py-0.5 text-[10px] rounded-full font-medium ${
-                          provider.authType === "oauth" ||
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-bold text-[var(--text-primary)] text-sm">
+                        {provider.id === "custom"
+                          ? t.providers.customProvider
+                          : provider.name}
+                      </h3>
+                      <div className="mt-1">
+                        <span
+                          className={`px-2 py-0.5 text-[10px] rounded-full font-bold uppercase tracking-wider ${
+                            provider.authType === "oauth" ||
+                            provider.authType === "oauth-project"
+                              ? "bg-[var(--accent-primary)]/20 text-[var(--accent-primary)]"
+                              : provider.authType === "import"
+                                ? "bg-[var(--accent-secondary)]/20 text-[var(--accent-secondary)]"
+                                : "bg-[var(--accent-tertiary)]/20 text-[var(--accent-tertiary)]"
+                          }`}
+                        >
+                          {provider.authType === "oauth" ||
                           provider.authType === "oauth-project"
-                            ? "bg-[var(--accent-primary)]/12 text-[var(--accent-primary)]"
+                            ? "OAuth"
                             : provider.authType === "import"
-                              ? "bg-[var(--accent-secondary)]/12 text-[var(--accent-secondary)]"
-                              : "bg-[var(--accent-tertiary)]/12 text-[var(--accent-tertiary)]"
-                        }`}
-                      >
-                        {provider.authType === "oauth" ||
-                        provider.authType === "oauth-project"
-                          ? "OAuth"
-                          : provider.authType === "import"
-                            ? "Import"
-                            : "API Key"}
-                      </span>
+                              ? "Import"
+                              : "API Key"}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       </div>
     </div>
@@ -556,7 +593,9 @@ function ProviderCard({
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="font-semibold text-[var(--text-primary)]">
-                  {provider.name}
+                  {provider.id === "custom"
+                    ? t.providers.customProvider
+                    : provider.name}
                 </h3>
                 <span
                   className={`px-2 py-0.5 text-xs rounded-full bg-[var(--accent-${provider.color})]/20 text-[var(--accent-${provider.color})] border border-[var(--accent-${provider.color})]/30`}
@@ -626,13 +665,14 @@ function ProviderCard({
 
           <div className="p-3 border-t border-subtle">
             <button
-              className="glass-btn glass-btn-teal text-xs py-1.5 w-full transition-all duration-300 hover:brightness-110 active:scale-[0.98] shadow-sm hover:shadow-md"
+              className="glass-btn glass-btn-teal text-xs py-1.5 w-full transition-all duration-300 hover:brightness-110 active:scale-[0.98] shadow-sm hover:shadow-teal-500/20 flex items-center justify-center gap-2 group"
               onClick={(e) => {
                 e.stopPropagation();
                 onAddAccount(provider.id);
               }}
             >
-              + {t.providers.addAccount}
+              <Plus className="w-3.5 h-3.5 group-hover:scale-125 group-hover:rotate-90 transition-all duration-300" />
+              {t.providers.addAccount}
             </button>
           </div>
         </div>
@@ -660,10 +700,42 @@ export function Providers() {
     useState<CopilotAuthInfo | null>(null);
   const [copilotAuthError, setCopilotAuthError] = useState<string | null>(null);
   const [copilotCopied, setCopilotCopied] = useState(false);
+  const [customProviders, setCustomProviders] = useState<
+    OpenAICompatProvider[]
+  >([]);
+  const [showCustomProviderForm, setShowCustomProviderForm] = useState(false);
+  const [editingCustomProvider, setEditingCustomProvider] =
+    useState<OpenAICompatProvider | null>(null);
 
   useEffect(() => {
     loadAccounts();
+    loadCustomProviders();
   }, [loadAccounts]);
+
+  const loadCustomProviders = async () => {
+    try {
+      const result = await window.electronAPI?.openaiCompat?.getAll();
+      if (result?.success) {
+        setCustomProviders(result.providers || []);
+      }
+    } catch (err) {
+      console.error("[Providers] Failed to load custom providers:", err);
+    }
+  };
+
+  const handleDeleteCustomProvider = async (name: string) => {
+    if (!confirm(t.providers.customDeleteConfirm.replace("{name}", name))) {
+      return;
+    }
+    try {
+      const result = await window.electronAPI?.openaiCompat?.delete(name);
+      if (result?.success) {
+        setCustomProviders(result.providers || []);
+      }
+    } catch (err) {
+      console.error("[Providers] Failed to delete custom provider:", err);
+    }
+  };
 
   const triggerAuth = async (providerInfo: Omit<Provider, "accounts">) => {
     if (!window.electronAPI) {
@@ -867,6 +939,11 @@ export function Providers() {
     providerInfo: Omit<Provider, "accounts">,
   ) => {
     setShowAddModal(false);
+    if (providerInfo.id === "custom") {
+      setEditingCustomProvider(null);
+      setShowCustomProviderForm(true);
+      return;
+    }
     if (
       providerInfo.authType === "apikey" ||
       providerInfo.authType === "import" ||
@@ -984,13 +1061,13 @@ export function Providers() {
         </div>
         <div className="flex items-center gap-3">
           <button
-            className="glass-btn p-2.5"
+            className="glass-btn p-2.5 active:scale-90 transition-all duration-300 group hover:bg-white/10"
             onClick={() => loadAccounts({ force: true })}
             disabled={isLoading}
             title={t.quota.refresh}
           >
             <svg
-              className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`}
+              className={`w-4 h-4 group-hover:rotate-180 transition-transform duration-500 ${isLoading ? "animate-spin" : ""}`}
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -1004,7 +1081,7 @@ export function Providers() {
             </svg>
           </button>
           <button
-            className="glass-btn glass-btn-teal"
+            className="glass-btn glass-btn-teal flex items-center justify-center gap-2 group active:scale-95 transition-all duration-300 hover:brightness-110 shadow-lg hover:shadow-teal-500/20"
             onClick={() => setShowAddModal(true)}
             disabled={isAuthenticating}
           >
@@ -1014,7 +1091,10 @@ export function Providers() {
                 {t.providers.connecting}
               </>
             ) : (
-              `+ ${t.providers.addProvider}`
+              <>
+                <Plus className="w-4 h-4 group-hover:scale-125 group-hover:rotate-90 transition-all duration-300" />
+                <span>{t.providers.addProvider}</span>
+              </>
             )}
           </button>
         </div>
@@ -1044,15 +1124,71 @@ export function Providers() {
           ))}
         </div>
       ) : (
-        <div className="glass-card p-12 text-center">
+        <div className="glass-card p-12 text-center flex flex-col items-center">
           <div className="text-4xl mb-4 text-[var(--text-dim)]">◈</div>
           <p className="text-[var(--text-muted)]">{t.providers.noProviders}</p>
           <button
-            className="glass-btn glass-btn-teal mt-4"
+            className="glass-btn glass-btn-teal mt-6 flex items-center justify-center gap-2 group active:scale-95 transition-all px-6 py-2.5"
             onClick={() => setShowAddModal(true)}
           >
-            + {t.providers.addProvider}
+            <Plus className="w-4 h-4 group-hover:scale-125 group-hover:rotate-90 transition-all duration-300" />
+            <span>{t.providers.addProvider}</span>
           </button>
+        </div>
+      )}
+
+      {customProviders.length > 0 && (
+        <div className="mt-6">
+          <h3 className="text-sm font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-3">
+            {t.providers.customManage}
+          </h3>
+          <div className="space-y-3">
+            {customProviders.map((cp) => (
+              <div
+                key={cp.name}
+                className="glass-card p-4 flex items-center justify-between group hover:border-[var(--accent-indigo)]/30 transition-all"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl bg-[var(--accent-indigo)]/10 text-[var(--accent-indigo)]">
+                    <CustomIcon />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-[var(--text-primary)]">
+                      {cp.name}
+                    </h4>
+                    <p className="text-xs text-[var(--text-muted)] truncate max-w-[200px]">
+                      {cp["base-url"]}
+                    </p>
+                    <p className="text-xs text-[var(--text-dim)]">
+                      {cp["api-key-entries"].length} API keys
+                      {cp.models &&
+                        cp.models.length > 0 &&
+                        ` • ${cp.models.length} models`}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button
+                    onClick={() => {
+                      setEditingCustomProvider(cp);
+                      setShowCustomProviderForm(true);
+                    }}
+                    className="glass-btn p-2 text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                    title={t.providers.customEdit}
+                  >
+                    <Edit2 className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handleDeleteCustomProvider(cp.name)}
+                    className="p-2 text-red-500/70 hover:text-red-500 hover:scale-110 transition-all"
+                    title={t.providers.customDelete}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
@@ -1071,28 +1207,41 @@ export function Providers() {
         />
       )}
 
+      {showCustomProviderForm && (
+        <CustomProviderForm
+          onClose={() => {
+            setShowCustomProviderForm(false);
+            setEditingCustomProvider(null);
+          }}
+          onSaved={() => {
+            setShowCustomProviderForm(false);
+            setEditingCustomProvider(null);
+            loadCustomProviders();
+          }}
+          editProvider={editingCustomProvider || undefined}
+        />
+      )}
+
       {copilotAuthInfo && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
             className="fixed inset-0 bg-[var(--overlay-bg)] backdrop-blur-xl animate-fade-in"
             style={{ WebkitBackdropFilter: "blur(24px)" }}
-            onClick={() => {
-              setCopilotAuthInfo(null);
-              setCopilotCopied(false);
-              setCopilotAuthError(null);
-            }}
           />
-          <div className="relative glass-card glass-card-teal p-6 w-full max-w-[460px] animate-scale-in">
-            <div className="flex items-center justify-between mb-6">
+          <div className="relative w-full max-w-[460px] overflow-hidden animate-scale-in shadow-[0_0_60px_-15px_rgba(0,0,0,0.3)] border border-[var(--glass-border)] rounded-2xl flex flex-col">
+            <div className="absolute inset-0 bg-gradient-to-br from-[var(--bg-primary)] via-[var(--bg-secondary)] to-[var(--bg-primary)] z-0" />
+            <div className="absolute inset-0 bg-[var(--bg-primary)]/60 backdrop-blur-2xl z-0" />
+
+            <div className="relative z-10 flex items-center justify-between p-6 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/30">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl bg-[var(--accent-teal)]/10 text-[var(--accent-teal)]">
+                <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl bg-[var(--accent-teal)]/10 text-[var(--accent-teal)] shadow-inner">
                   <GithubCopilot size={24} />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-[var(--text-primary)]">
+                  <h2 className="text-lg font-bold text-[var(--text-primary)] tracking-tight">
                     {t.providers.copilotDeviceTitle}
                   </h2>
-                  <p className="text-xs text-[var(--text-muted)]">
+                  <p className="text-xs text-[var(--text-primary)]/70 font-medium">
                     {t.providers.copilotDeviceSubtitle}
                   </p>
                 </div>
@@ -1103,24 +1252,24 @@ export function Providers() {
                   setCopilotCopied(false);
                   setCopilotAuthError(null);
                 }}
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-soft hover:bg-muted text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-all"
+                className="p-2 rounded-lg text-[var(--text-primary)]/60 hover:text-[var(--text-primary)] hover:bg-white/10 transition-all"
                 aria-label={t.providers.dismiss}
               >
-                ✕
+                <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="space-y-4">
-              <div className="glass-card p-4 bg-soft">
-                <p className="text-xs text-[var(--text-muted)] mb-2">
+            <div className="relative z-10 p-6 space-y-6">
+              <div className="glass-card p-5 bg-white/[0.03] border-white/10">
+                <p className="text-xs font-bold text-[var(--text-primary)]/60 uppercase tracking-widest mb-3">
                   {t.providers.copilotDeviceCodeLabel}
                 </p>
-                <div className="flex items-center justify-between gap-3">
-                  <div className="font-mono text-lg font-semibold tracking-[0.2em] text-[var(--text-primary)]">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="font-mono text-2xl font-bold tracking-[0.2em] text-[var(--accent-primary)] drop-shadow-sm">
                     {copilotAuthInfo.user_code}
                   </div>
                   <button
-                    className="glass-btn text-xs py-1 px-2"
+                    className="glass-btn text-xs py-2 px-4 font-bold bg-[var(--accent-primary)]/10 hover:bg-[var(--accent-primary)]/20 text-[var(--accent-primary)] border border-[var(--accent-primary)]/30 rounded-xl transition-all active:scale-95"
                     onClick={async () => {
                       try {
                         await navigator.clipboard.writeText(
@@ -1143,8 +1292,8 @@ export function Providers() {
                 </div>
               </div>
 
-              <div className="glass-card p-4 bg-soft">
-                <p className="text-sm text-[var(--text-muted)] mb-3">
+              <div className="glass-card p-5 bg-white/[0.03] border-white/10">
+                <p className="text-sm text-[var(--text-primary)]/90 leading-relaxed mb-4">
                   {t.providers.copilotDeviceInstructions}
                 </p>
                 <button
@@ -1153,20 +1302,18 @@ export function Providers() {
                       copilotAuthInfo.url || copilotAuthInfo.verification_uri,
                     )
                   }
-                  className="glass-btn glass-btn-teal w-full py-2.5 flex items-center justify-center gap-2"
+                  className="w-full py-3 rounded-xl font-bold text-sm bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] text-white shadow-lg shadow-blue-500/20 active:scale-95 transition-all"
                 >
                   {t.providers.copilotDeviceOpen}
                 </button>
               </div>
-            </div>
 
-            {copilotAuthError && (
-              <div className="mt-4 p-3 rounded-lg bg-[var(--accent-magenta)]/10 border border-[var(--accent-magenta)]/30">
-                <p className="text-sm text-[var(--accent-magenta)]">
+              {copilotAuthError && (
+                <div className="p-3.5 rounded-xl bg-red-500/20 border border-red-500/40 text-red-100 text-xs font-bold animate-shake">
                   {copilotAuthError}
-                </p>
-              </div>
-            )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

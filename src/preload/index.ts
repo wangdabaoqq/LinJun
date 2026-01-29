@@ -45,6 +45,8 @@ const electronAPI = {
       requestRetry?: number;
       maxRetryInterval?: number;
       loggingToFile?: boolean;
+      switchProject?: boolean;
+      switchPreviewModel?: boolean;
     }) => ipcRenderer.invoke("settings:syncToYaml", updates),
   },
   app: {
@@ -115,6 +117,58 @@ const electronAPI = {
     importToken: () => ipcRenderer.invoke("kiro:import"),
     refreshToken: (filePath: string) =>
       ipcRenderer.invoke("kiro:refreshToken", filePath),
+  },
+  openaiCompat: {
+    getAll: () => ipcRenderer.invoke("openaiCompat:getAll"),
+    add: (provider: {
+      name: string;
+      "base-url": string;
+      "api-key-entries": { "api-key": string; "proxy-url"?: string }[];
+      models?: { name: string; alias?: string }[];
+    }) => ipcRenderer.invoke("openaiCompat:add", provider),
+    update: (
+      providerName: string,
+      provider: {
+        name: string;
+        "base-url": string;
+        "api-key-entries": { "api-key": string; "proxy-url"?: string }[];
+        models?: { name: string; alias?: string }[];
+      },
+    ) => ipcRenderer.invoke("openaiCompat:update", providerName, provider),
+    delete: (providerName: string) =>
+      ipcRenderer.invoke("openaiCompat:delete", providerName),
+  },
+  claudeCompat: {
+    getAll: () => ipcRenderer.invoke("claudeCompat:getAll"),
+    save: (
+      entries: {
+        "api-key": string;
+        "base-url"?: string;
+        "proxy-url"?: string;
+        models?: { name: string; alias?: string }[];
+      }[],
+    ) => ipcRenderer.invoke("claudeCompat:save", entries),
+  },
+  geminiCompat: {
+    getAll: () => ipcRenderer.invoke("geminiCompat:getAll"),
+    save: (
+      entries: {
+        "api-key": string;
+        "base-url"?: string;
+        "proxy-url"?: string;
+        headers?: Record<string, string>;
+      }[],
+    ) => ipcRenderer.invoke("geminiCompat:save", entries),
+  },
+  codexCompat: {
+    getAll: () => ipcRenderer.invoke("codexCompat:getAll"),
+    save: (
+      entries: {
+        "api-key": string;
+        "base-url"?: string;
+        "proxy-url"?: string;
+      }[],
+    ) => ipcRenderer.invoke("codexCompat:save", entries),
   },
 };
 

@@ -5,6 +5,49 @@ import { app } from "electron";
 import { EventEmitter } from "events";
 import yaml from "js-yaml";
 
+export interface OpenAICompatibilityApiKeyEntry {
+  "api-key": string;
+  "proxy-url"?: string;
+}
+
+export interface OpenAICompatibilityModel {
+  name: string;
+  alias?: string;
+}
+
+export interface ClaudeApiKeyEntry {
+  "api-key": string;
+  "base-url"?: string;
+  "proxy-url"?: string;
+  prefix?: string;
+  models?: OpenAICompatibilityModel[];
+}
+
+export interface GeminiApiKeyEntry {
+  "api-key": string;
+  "base-url"?: string;
+  "proxy-url"?: string;
+  prefix?: string;
+  headers?: Record<string, string>;
+  models?: OpenAICompatibilityModel[];
+}
+
+export interface CodexApiKeyEntry {
+  "api-key": string;
+  "base-url"?: string;
+  "proxy-url"?: string;
+  prefix?: string;
+  models?: OpenAICompatibilityModel[];
+}
+
+export interface OpenAICompatibilityProvider {
+  name: string;
+  "base-url": string;
+  prefix?: string;
+  "api-key-entries": OpenAICompatibilityApiKeyEntry[];
+  models?: OpenAICompatibilityModel[];
+}
+
 export interface ProxyConfig {
   host: string;
   port: number;
@@ -28,6 +71,10 @@ export interface ProxyConfig {
   };
   "request-retry"?: number;
   "max-retry-interval"?: number;
+  "openai-compatibility"?: OpenAICompatibilityProvider[];
+  "claude-api-key"?: ClaudeApiKeyEntry[];
+  "gemini-api-key"?: GeminiApiKeyEntry[];
+  "codex-api-key"?: CodexApiKeyEntry[];
 }
 
 function getDefaultConfig(authDir: string): string {

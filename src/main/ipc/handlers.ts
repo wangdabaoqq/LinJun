@@ -199,6 +199,8 @@ export function setupIpcHandlers(): void {
         maxRetryInterval?: number;
         loggingToFile?: boolean;
         managementSecret?: string;
+        switchProject?: boolean;
+        switchPreviewModel?: boolean;
       },
     ) => {
       try {
@@ -232,6 +234,23 @@ export function setupIpcHandlers(): void {
         if (updates.loggingToFile !== undefined) {
           yamlUpdates["logging-to-file"] = updates.loggingToFile;
           store.set("loggingToFile", updates.loggingToFile);
+        }
+
+        if (
+          updates.switchProject !== undefined ||
+          updates.switchPreviewModel !== undefined
+        ) {
+          const currentConfig = proxyManager.loadConfigFromYaml();
+          const currentQuotaExceeded = currentConfig?.["quota-exceeded"] || {};
+          yamlUpdates["quota-exceeded"] = {
+            ...currentQuotaExceeded,
+            ...(updates.switchProject !== undefined && {
+              "switch-project": updates.switchProject,
+            }),
+            ...(updates.switchPreviewModel !== undefined && {
+              "switch-preview-model": updates.switchPreviewModel,
+            }),
+          };
         }
 
         if (updates.managementSecret !== undefined) {
@@ -359,6 +378,239 @@ export function setupIpcHandlers(): void {
       return { success: false, error: String(error) };
     }
   });
+
+  ipcMain.handle("openaiCompat:getAll", () => {
+    try {
+      const config = proxyManager.loadConfigFromYaml();
+      const providers = config?.["openai-compatibility"] || [];
+      return { success: true, providers };
+    } catch (error) {
+      console.error(
+        "[IPC] Failed to get OpenAI compatibility providers:",
+        error,
+      );
+      return { success: false, providers: [], error: String(error) };
+    }
+  });
+
+  ipcMain.handle(
+    "openaiCompat:add",
+    (
+      _event,
+      provider: {
+        name: string;
+        "base-url": string;
+        "api-key-entries": { "api-key": string; "proxy-url"?: string }[];
+        models?: { name: string; alias?: string }[];
+      },
+    ) => {
+      try {
+        const config = proxyManager.loadConfigFromYaml();
+        if (!config) {
+          return { success: false, error: "Failed to load config" };
+        }
+
+        const currentProviders = config["openai-compatibility"] || [];
+        if (currentProviders.some((p) => p.name === provider.name)) {
+          return {
+            success: false,
+            error: "Provider with this name already exists",
+          };
+        }
+
+        const newProviders = [...currentProviders, provider];
+        const success = proxyManager.updateConfigYaml({
+          "openai-compatibility": newProviders,
+        });
+        return { success, providers: newProviders };
+      } catch (error) {
+        console.error(
+          "[IPC] Failed to add OpenAI compatibility provider:",
+          error,
+        );
+        return { success: false, error: String(error) };
+      }
+    },
+  );
+
+  ipcMain.handle(
+    "openaiCompat:update",
+    (
+      _event,
+      providerName: string,
+      provider: {
+        name: string;
+        "base-url": string;
+        "api-key-entries": { "api-key": string; "proxy-url"?: string }[];
+        models?: { name: string; alias?: string }[];
+      },
+    ) => {
+      try {
+        const config = proxyManager.loadConfigFromYaml();
+        if (!config) {
+          return { success: false, error: "Failed to load config" };
+        }
+
+        const currentProviders = config["openai-compatibility"] || [];
+        const index = currentProviders.findIndex(
+          (p) => p.name === providerName,
+        );
+        if (index === -1) {
+          return { success: false, error: "Provider not found" };
+        }
+
+        const newProviders = [...currentProviders];
+        newProviders[index] = provider;
+        const success = proxyManager.updateConfigYaml({
+          "openai-compatibility": newProviders,
+        });
+        return { success, providers: newProviders };
+      } catch (error) {
+        console.error(
+          "[IPC] Failed to update OpenAI compatibility provider:",
+          error,
+        );
+        return { success: false, error: String(error) };
+      }
+    },
+  );
+
+  ipcMain.handle("openaiCompat:delete", (_event, providerName: string) => {
+    try {
+      const config = proxyManager.loadConfigFromYaml();
+      if (!config) {
+        return { success: false, error: "Failed to load config" };
+      }
+
+      const currentProviders = config["openai-compatibility"] || [];
+      const newProviders = currentProviders.filter(
+        (p) => p.name !== providerName,
+      );
+      if (newProviders.length === currentProviders.length) {
+        return { success: false, error: "Provider not found" };
+      }
+
+      const success = proxyManager.updateConfigYaml({
+        "openai-compatibility": newProviders,
+      });
+      return { success, providers: newProviders };
+    } catch (error) {
+      console.error(
+        "[IPC] Failed to delete OpenAI compatibility provider:",
+        error,
+      );
+      return { success: false, error: String(error) };
+    }
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // Claude API Key Management - CRUD operations for config.yaml claude-api-key field
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  ipcMain.handle("claudeCompat:getAll", () => {
+    try {
+      const config = proxyManager.loadConfigFromYaml();
+      const entries = config?.["claude-api-key"] || [];
+      return { success: true, entries };
+    } catch (error) {
+      console.error("[IPC] Failed to get Claude API key entries:", error);
+      return { success: false, entries: [], error: String(error) };
+    }
+  });
+
+  ipcMain.handle(
+    "claudeCompat:save",
+    (
+      _event,
+      entries: {
+        "api-key": string;
+        "base-url"?: string;
+        "proxy-url"?: string;
+        models?: { name: string; alias?: string }[];
+      }[],
+    ) => {
+      try {
+        const success = proxyManager.updateConfigYaml({
+          "claude-api-key": entries,
+        });
+        return { success };
+      } catch (error) {
+        console.error("[IPC] Failed to save Claude API key entries:", error);
+        return { success: false, error: String(error) };
+      }
+    },
+  );
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // Gemini API Key Management - CRUD operations for config.yaml gemini-api-key field
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  ipcMain.handle("geminiCompat:getAll", () => {
+    try {
+      const config = proxyManager.loadConfigFromYaml();
+      const entries = config?.["gemini-api-key"] || [];
+      return { success: true, entries };
+    } catch (error) {
+      console.error("[IPC] Failed to get Gemini API key entries:", error);
+      return { success: false, entries: [], error: String(error) };
+    }
+  });
+
+  ipcMain.handle(
+    "geminiCompat:save",
+    (
+      _event,
+      entries: {
+        "api-key": string;
+        "base-url"?: string;
+        "proxy-url"?: string;
+        headers?: Record<string, string>;
+      }[],
+    ) => {
+      try {
+        const success = proxyManager.updateConfigYaml({
+          "gemini-api-key": entries,
+        });
+        return { success };
+      } catch (error) {
+        console.error("[IPC] Failed to save Gemini API key entries:", error);
+        return { success: false, error: String(error) };
+      }
+    },
+  );
+
+  ipcMain.handle("codexCompat:getAll", () => {
+    try {
+      const config = proxyManager.loadConfigFromYaml();
+      const entries = config?.["codex-api-key"] || [];
+      return { success: true, entries };
+    } catch (error) {
+      console.error("[IPC] Failed to get Codex API key entries:", error);
+      return { success: false, entries: [], error: String(error) };
+    }
+  });
+
+  ipcMain.handle(
+    "codexCompat:save",
+    (
+      _event,
+      entries: {
+        "api-key": string;
+        "base-url"?: string;
+        "proxy-url"?: string;
+      }[],
+    ) => {
+      try {
+        const success = proxyManager.updateConfigYaml({
+          "codex-api-key": entries,
+        });
+        return { success };
+      } catch (error) {
+        console.error("[IPC] Failed to save Codex API key entries:", error);
+        return { success: false, error: String(error) };
+      }
+    },
+  );
 
   ipcMain.handle("cli:detectAll", async () => {
     try {

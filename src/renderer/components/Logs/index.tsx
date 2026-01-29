@@ -134,19 +134,18 @@ const JsonViewer = ({ data }: { data: string }) => {
       .split(regex)
       .filter(Boolean)
       .map((token, i) => {
-        let className = "text-gray-800 dark:text-[var(--text-primary)]";
+        let className = "text-[var(--text-primary)]";
 
         if (token.match(/^[{}[\],]$/)) {
-          className = "text-gray-500 dark:text-[var(--text-dim)]";
+          className = "text-[var(--text-primary)] opacity-40";
         } else if (token.match(/^"(?:\\.|[^"\\])*"\s*:$/)) {
-          className =
-            "text-teal-700 font-bold dark:text-[var(--accent-primary)]";
+          className = "text-[var(--accent-primary)] font-bold";
         } else if (token.startsWith('"')) {
-          className = "text-blue-600 dark:text-[var(--accent-secondary)]";
+          className = "text-[var(--accent-secondary)] font-medium";
         } else if (token.match(/^-?\d/)) {
-          className = "text-fuchsia-600 dark:text-[var(--accent-tertiary)]";
+          className = "text-[var(--accent-tertiary)] font-bold";
         } else if (token.match(/^(true|false|null)$/)) {
-          className = "text-orange-600 dark:text-[var(--warning)]";
+          className = "text-[var(--warning)] font-bold";
         }
 
         return (
@@ -160,19 +159,19 @@ const JsonViewer = ({ data }: { data: string }) => {
   return (
     <div className="relative group/code flex-1 min-h-0 flex flex-col">
       <div
-        className={`relative p-5 rounded-xl text-[13px] font-mono overflow-auto custom-scrollbar whitespace-pre-wrap break-all leading-relaxed bg-gray-50 border border-gray-200 shadow-inner dark:bg-[var(--bg-deep)] dark:border-[var(--glass-border)] transition-all duration-300 ${isExpanded ? "flex-1" : "max-h-[300px]"}`}
+        className={`relative p-5 rounded-xl text-[13px] font-mono overflow-auto custom-scrollbar whitespace-pre-wrap break-all leading-relaxed bg-[var(--bg-deep)] border border-[var(--glass-border)] shadow-inner transition-all duration-300 ${isExpanded ? "flex-1" : "max-h-[300px]"}`}
       >
         {renderTokens(data)}
       </div>
 
       {isLong && !isExpanded && (
-        <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-gray-50 dark:from-[var(--bg-deep)] to-transparent flex items-end justify-center pb-4 rounded-b-xl pointer-events-none">
+        <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[var(--bg-deep)] to-transparent flex items-end justify-center pb-4 rounded-b-xl pointer-events-none">
           <button
             onClick={() => setIsExpanded(true)}
-            className="pointer-events-auto px-4 py-1.5 rounded-full bg-white dark:bg-[var(--bg-primary)] border border-gray-200 dark:border-[var(--glass-border)] text-[11px] font-bold text-gray-700 dark:text-[var(--text-primary)] shadow-lg hover:border-teal-500/50 dark:hover:border-[var(--accent-primary)]/50 transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2"
+            className="pointer-events-auto px-4 py-1.5 rounded-full bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[11px] font-bold text-[var(--text-primary)] shadow-lg hover:border-[var(--accent-primary)]/50 transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2"
           >
             <span>Expand JSON</span>
-            <span className="px-1.5 py-0.5 rounded-md bg-gray-100 dark:bg-[var(--bg-secondary)] text-gray-500 dark:text-[var(--text-dim)] text-[10px]">
+            <span className="px-1.5 py-0.5 rounded-md bg-[var(--bg-secondary)] text-[var(--text-primary)] opacity-50 text-[10px]">
               {lines.length} lines
             </span>
           </button>
@@ -182,7 +181,7 @@ const JsonViewer = ({ data }: { data: string }) => {
       {isExpanded && (
         <button
           onClick={() => setIsExpanded(false)}
-          className="absolute top-3 right-3 p-1.5 rounded-lg bg-white/80 dark:bg-[var(--bg-primary)]/80 backdrop-blur border border-gray-200 dark:border-[var(--glass-border)] text-gray-500 dark:text-[var(--text-muted)] hover:text-gray-900 dark:hover:text-[var(--text-primary)] transition-all opacity-0 group-hover/code:opacity-100 z-10"
+          className="absolute top-3 right-3 p-1.5 rounded-lg bg-[var(--bg-primary)]/80 backdrop-blur border border-[var(--glass-border)] text-[var(--text-primary)] opacity-60 hover:opacity-100 transition-all opacity-0 group-hover/code:opacity-100 z-10"
           title="Collapse"
         >
           <ChevronDownIcon className="w-3.5 h-3.5 rotate-180" />
@@ -525,7 +524,7 @@ export function Logs() {
             </button>
             <button
               onClick={() => setShowDeleteConfirm(true)}
-              className="p-2.5 text-[var(--text-muted)] hover:text-[var(--error)] hover:bg-[var(--error)]/10 border border-transparent hover:border-[var(--error)]/20 rounded-xl transition-all active:scale-95"
+              className="p-2.5 text-red-500/70 hover:text-red-500 hover:scale-110 transition-all active:scale-95"
               title={t.logs.deleteAll}
             >
               <TrashIcon className="w-4 h-4" />
@@ -652,7 +651,7 @@ export function Logs() {
             <div className="relative z-10 flex flex-col h-full min-h-0">
               <div className="flex-none flex items-center justify-between px-6 py-5 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/20 backdrop-blur-sm">
                 <div className="flex items-center gap-4">
-                  <div className="p-3 rounded-xl bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] border border-[var(--accent-primary)]/20 shadow-[0_0_20px_-5px_var(--accent-primary)] group-hover:shadow-[0_0_25px_-5px_var(--accent-primary)] transition-all duration-500">
+                  <div className="p-3 rounded-xl bg-[var(--accent-primary)] text-white border border-[var(--accent-primary)]/20 shadow-[0_0_20px_-5px_var(--accent-primary)] transition-all duration-500">
                     <svg
                       className="w-5 h-5"
                       fill="none"
@@ -678,7 +677,7 @@ export function Logs() {
                   <div className="h-8 w-px bg-[var(--glass-border)]" />
                   <button
                     onClick={() => setSelectedLog(null)}
-                    className="text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 transition-all p-2 rounded-lg"
+                    className="text-[var(--text-primary)]/70 hover:text-[var(--text-primary)] hover:bg-white/10 transition-all p-2 rounded-xl"
                   >
                     <CloseIcon />
                   </button>
@@ -717,14 +716,14 @@ export function Logs() {
                     ].map((item, i) => (
                       <div
                         key={i}
-                        className="bg-[var(--bg-primary)]/40 p-4 rounded-xl border border-[var(--glass-border)] hover:border-[var(--accent-primary)]/30 transition-all group/card shadow-sm hover:shadow-[0_0_20px_-10px_var(--accent-primary)] relative overflow-hidden"
+                        className="bg-[var(--bg-deep)] p-4 rounded-2xl border border-white/10 hover:border-[var(--accent-primary)]/40 transition-all group/card shadow-sm hover:shadow-[0_0_20px_-10px_var(--accent-primary)] relative overflow-hidden"
                       >
                         <div className="absolute inset-0 bg-[var(--accent-primary)]/5 opacity-0 group-hover/card:opacity-100 transition-opacity" />
-                        <label className="text-[10px] text-[var(--text-dim)] uppercase tracking-widest font-bold block mb-2 group-hover/card:text-[var(--text-muted)] transition-colors relative z-10">
+                        <label className="text-[10px] text-[var(--text-primary)]/60 uppercase tracking-widest font-bold block mb-2 transition-colors relative z-10">
                           {item.label}
                         </label>
                         <div
-                          className={`text-sm text-[var(--text-primary)] font-medium relative z-10 flex items-center gap-2 ${item.truncate ? "truncate" : ""} ${item.font || ""} ${item.color || ""}`}
+                          className={`text-sm text-[var(--text-primary)] font-bold relative z-10 flex items-center gap-2 ${item.truncate ? "truncate" : ""} ${item.font || ""} ${item.color || ""}`}
                           title={item.value}
                         >
                           {item.icon && (
@@ -739,8 +738,8 @@ export function Logs() {
                   </div>
 
                   <div className="flex flex-col h-full min-h-[300px]">
-                    <div className="flex items-center justify-between mb-3">
-                      <label className="text-[10px] text-[var(--text-dim)] uppercase tracking-widest font-bold flex items-center gap-2">
+                    <div className="flex items-center justify-between mb-3 px-1">
+                      <label className="text-[10px] text-[var(--text-primary)]/70 uppercase tracking-widest font-bold flex items-center gap-2">
                         <svg
                           className="w-3.5 h-3.5 text-[var(--accent-primary)]"
                           fill="none"
@@ -762,7 +761,7 @@ export function Logs() {
                         onClick={() =>
                           handleCopy(formatRequestBody(selectedLog.requestBody))
                         }
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-[var(--bg-primary)]/50 backdrop-blur border border-[var(--glass-border)] text-[var(--text-muted)] hover:text-[var(--accent-primary)] hover:border-[var(--accent-primary)]/50 transition-all shadow-sm hover:shadow-[0_0_15px_-5px_var(--accent-primary)]"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-white/5 border border-white/10 text-[var(--text-primary)] hover:bg-white/10 transition-all shadow-sm"
                       >
                         {copied ? (
                           <CheckIcon className="w-3.5 h-3.5 text-[var(--success)]" />
@@ -794,12 +793,8 @@ export function Logs() {
         <div
           className="fixed inset-0 bg-[var(--overlay-bg)] backdrop-blur-xl flex items-center justify-center z-[60] animate-in fade-in duration-200"
           style={{ WebkitBackdropFilter: "blur(24px)" }}
-          onClick={() => setShowDeleteConfirm(false)}
         >
-          <div
-            className="glass-card w-[420px] p-0 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] shadow-[0_0_50px_rgba(0,0,0,0.2)] dark:shadow-[0_0_50px_rgba(0,0,0,0.5)] animate-in zoom-in-95 duration-200 overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div className="glass-card w-[420px] p-0 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] shadow-[0_0_50px_rgba(0,0,0,0.2)] dark:shadow-[0_0_50px_rgba(0,0,0,0.5)] animate-in zoom-in-95 duration-200 overflow-hidden">
             <div className="p-8 pb-6 flex flex-col items-center text-center">
               <div className="w-16 h-16 rounded-full bg-[var(--error)]/10 flex items-center justify-center text-[var(--error)] mb-5 shadow-[0_0_20px_rgba(255,69,58,0.2)]">
                 <TrashIcon className="w-8 h-8" />

@@ -6,6 +6,7 @@ export type ThemeType = "dark" | "light";
 
 interface MainSettings {
   port?: number;
+  endpoint?: string;
   managementSecret?: string;
   autoStart?: boolean;
   autoLaunch?: boolean;
@@ -14,12 +15,15 @@ interface MainSettings {
   maxRetryInterval?: number;
   proxyRunning?: boolean;
   loggingToFile?: boolean;
+  switchProject?: boolean;
+  switchPreviewModel?: boolean;
 }
 
 interface SettingsState {
   language: Language;
   theme: ThemeType;
   port: number;
+  endpoint: string;
   managementSecret: string;
   autoStart: boolean;
   autoLaunch: boolean;
@@ -30,11 +34,15 @@ interface SettingsState {
   proxyRunning: boolean;
   proxyLoading: boolean;
   loggingToFile: boolean;
+  switchProject: boolean;
+  switchPreviewModel: boolean;
   translations: Translations;
   initialized: boolean;
   setLanguage: (lang: Language) => void;
   setTheme: (theme: ThemeType) => void;
   setPort: (port: number) => void;
+  setEndpoint: (endpoint: string) => void;
+  getEffectiveEndpoint: () => string;
   setManagementSecret: (secret: string) => void;
   generateManagementSecret: () => void;
   setAutoStart: (enabled: boolean) => void;
@@ -48,6 +56,8 @@ interface SettingsState {
   setProxyRunning: (running: boolean) => void;
   setProxyLoading: (loading: boolean) => void;
   setLoggingToFile: (enabled: boolean) => void;
+  setSwitchProject: (enabled: boolean) => void;
+  setSwitchPreviewModel: (enabled: boolean) => void;
   syncFromMain: (settings: MainSettings) => void;
 }
 
@@ -73,14 +83,15 @@ function generateUUID() {
   bytes[6] = (bytes[6] & 0x0f) | 0x40;
   bytes[8] = (bytes[8] & 0x3f) | 0x80;
   // Format as UUID v4: 8-4-4-4-12
-  const hex = Array.from(bytes).map(b => b.toString(16).padStart(2, "0").toUpperCase()).join("");
+  const hex = Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, "0").toUpperCase())
+    .join("");
   return `${hex.substring(0, 8)}-${hex.substring(8, 12)}-${hex.substring(12, 16)}-${hex.substring(16, 20)}-${hex.substring(20)}`;
 }
 
 function generateRandomSecret() {
   return generateUUID();
 }
-
 
 const DEFAULT_THEME: ThemeType = getSystemTheme();
 
@@ -92,6 +103,7 @@ export const useSettingsStore = create<SettingsState>()(
       language: "zh",
       theme: DEFAULT_THEME,
       port: 8080,
+      endpoint: "",
       managementSecret: "",
       autoStart: true,
       autoLaunch: false,
@@ -102,6 +114,8 @@ export const useSettingsStore = create<SettingsState>()(
       proxyRunning: false,
       proxyLoading: false,
       loggingToFile: false,
+      switchProject: true,
+      switchPreviewModel: true,
       translations: getTranslations("zh"),
       initialized: false,
 
@@ -120,6 +134,16 @@ export const useSettingsStore = create<SettingsState>()(
         if (typeof window !== "undefined" && window.electronAPI) {
           window.electronAPI.settings.syncToYaml({ port });
         }
+      },
+      setEndpoint: (endpoint) => {
+        set({ endpoint });
+      },
+      getEffectiveEndpoint: () => {
+        const state = get();
+        if (state.endpoint && state.endpoint.trim()) {
+          return state.endpoint.trim();
+        }
+        return `http://127.0.0.1:${state.port}/v1`;
       },
       setManagementSecret: (secret) => {
         set({ managementSecret: secret });
@@ -167,6 +191,20 @@ export const useSettingsStore = create<SettingsState>()(
           window.electronAPI.settings.syncToYaml({ loggingToFile: enabled });
         }
       },
+      setSwitchProject: (enabled: boolean) => {
+        set({ switchProject: enabled });
+        if (typeof window !== "undefined" && window.electronAPI) {
+          window.electronAPI.settings.syncToYaml({ switchProject: enabled });
+        }
+      },
+      setSwitchPreviewModel: (enabled: boolean) => {
+        set({ switchPreviewModel: enabled });
+        if (typeof window !== "undefined" && window.electronAPI) {
+          window.electronAPI.settings.syncToYaml({
+            switchPreviewModel: enabled,
+          });
+        }
+      },
       syncFromMain: (settings) => {
         const currentSecret = get().managementSecret;
         const newSecret =
@@ -204,6 +242,12 @@ export const useSettingsStore = create<SettingsState>()(
           ...(settings.loggingToFile !== undefined && {
             loggingToFile: settings.loggingToFile,
           }),
+          ...(settings.switchProject !== undefined && {
+            switchProject: settings.switchProject,
+          }),
+          ...(settings.switchPreviewModel !== undefined && {
+            switchPreviewModel: settings.switchPreviewModel,
+          }),
           initialized: true,
         });
       },
@@ -214,6 +258,7 @@ export const useSettingsStore = create<SettingsState>()(
         language: state.language,
         theme: state.theme,
         port: state.port,
+        endpoint: state.endpoint,
         managementSecret: state.managementSecret,
         autoStart: state.autoStart,
         autoLaunch: state.autoLaunch,
@@ -221,6 +266,8 @@ export const useSettingsStore = create<SettingsState>()(
         sidebarCollapsed: state.sidebarCollapsed,
         requestRetry: state.requestRetry,
         maxRetryInterval: state.maxRetryInterval,
+        switchProject: state.switchProject,
+        switchPreviewModel: state.switchPreviewModel,
       }),
       onRehydrateStorage: () => (state) => {
         if (state?.theme) {

@@ -45,7 +45,6 @@ export function Modal({
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-[var(--overlay-bg)] backdrop-blur-xl"
             style={{ WebkitBackdropFilter: "blur(24px)" }}
-            onClick={onClose}
           />
 
           {/* 2. 弹窗容器 */}

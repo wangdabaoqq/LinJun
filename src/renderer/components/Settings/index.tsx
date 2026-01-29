@@ -37,6 +37,8 @@ import {
   ArrowDownToLine,
   Eye,
   EyeOff,
+  Link,
+  AlertTriangle,
 } from "lucide-react";
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -522,9 +524,11 @@ export function Settings() {
   const t = useTranslations();
   const [activeTab, setActiveTab] = useState<SettingsTab>("core");
   const [copied, setCopied] = useState(false);
+  const [endpointCopied, setEndpointCopied] = useState(false);
   const [showPassword, setShowPassword] = useState(true);
   const {
     port,
+    endpoint,
     managementSecret,
     autoStart,
     autoLaunch,
@@ -533,7 +537,11 @@ export function Settings() {
     maxRetryInterval,
     theme,
     language,
+    switchProject,
+    switchPreviewModel,
     setPort,
+    setEndpoint,
+    getEffectiveEndpoint,
     generateManagementSecret,
     setAutoStart,
     setAutoLaunch,
@@ -542,12 +550,20 @@ export function Settings() {
     setMaxRetryInterval,
     setTheme,
     setLanguage,
+    setSwitchProject,
+    setSwitchPreviewModel,
   } = useSettingsStore();
 
   const handleCopy = () => {
     navigator.clipboard.writeText(managementSecret);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleCopyEndpoint = () => {
+    navigator.clipboard.writeText(getEffectiveEndpoint());
+    setEndpointCopied(true);
+    setTimeout(() => setEndpointCopied(false), 2000);
   };
 
   const themes: {
@@ -795,6 +811,42 @@ export function Settings() {
                   />
                 </SettingRow>
               </SettingCard>
+
+              {/* Endpoint Configuration */}
+              <SettingCard variant="indigo">
+                <SectionHeader
+                  title={t.settings.endpoint}
+                  description={t.settings.endpointDesc}
+                  icon={Link}
+                  accentColor="indigo"
+                />
+                <SettingRow label={t.settings.endpoint} icon={Link}>
+                  <div className="relative flex items-center">
+                    <div className="w-full bg-black/5 dark:bg-[#000000]/40 border border-[var(--glass-border)] text-[var(--text-primary)] text-sm font-mono rounded-xl pl-5 pr-14 py-4 shadow-inner backdrop-blur-xl select-all cursor-text">
+                      {getEffectiveEndpoint()}
+                    </div>
+                    <div className="absolute right-2 flex items-center">
+                      <motion.button
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        onClick={handleCopyEndpoint}
+                        className={`p-2 transition-colors ${
+                          endpointCopied
+                            ? "text-green-500"
+                            : "text-[var(--text-muted)] hover:text-indigo-500"
+                        }`}
+                        title={t.settings.copy}
+                      >
+                        {endpointCopied ? (
+                          <Check className="w-4 h-4" />
+                        ) : (
+                          <Copy className="w-4 h-4" />
+                        )}
+                      </motion.button>
+                    </div>
+                  </div>
+                </SettingRow>
+              </SettingCard>
             </div>
           )}
 
@@ -891,6 +943,32 @@ export function Settings() {
                       }
                     />
                   </div>
+                </div>
+              </SettingCard>
+
+              {/* Quota Exceeded Handling */}
+              <SettingCard variant="magenta" className="lg:col-span-2">
+                <SectionHeader
+                  title={t.settings.quotaExceeded}
+                  description={t.settings.quotaExceededDesc}
+                  icon={AlertTriangle}
+                  accentColor="magenta"
+                />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <CustomToggle
+                    value={switchProject}
+                    onChange={setSwitchProject}
+                    label={t.settings.switchProject}
+                    desc={t.settings.switchProjectDesc}
+                    icon={Shuffle}
+                  />
+                  <CustomToggle
+                    value={switchPreviewModel}
+                    onChange={setSwitchPreviewModel}
+                    label={t.settings.switchPreviewModel}
+                    desc={t.settings.switchPreviewModelDesc}
+                    icon={Zap}
+                  />
                 </div>
               </SettingCard>
             </div>
