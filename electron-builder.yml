@@ -5,23 +5,43 @@ directories:
   buildResources: resources
   output: dist
 
+asar: true
+compression: maximum
+
+dmg:
+  writeUpdateInfo: false
+
 files:
   - "!**/.git/*"
   - "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}"
+  - "!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}"
+  - "!**/node_modules/*.d.ts"
+  - "!**/node_modules/.bin"
+  - "!**/*.{iml,o,hprof,orig,pyc,pyo,rbc,swp,csproj,sln,xproj}"
+  - "!.editorconfig"
+  - "!**/._*"
+  - "!**/{.DS_Store,.git,.hg,.svn,CVS,RCS,SCCS,.gitignore,.gitattributes}"
+  - "!**/{__pycache__,thumbs.db,.flowconfig,.idea,.vs,.nyc_output}"
+  - "!**/{appveyor.yml,.travis.yml,circle.yml}"
+  - "!**/{npm-debug.log,yarn.lock,.yarn-integrity,.yarn-metadata.json}"
 
 extraResources:
   - from: "resources/binaries/${platform}-${arch}"
     to: "binaries/${platform}-${arch}"
     filter:
       - "**/*"
+      - "!LICENSE"
+      - "!README.md"
+      - "!README_CN.md"
+      - "!.DS_Store"
+      - "!.gitkeep"
+      - "!static"
 
 mac:
   category: public.app-category.developer-tools
   icon: resources/icon.icns
   target:
     - target: dmg
-      arch: [x64, arm64]
-    - target: zip
       arch: [x64, arm64]
   hardenedRuntime: true
   gatekeeperAssess: false
@@ -48,11 +68,10 @@ nsis:
   allowToChangeInstallationDirectory: true
   createDesktopShortcut: true
   createStartMenuShortcut: true
+  differentialPackage: false
 
 publish:
   provider: github
   owner: wangdabaoqq
   repo: LinJun
   releaseType: draft
-
-generateUpdatesFilesForAllChannels: true

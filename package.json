@@ -34,7 +34,6 @@
     "@lobehub/icons": "^4.0.3",
     "@radix-ui/react-select": "^2.2.6",
     "axios": "^1.6.0",
-    "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "electron-store": "^8.1.0",
     "js-yaml": "^4.1.1",
