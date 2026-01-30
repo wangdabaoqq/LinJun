@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { Copy, Check } from "lucide-react";
 import { Modal } from "../ui/Modal";
 import { QuotaWindowBar } from "./QuotaWindowBar";
 import { QuotaWindow } from "./AccountQuotaCard";
@@ -31,6 +33,7 @@ export function ModelQuotaModal({
   rateLimits,
 }: ModelQuotaModalProps) {
   const t = useTranslations();
+  const [copiedModelId, setCopiedModelId] = useState<string | null>(null);
   const allModels: QuotaWindow[] = [];
 
   if (rateLimits.primary) {
@@ -47,6 +50,16 @@ export function ModelQuotaModal({
   }
 
   const sortedModels = sortModelsByDisplayOrder(allModels);
+
+  const handleCopyModelId = async (modelId: string) => {
+    try {
+      await navigator.clipboard.writeText(modelId);
+      setCopiedModelId(modelId);
+      setTimeout(() => setCopiedModelId(null), 2000);
+    } catch (err) {
+      console.error("Failed to copy model ID:", err);
+    }
+  };
 
   const modalTitle = (
     <div className="flex flex-col gap-0.5">
@@ -66,14 +79,36 @@ export function ModelQuotaModal({
       title={modalTitle}
       maxWidth="max-w-2xl"
     >
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pb-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pb-4">
         {sortedModels.map((model, index) => (
           <div
             key={`modal-model-${index}`}
-            className="p-3 bg-[var(--bg-secondary)]/30 rounded-xl border border-[var(--border-subtle)]/50 hover:bg-[var(--bg-secondary)]/50 transition-colors"
+            className="p-4 bg-[var(--bg-secondary)]/40 rounded-2xl border border-[var(--border-subtle)]/50 hover:bg-[var(--bg-secondary)]/60 transition-all duration-300 group relative"
           >
             <QuotaWindowBar
               label={formatModelLabel(model.label)}
+              extraLabel={
+                model.modelId && (
+                  <button
+                    onClick={() => handleCopyModelId(model.modelId!)}
+                    className="ml-1 p-1 rounded-md text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] opacity-0 group-hover:opacity-100 transition-all duration-200 focus:opacity-100 flex items-center justify-center"
+                    title={
+                      copiedModelId === model.modelId
+                        ? t.quota.copiedModelId
+                        : `${t.quota.copyModelId}: ${model.modelId}`
+                    }
+                  >
+                    {copiedModelId === model.modelId ? (
+                      <Check
+                        size={12}
+                        className="text-green-500 stroke-[3px]"
+                      />
+                    ) : (
+                      <Copy size={12} className="opacity-70" />
+                    )}
+                  </button>
+                )
+              }
               usedPercent={model.usedPercent}
               resetIn={model.resetIn}
               limitReached={model.limitReached}

@@ -26,6 +26,7 @@ import {
 
 export interface QuotaWindow {
   label: string;
+  modelId?: string;
   usedPercent: number;
   resetIn: string;
   limitReached: boolean;
@@ -162,6 +163,7 @@ function convertAntigravityUsageToQuotaAccount(
 
   const additional: QuotaWindow[] = remainingModels.map((model) => ({
     label: model.displayName,
+    modelId: model.modelId,
     usedPercent: model.usedPercent || 0,
     resetIn: formatModelResetTime(model),
     limitReached: (model.usedPercent || 0) >= 100,
@@ -182,6 +184,7 @@ function convertAntigravityUsageToQuotaAccount(
     rateLimits: {
       primary: {
         label: primaryModel?.displayName || "Model Quota",
+        modelId: primaryModel?.modelId,
         usedPercent,
         resetIn: formatModelResetTime(primaryModel),
         limitReached: usedPercent >= 100,

@@ -1,4 +1,5 @@
 import React from "react";
+import { RotateCw, ArrowRight } from "lucide-react";
 import { QuotaWindowBar } from "./QuotaWindowBar";
 import { ModelQuotaModal } from "./ModelQuotaModal";
 import { useTranslations } from "../../stores/settings";
@@ -6,6 +7,7 @@ import { sortModelsByDisplayOrder } from "./modelOrder";
 
 export interface QuotaWindow {
   label: string;
+  modelId?: string;
   usedPercent: number;
   resetIn: string;
   limitReached: boolean;
@@ -116,22 +118,10 @@ export function AccountQuotaCard({
               className="flex-shrink-0 ml-2 p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-soft transition-all duration-200"
               title={t.quota.refresh}
             >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
+              <RotateCw
+                size={14}
                 className={status === "refreshing" ? "animate-spin" : ""}
-              >
-                <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-                <path d="M3 3v5h5" />
-                <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
-                <path d="M16 16l5 5v-5" />
-              </svg>
+              />
             </button>
           )}
         </div>
@@ -164,20 +154,10 @@ export function AccountQuotaCard({
               <span className="opacity-70 group-hover/btn:opacity-100 transition-opacity">
                 {t.quota.viewAllModels}
               </span>
-              <svg
-                width="10"
-                height="10"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
+              <ArrowRight
+                size={10}
                 className="opacity-50 group-hover/btn:opacity-100 group-hover/btn:translate-x-0.5 transition-all"
-              >
-                <path d="M5 12h14" />
-                <path d="M12 5l7 7-7 7" />
-              </svg>
+              />
             </button>
           )}
         </div>

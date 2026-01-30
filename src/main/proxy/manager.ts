@@ -87,6 +87,8 @@ auth-dir: "${authDir}"
 api-keys: []
 debug: false
 incognito-browser: true
+logging-to-file: true
+request-log: true
 `;
 }
 
@@ -125,6 +127,34 @@ class ProxyManager extends EventEmitter {
       fs.writeFileSync(configPath, getDefaultConfig(authDir), "utf-8");
       console.log("[ProxyManager] Created default config at:", configPath);
       console.log("[ProxyManager] Auth directory:", authDir);
+    } else {
+      this.migrateConfig(configPath);
+    }
+  }
+
+  private migrateConfig(configPath: string): void {
+    try {
+      let content = fs.readFileSync(configPath, "utf-8");
+      const missing: string[] = [];
+
+      if (!content.includes("logging-to-file")) {
+        missing.push("logging-to-file: true");
+      }
+
+      if (!content.includes("request-log")) {
+        missing.push("request-log: true");
+      }
+
+      if (missing.length > 0) {
+        content = content.trimEnd() + "\n" + missing.join("\n") + "\n";
+        fs.writeFileSync(configPath, content, "utf-8");
+        console.log(
+          "[ProxyManager] Migrated config: added",
+          missing.join(", "),
+        );
+      }
+    } catch (error) {
+      console.error("[ProxyManager] Config migration failed:", error);
     }
   }
 
@@ -156,6 +186,15 @@ class ProxyManager extends EventEmitter {
     }
 
     this.ensureConfig();
+
+    const config = this.loadConfigFromYaml();
+    if (config?.port && config.port !== this.port) {
+      console.log(
+        `[ProxyManager] Syncing port from config: ${this.port} -> ${config.port}`,
+      );
+      this.port = config.port;
+    }
+
     const binaryPath = this.getBinaryPath();
     const configPath = this.getConfigPath();
 
@@ -416,7 +455,7 @@ class ProxyManager extends EventEmitter {
         indent: 2,
         lineWidth: -1,
         quotingType: '"',
-        forceQuotes: false,
+        forceQuotes: true,
       });
       fs.writeFileSync(configPath, yamlContent, "utf-8");
       console.log("[ProxyManager] Updated config.yaml with:", updates);

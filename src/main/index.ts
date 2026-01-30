@@ -81,6 +81,13 @@ function createWindow(): void {
         }
       }
     });
+
+    mainWindow.webContents.on("devtools-opened", () => {
+      const devMode = store.get("developerMode");
+      if (!devMode) {
+        mainWindow?.webContents.closeDevTools();
+      }
+    });
   }
 
   mainWindow.on("closed", () => {

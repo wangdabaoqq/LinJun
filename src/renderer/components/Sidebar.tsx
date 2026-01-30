@@ -179,18 +179,18 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
 
   return (
     <aside
-      className={`glass-sidebar flex flex-col transition-all duration-300 ease-in-out overflow-hidden ${sidebarCollapsed ? "w-[72px]" : "w-64"}`}
+      className={`glass-sidebar flex flex-col transition-all duration-300 ease-in-out ${sidebarCollapsed ? "w-[72px]" : "w-64"}`}
     >
       <div
-        className={`p-4 border-b border-[var(--glass-border)] flex items-center min-h-[68px] transition-all duration-300 overflow-hidden ${
+        className={`p-4 flex items-center min-h-[68px] transition-all duration-300 overflow-hidden ${
           sidebarCollapsed ? "justify-center" : "gap-3"
         }`}
       >
-          <img
-            src={appIconUrl}
-            alt="霖君 Logo"
-            className="w-8 h-8 object-contain"
-          />
+        <img
+          src={appIconUrl}
+          alt="霖君 Logo"
+          className="w-8 h-8 object-contain"
+        />
         <div
           className={`transition-all duration-300 overflow-hidden ${
             sidebarCollapsed ? "w-0 opacity-0" : "w-auto opacity-100"
@@ -205,13 +205,17 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
         </div>
       </div>
 
+      <div className="mx-4 border-b border-[var(--glass-border)] opacity-50" />
+
       <nav className="flex-1 p-3 space-y-1 overflow-x-hidden overflow-y-auto">
         {navItems.map((item) => (
           <NavButton key={item.id} item={item} />
         ))}
       </nav>
 
-      <div className="p-3 border-t border-[var(--glass-border)] overflow-hidden flex justify-center">
+      <div className="mx-4 border-t border-[var(--glass-border)] opacity-50" />
+
+      <div className="p-3 overflow-hidden flex justify-center">
         <button
           className="w-8 h-8 flex items-center justify-center rounded-lg transition-all duration-300 group"
           onClick={() => setSidebarCollapsed(!sidebarCollapsed)}

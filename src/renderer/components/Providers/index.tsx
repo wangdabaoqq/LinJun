@@ -5,7 +5,7 @@ import OpenAI from "@lobehub/icons/es/OpenAI";
 import Gemini from "@lobehub/icons/es/Gemini";
 import GithubCopilot from "@lobehub/icons/es/GithubCopilot";
 import Qwen from "@lobehub/icons/es/Qwen";
-import { Trash2, Edit2, X, Plus } from "lucide-react";
+import { Trash2, Edit2, X, Plus, RotateCw, Loader2 } from "lucide-react";
 
 import {
   AntigravityIcon,
@@ -292,29 +292,37 @@ function AddAccountModal({ provider, onClose, onAdd }: AddAccountModalProps) {
                 <p className="text-sm text-[var(--text-primary)]/90 leading-relaxed mb-4">
                   {t.providers.oauthDescription}
                 </p>
-                <button
-                  onClick={handleOAuthConnect}
-                  disabled={isLoading}
-                  className={`w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95 ${
-                    provider.color === "teal"
-                      ? "bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] text-white"
-                      : provider.color === "magenta"
-                        ? "bg-gradient-to-r from-[var(--accent-secondary)] to-[var(--accent-tertiary)] text-white"
-                        : "bg-gradient-to-r from-[var(--accent-tertiary)] to-[var(--accent-secondary)] text-white"
-                  }`}
-                >
-                  {isLoading ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      {t.providers.connecting}
-                    </>
-                  ) : (
-                    <>
-                      <span>◎</span>
-                      {t.providers.connectOAuth}
-                    </>
-                  )}
-                </button>
+                <div className="flex gap-3">
+                  <button
+                    onClick={onClose}
+                    className="flex-1 py-3 rounded-xl font-bold text-sm bg-[var(--bg-primary)]/20 hover:bg-[var(--bg-primary)]/40 text-[var(--text-primary)] transition-all active:scale-95 border border-[var(--glass-border)]"
+                  >
+                    {t.common.cancel}
+                  </button>
+                  <button
+                    onClick={handleOAuthConnect}
+                    disabled={isLoading}
+                    className={`flex-[2] py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95 ${
+                      provider.color === "teal"
+                        ? "bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] text-white"
+                        : provider.color === "magenta"
+                          ? "bg-gradient-to-r from-[var(--accent-secondary)] to-[var(--accent-tertiary)] text-white"
+                          : "bg-gradient-to-r from-[var(--accent-tertiary)] to-[var(--accent-secondary)] text-white"
+                    }`}
+                  >
+                    {isLoading ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        {t.providers.connecting}
+                      </>
+                    ) : (
+                      <>
+                        <span>◎</span>
+                        {t.providers.connectOAuth}
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           ) : provider.authType === "oauth-project" ? (
@@ -338,29 +346,37 @@ function AddAccountModal({ provider, onClose, onAdd }: AddAccountModalProps) {
                 <p className="text-sm text-[var(--text-primary)]/90 leading-relaxed mb-4">
                   {t.providers.oauthDescription}
                 </p>
-                <button
-                  onClick={handleOAuthProjectConnect}
-                  disabled={isLoading}
-                  className={`w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95 ${
-                    provider.color === "teal"
-                      ? "bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] text-white"
-                      : provider.color === "magenta"
-                        ? "bg-gradient-to-r from-[var(--accent-secondary)] to-[var(--accent-tertiary)] text-white"
-                        : "bg-gradient-to-r from-[var(--accent-tertiary)] to-[var(--accent-secondary)] text-white"
-                  }`}
-                >
-                  {isLoading ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      {t.providers.connecting}
-                    </>
-                  ) : (
-                    <>
-                      <span>◎</span>
-                      {t.providers.connectOAuth}
-                    </>
-                  )}
-                </button>
+                <div className="flex gap-3">
+                  <button
+                    onClick={onClose}
+                    className="flex-1 py-3 rounded-xl font-bold text-sm bg-[var(--bg-primary)]/20 hover:bg-[var(--bg-primary)]/40 text-[var(--text-primary)] transition-all active:scale-95 border border-[var(--glass-border)]"
+                  >
+                    {t.common.cancel}
+                  </button>
+                  <button
+                    onClick={handleOAuthProjectConnect}
+                    disabled={isLoading}
+                    className={`flex-[2] py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95 ${
+                      provider.color === "teal"
+                        ? "bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] text-white"
+                        : provider.color === "magenta"
+                          ? "bg-gradient-to-r from-[var(--accent-secondary)] to-[var(--accent-tertiary)] text-white"
+                          : "bg-gradient-to-r from-[var(--accent-tertiary)] to-[var(--accent-secondary)] text-white"
+                    }`}
+                  >
+                    {isLoading ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        {t.providers.connecting}
+                      </>
+                    ) : (
+                      <>
+                        <span>◎</span>
+                        {t.providers.connectOAuth}
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           ) : provider.authType === "import" ? (
@@ -369,29 +385,37 @@ function AddAccountModal({ provider, onClose, onAdd }: AddAccountModalProps) {
                 <p className="text-sm text-[var(--text-primary)]/90 leading-relaxed mb-4">
                   {t.providers.importDescription}
                 </p>
-                <button
-                  onClick={handleImport}
-                  disabled={isLoading}
-                  className={`w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95 ${
-                    provider.color === "teal"
-                      ? "bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] text-white"
-                      : provider.color === "magenta"
-                        ? "bg-gradient-to-r from-[var(--accent-secondary)] to-[var(--accent-tertiary)] text-white"
-                        : "bg-gradient-to-r from-[var(--accent-tertiary)] to-[var(--accent-secondary)] text-white"
-                  }`}
-                >
-                  {isLoading ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      {t.providers.importing}
-                    </>
-                  ) : (
-                    <>
-                      <span>↓</span>
-                      {t.providers.importFromIDE}
-                    </>
-                  )}
-                </button>
+                <div className="flex gap-3">
+                  <button
+                    onClick={onClose}
+                    className="flex-1 py-3 rounded-xl font-bold text-sm bg-[var(--bg-primary)]/20 hover:bg-[var(--bg-primary)]/40 text-[var(--text-primary)] transition-all active:scale-95 border border-[var(--glass-border)]"
+                  >
+                    {t.common.cancel}
+                  </button>
+                  <button
+                    onClick={handleImport}
+                    disabled={isLoading}
+                    className={`flex-[2] py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95 ${
+                      provider.color === "teal"
+                        ? "bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] text-white"
+                        : provider.color === "magenta"
+                          ? "bg-gradient-to-r from-[var(--accent-secondary)] to-[var(--accent-tertiary)] text-white"
+                          : "bg-gradient-to-r from-[var(--accent-tertiary)] to-[var(--accent-secondary)] text-white"
+                    }`}
+                  >
+                    {isLoading ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        {t.providers.importing}
+                      </>
+                    ) : (
+                      <>
+                        <span>↓</span>
+                        {t.providers.importFromIDE}
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           ) : (
@@ -422,27 +446,35 @@ function AddAccountModal({ provider, onClose, onAdd }: AddAccountModalProps) {
                   className="glass-input w-full bg-[var(--bg-deep)] border-white/10 text-[var(--text-primary)]"
                 />
               </div>
-              <button
-                onClick={handleApiKeySubmit}
-                disabled={
-                  isLoading ||
-                  !apiKey.trim() ||
-                  (isCustomProvider && !endpoint.trim())
-                }
-                className="w-full py-3.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95 bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] text-white shadow-blue-500/20 group"
-              >
-                {isLoading ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    {t.providers.validating}
-                  </>
-                ) : (
-                  <>
-                    <Plus className="w-4 h-4 group-hover:scale-125 group-hover:rotate-90 transition-all duration-300" />
-                    {t.providers.addAccount}
-                  </>
-                )}
-              </button>
+              <div className="flex gap-3">
+                <button
+                  onClick={onClose}
+                  className="flex-1 py-3.5 rounded-xl font-bold text-sm bg-[var(--bg-primary)]/20 hover:bg-[var(--bg-primary)]/40 text-[var(--text-primary)] transition-all active:scale-95 border border-[var(--glass-border)]"
+                >
+                  {t.common.cancel}
+                </button>
+                <button
+                  onClick={handleApiKeySubmit}
+                  disabled={
+                    isLoading ||
+                    !apiKey.trim() ||
+                    (isCustomProvider && !endpoint.trim())
+                  }
+                  className="flex-[2] py-3.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95 bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] text-white shadow-blue-500/20 group"
+                >
+                  {isLoading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      {t.providers.validating}
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-4 h-4 group-hover:scale-125 group-hover:rotate-90 transition-all duration-300" />
+                      {t.providers.addAccount}
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           )}
 
@@ -1066,19 +1098,9 @@ export function Providers() {
             disabled={isLoading}
             title={t.quota.refresh}
           >
-            <svg
+            <RotateCw
               className={`w-4 h-4 group-hover:rotate-180 transition-transform duration-500 ${isLoading ? "animate-spin" : ""}`}
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-              />
-            </svg>
+            />
           </button>
           <button
             className="glass-btn glass-btn-teal flex items-center justify-center gap-2 group active:scale-95 transition-all duration-300 hover:brightness-110 shadow-lg hover:shadow-teal-500/20"
@@ -1087,7 +1109,7 @@ export function Providers() {
           >
             {isAuthenticating ? (
               <>
-                <span className="animate-spin inline-block mr-2">◌</span>
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
                 {t.providers.connecting}
               </>
             ) : (

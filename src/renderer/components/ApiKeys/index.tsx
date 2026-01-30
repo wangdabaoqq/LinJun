@@ -259,19 +259,21 @@ export function ApiKeys() {
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => handleCopy(key)}
-                    className="glass-btn text-xs py-1.5 px-3 flex items-center gap-1.5"
+                    className="glass-btn text-xs py-1.5 px-3 flex items-center gap-1.5 bg-[var(--text-primary)]/5 border-[var(--text-primary)]/15 hover:bg-[var(--text-primary)]/10 hover:border-[var(--text-primary)]/30 text-[var(--text-primary)] font-medium shadow-sm transition-all"
                   >
                     {copiedKey === key ? (
                       <>
-                        <Check className="w-3 h-3 text-green-500" />
-                        <span className="text-green-500">
+                        <Check className="w-3 h-3 text-[var(--success)]" />
+                        <span className="text-[var(--success)] font-bold">
                           {t.apiKeys.copied}
                         </span>
                       </>
                     ) : (
                       <>
-                        <Copy className="w-3 h-3" />
-                        <span>{t.apiKeys.copy}</span>
+                        <Copy className="w-3 h-3 text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors" />
+                        <span className="text-[var(--text-primary)]/90 group-hover:text-[var(--text-primary)]">
+                          {t.apiKeys.copy}
+                        </span>
                       </>
                     )}
                   </motion.button>
@@ -280,7 +282,7 @@ export function ApiKeys() {
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => openEditModal(key)}
-                    className="glass-btn glass-btn-indigo text-xs py-1.5 px-3 flex items-center gap-1.5"
+                    className="glass-btn text-xs py-1.5 px-3 flex items-center gap-1.5 bg-[var(--accent-teal)]/10 border-[var(--accent-teal)]/20 text-[var(--accent-teal)] hover:bg-[var(--accent-teal)]/20 hover:border-[var(--accent-teal)]/40 hover:shadow-[0_0_12px_rgba(100,210,255,0.2)] transition-all font-semibold"
                   >
                     <Pencil className="w-3 h-3" />
                     <span>{t.apiKeys.edit}</span>
@@ -349,11 +351,11 @@ export function ApiKeys() {
                   <div className="bg-[var(--bg-secondary)]/20 rounded-xl border border-[var(--glass-border)] p-6 space-y-6">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="p-2.5 rounded-lg bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] border border-[var(--accent-primary)]/20 shadow-lg">
+                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[var(--accent-primary)] to-[var(--accent-secondary)] flex items-center justify-center text-white shadow-lg shadow-[var(--accent-primary)]/20">
                           {modalMode === "create" ? (
-                            <Sparkles className="w-5 h-5" />
+                            <Sparkles className="w-6 h-6 fill-white/20" />
                           ) : (
-                            <Pencil className="w-5 h-5" />
+                            <Pencil className="w-6 h-6" />
                           )}
                         </div>
                         <div>
@@ -373,7 +375,7 @@ export function ApiKeys() {
                       <button
                         type="button"
                         onClick={closeModal}
-                        className="p-2 rounded-full text-[var(--text-primary)]/60 hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-all duration-200"
+                        className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-white/10 text-[var(--text-primary)]/70 hover:text-[var(--text-primary)] transition-all"
                       >
                         <X className="w-5 h-5" />
                       </button>
@@ -444,7 +446,7 @@ export function ApiKeys() {
                       <button
                         type="button"
                         onClick={closeModal}
-                        className="flex-1 py-3.5 rounded-xl bg-white/5 hover:bg-white/10 text-[var(--text-primary)] transition-all font-bold text-sm active:scale-95"
+                        className="flex-1 py-3.5 rounded-xl bg-[var(--bg-primary)]/20 hover:bg-[var(--bg-primary)]/40 text-[var(--text-primary)] transition-all font-bold text-sm active:scale-95 border border-[var(--glass-border)]"
                       >
                         {t.apiKeys.cancel}
                       </button>

@@ -24,6 +24,7 @@ html[data-theme="dark"] {
   --accent-primary: #0a84ff;
   --accent-secondary: #5e5ce6;
   --accent-tertiary: #bf5af2;
+  --accent-teal: #64d2ff;
 
   --text-primary: #ffffff;
   --text-muted: rgba(255, 255, 255, 0.6);
@@ -62,6 +63,7 @@ html[data-theme="light"] {
   --accent-primary: #7a9e7e;
   --accent-secondary: #a8b4c4;
   --accent-tertiary: #d4b896;
+  --accent-teal: #85b09a;
 
   --text-primary: #3d4043;
   --text-muted: rgba(61, 64, 67, 0.62);
@@ -327,18 +329,21 @@ body {
 }
 
 .glass-sidebar {
-  background: color-mix(in srgb, var(--bg-primary) 90%, transparent);
+  background: color-mix(in srgb, var(--bg-primary) 70%, transparent);
   backdrop-filter: blur(30px);
   -webkit-backdrop-filter: blur(30px);
-  border-right: 1px solid var(--glass-border);
+  border: 1px solid var(--glass-border);
+  border-radius: 24px;
+  margin: 12px 0 12px 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
 }
 
 [data-theme="light"] .glass-sidebar {
-  background: rgba(247, 245, 240, 0.95);
+  background: rgba(247, 245, 240, 0.85);
   box-shadow:
-    1px 0 0 rgba(200, 195, 185, 0.2),
-    4px 0 20px rgba(166, 160, 148, 0.1);
-  border-right: 1px solid rgba(200, 195, 185, 0.25);
+    0 8px 32px rgba(166, 160, 148, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(200, 195, 185, 0.25);
 }
 
 .nav-item {
@@ -369,18 +374,15 @@ body {
 }
 
 .nav-item-inactive:hover {
-  background: var(--glass-bg-hover);
   color: var(--text-primary);
-}
-
-[data-theme="light"] .nav-item-inactive {
-  color: rgba(61, 64, 67, 0.7);
+  background: var(--glass-bg-hover);
+  border-color: var(--glass-border-hover);
 }
 
 [data-theme="light"] .nav-item-inactive:hover {
-  background: rgba(122, 158, 126, 0.08);
   color: var(--text-primary);
-  box-shadow: 2px 2px 6px rgba(166, 160, 148, 0.1);
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.05);
 }
 
 .glass-topbar {
@@ -484,15 +486,20 @@ body {
 }
 
 .glass-btn-indigo {
-  background: color-mix(in srgb, var(--accent-tertiary) 15%, transparent);
-  border-color: color-mix(in srgb, var(--accent-tertiary) 25%, transparent);
-  color: var(--accent-tertiary);
+  background: color-mix(in srgb, var(--accent-secondary) 30%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-secondary) 50%, transparent);
+  color: #fff;
+  font-weight: 600;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .glass-btn-indigo:hover {
-  background: color-mix(in srgb, var(--accent-tertiary) 22%, transparent);
-  box-shadow: 0 0 20px
-    color-mix(in srgb, var(--accent-tertiary) 40%, transparent);
+  background: var(--accent-secondary);
+  border-color: var(--accent-secondary);
+  box-shadow: 0 4px 15px
+    color-mix(in srgb, var(--accent-secondary) 40%, transparent);
+  color: #fff;
+  transform: translateY(-1.5px);
 }
 
 .glass-input {

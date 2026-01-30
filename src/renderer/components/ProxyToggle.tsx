@@ -102,7 +102,7 @@ export function ProxyToggle() {
             "disabled:opacity-50 disabled:cursor-not-allowed",
             localRunning
               ? "proxy-toggle-btn-active"
-              : "bg-[var(--text-dim)]/10 text-[var(--text-secondary)] hover:bg-[var(--text-dim)]/20",
+              : "bg-[var(--text-dim)]/10 text-[var(--text-secondary)]",
           )}
           title={localRunning ? t.status.stop : t.status.start}
         >

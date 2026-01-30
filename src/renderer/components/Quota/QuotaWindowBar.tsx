@@ -7,6 +7,7 @@ import {
 
 interface QuotaWindowBarProps {
   label: string;
+  extraLabel?: React.ReactNode;
   usedPercent: number;
   resetIn: string;
   limitReached?: boolean;
@@ -15,6 +16,7 @@ interface QuotaWindowBarProps {
 
 export function QuotaWindowBar({
   label,
+  extraLabel,
   usedPercent,
   resetIn,
   limitReached = false,
@@ -83,6 +85,7 @@ export function QuotaWindowBar({
           >
             {displayLabel}
           </span>
+          {extraLabel}
           {limitReached && (
             <span className="flex-shrink-0 px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-500/10 text-red-500 border border-red-500/20 uppercase tracking-wider">
               {t.quota.limitReached}

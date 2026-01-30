@@ -54,24 +54,24 @@ const ActivityIcon = forwardRef<ActivityIconHandle, ActivityIconProps>(
 
     const handleMouseEnter = useCallback(
       (e: React.MouseEvent<HTMLDivElement>) => {
-        if (isControledRef.current) {
+        if (isControlledRef.current) {
           onMouseEnter?.(e);
         } else {
           controls.start("animate");
         }
       },
-      [controls, onMouseEnter]
+      [controls, onMouseEnter],
     );
 
     const handleMouseLeave = useCallback(
       (e: React.MouseEvent<HTMLDivElement>) => {
-        if (isControledRef.current) {
+        if (isControlledRef.current) {
           onMouseLeave?.(e);
         } else {
           controls.start("normal");
         }
       },
-      [controls, onMouseLeave]
+      [controls, onMouseLeave],
     );
 
     return (
@@ -101,7 +101,7 @@ const ActivityIcon = forwardRef<ActivityIconHandle, ActivityIconProps>(
         </svg>
       </div>
     );
-  }
+  },
 );
 
 ActivityIcon.displayName = "ActivityIcon";

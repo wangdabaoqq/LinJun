@@ -1,4 +1,18 @@
 import { useState, useEffect } from "react";
+import {
+  Loader2,
+  Globe,
+  Download,
+  CheckCircle2,
+  AlertCircle,
+  Github,
+  FileText,
+  Bug,
+  Cpu,
+  Layers,
+  Zap,
+} from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
 import { useTranslations } from "../../stores/settings";
 import appIconUrl from "../../assets/AppIcon.png";
 
@@ -48,176 +62,136 @@ export function About() {
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-[var(--text-primary)]">
-          {t.nav.about}
-        </h2>
-        <p className="text-[var(--text-muted)] text-sm mt-1">
-          {t.about.subtitle}
-        </p>
-      </div>
+    <div className="max-w-4xl mx-auto space-y-6 pb-12 px-4 animate-fade-in">
+      <div className="flex flex-col items-center justify-center py-10 text-center relative">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-[var(--accent-primary)]/10 blur-[80px] rounded-full pointer-events-none" />
 
-      <div className="glass-card glass-card-teal p-6 text-center">
-        <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-[var(--accent-teal)] to-[var(--accent-cyan)] p-2 shadow-xl">
-          <img
-            src={appIconUrl}
-            alt="霖君 Logo"
-            className="w-full h-full object-contain"
-          />
-        </div>
-        <h1 className="text-3xl font-bold text-[var(--text-primary)] tracking-wider">
-          霖君
-        </h1>
-        <p className="text-[var(--text-muted)] mt-2">{t.about.tagline}</p>
-        <div className="terminal-text text-xl text-[var(--accent-magenta)] glow-magenta mt-4">
-          {`v${appVersion}`}
-        </div>
-      </div>
+        <motion.div
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
+          className="relative mb-6"
+        >
+          <div className="relative w-24 h-24 rounded-[2rem] glass-card p-4 shadow-2xl border border-[var(--glass-border)] bg-[var(--glass-bg)] overflow-hidden">
+            <img
+              src={appIconUrl}
+              alt="LinJun Logo"
+              className="w-full h-full object-contain drop-shadow-md"
+            />
+          </div>
+        </motion.div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="glass-card p-4">
-          <h3 className="text-xs font-bold tracking-widest text-[var(--text-dim)] mb-4">
-            {t.about.systemInfo}
-          </h3>
-          <div className="space-y-3 text-sm">
-            <div className="flex justify-between">
-              <span className="text-[var(--text-muted)]">Electron</span>
-              <span className="terminal-text text-[var(--accent-teal)]">
-                v33.0.0
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-[var(--text-muted)]">React</span>
-              <span className="terminal-text text-[var(--accent-teal)]">
-                v18.2.0
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-[var(--text-muted)]">CLIProxyAPIPlus</span>
-              <span className="terminal-text text-[var(--accent-teal)]">
-                v6.7.10
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-[var(--text-muted)]">Node.js</span>
-              <span className="terminal-text text-[var(--accent-teal)]">
-                v20.x
-              </span>
-            </div>
+        <div className="space-y-2 z-10">
+          <h1 className="text-4xl font-bold tracking-tight text-[var(--text-primary)]">
+            霖君
+          </h1>
+          <p className="text-[var(--text-muted)] font-medium max-w-sm mx-auto">
+            {t.about.tagline}
+          </p>
+          <div className="inline-flex items-center gap-2 px-3 py-1 mt-3 rounded-full bg-[var(--glass-bg)] border border-[var(--glass-border)]">
+            <div className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)]" />
+            <span className="text-xs font-mono text-[var(--text-muted)]">
+              v{appVersion}
+            </span>
           </div>
         </div>
+      </div>
 
-        <div className="glass-card glass-card-magenta p-4">
-          <h3 className="text-xs font-bold tracking-widest text-[var(--text-dim)] mb-4">
+      <div className="grid grid-cols-1 gap-4">
+        <div className="glass-card p-6 space-y-5">
+          <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--text-dim)] flex items-center gap-2">
+            <Globe className="w-3.5 h-3.5" />
             {t.about.links}
           </h3>
-          <div className="space-y-3">
-            <button
-              onClick={() =>
-                handleOpenExternal("https://github.com/wangdabaoqq/LinJun")
-              }
-              className="flex items-center gap-2 text-sm text-[var(--text-muted)] hover:text-[var(--accent-magenta)] transition-colors cursor-pointer w-full text-left"
-            >
-              <span>◉</span>
-              <span>GitHub Repository</span>
-            </button>
-            <button
-              onClick={() =>
-                handleOpenExternal(
-                  "https://github.com/wangdabaoqq/LinJun#readme",
-                )
-              }
-              className="flex items-center gap-2 text-sm text-[var(--text-muted)] hover:text-[var(--accent-magenta)] transition-colors cursor-pointer w-full text-left"
-            >
-              <span>◉</span>
-              <span>{t.about.documentation}</span>
-            </button>
-            <button
-              onClick={() =>
-                handleOpenExternal(
-                  "https://github.com/wangdabaoqq/LinJun/issues",
-                )
-              }
-              className="flex items-center gap-2 text-sm text-[var(--text-muted)] hover:text-[var(--accent-magenta)] transition-colors cursor-pointer w-full text-left"
-            >
-              <span>◉</span>
-              <span>{t.about.reportIssue}</span>
-            </button>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {[
+              {
+                label: "GitHub Repository",
+                icon: Github,
+                url: "https://github.com/wangdabaoqq/LinJun",
+              },
+              {
+                label: t.about.documentation,
+                icon: FileText,
+                url: "https://github.com/wangdabaoqq/LinJun#readme",
+              },
+              {
+                label: t.about.reportIssue,
+                icon: Bug,
+                url: "https://github.com/wangdabaoqq/LinJun/issues",
+              },
+            ].map((link) => (
+              <button
+                key={link.label}
+                onClick={() => handleOpenExternal(link.url)}
+                className="w-full flex items-center justify-between p-3 rounded-xl bg-[var(--glass-bg)] border border-[var(--glass-border)] hover:bg-[var(--glass-bg-hover)] hover:border-[var(--glass-border-hover)] transition-all group cursor-pointer text-left"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-1.5 rounded-lg bg-[var(--bg-tertiary)]/50 text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors">
+                    <link.icon className="w-3.5 h-3.5" />
+                  </div>
+                  <span className="text-sm text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors font-medium">
+                    {link.label}
+                  </span>
+                </div>
+                <div className="w-6 h-6 flex items-center justify-center rounded-full bg-[var(--bg-tertiary)]/30 opacity-0 group-hover:opacity-100 transition-all -translate-x-2 group-hover:translate-x-0">
+                  <span className="text-[10px] text-[var(--text-primary)]">
+                    ↗
+                  </span>
+                </div>
+              </button>
+            ))}
           </div>
         </div>
       </div>
 
-      <div className="glass-card glass-card-cyan p-4">
-        <h3 className="text-xs font-bold tracking-widest text-[var(--text-dim)] mb-4">
-          {t.settings.updates}
-        </h3>
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <span className="text-sm text-[var(--text-muted)]">
-                {t.settings.currentVersion}:{" "}
-              </span>
-              <span className="terminal-text text-[var(--accent-cyan)] glow-cyan">
+      <div className="glass-card p-6 relative overflow-hidden group">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-[var(--accent-primary)]/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none transition-opacity opacity-50 group-hover:opacity-100" />
+
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 relative z-10">
+          <div className="space-y-1">
+            <h3 className="text-sm font-bold text-[var(--text-primary)] flex items-center gap-2">
+              <Zap className="w-4 h-4 text-[var(--accent-primary)]" />
+              {t.settings.updates}
+            </h3>
+            <p className="text-xs text-[var(--text-muted)]">
+              {t.settings.currentVersion}:{" "}
+              <span className="text-[var(--text-primary)] font-mono ml-1">
                 {updateStatus.result?.currentVersion || appVersion}
               </span>
-            </div>
-            <button
-              onClick={handleCheckUpdate}
-              disabled={updateStatus.checking}
-              className="group relative px-5 py-2.5 bg-gradient-to-r from-[var(--accent-cyan)] to-[var(--accent-teal)] hover:from-[var(--accent-teal)] hover:to-[var(--accent-cyan)] disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm text-black font-semibold transition-all duration-300 shadow-lg hover:shadow-cyan-500/25 hover:scale-105 active:scale-95"
-            >
-              <span className="flex items-center gap-2">
-                {updateStatus.checking ? (
-                  <>
-                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                        fill="none"
-                      />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      />
-                    </svg>
-                    {t.settings.checking}
-                  </>
-                ) : (
-                  <>
-                    <svg
-                      className="h-4 w-4 group-hover:rotate-180 transition-transform duration-500"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    >
-                      <path d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9" />
-                    </svg>
-                    {t.settings.checkUpdate}
-                  </>
-                )}
-              </span>
-            </button>
+            </p>
           </div>
 
-          {updateStatus.result && !updateStatus.result.error && (
-            <div className="pt-3 border-t border-[var(--glass-border)]">
-              {updateStatus.result.hasUpdate ? (
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="relative flex h-3 w-3">
+          <div className="flex items-center gap-3">
+            <AnimatePresence mode="wait">
+              {updateStatus.checking ? (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  className="flex items-center gap-2 px-4 py-2 rounded-full bg-[var(--glass-bg)] border border-[var(--glass-border)] text-[var(--text-muted)]"
+                >
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span className="text-sm font-medium">
+                    {t.settings.checking}
+                  </span>
+                </motion.div>
+              ) : updateStatus.result &&
+                !updateStatus.result.error &&
+                updateStatus.result.hasUpdate ? (
+                <motion.div
+                  initial={{ opacity: 0, x: 10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="flex items-center gap-3"
+                >
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--accent-warning)]/10 border border-[var(--accent-warning)]/20">
+                    <span className="relative flex h-2 w-2">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--accent-warning)] opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-3 w-3 bg-[var(--accent-warning)]"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-[var(--accent-warning)]"></span>
                     </span>
-                    <span className="text-sm text-[var(--accent-warning)]">
-                      {t.settings.newVersion}:{" "}
-                      {updateStatus.result.latestVersion}
+                    <span className="text-xs font-medium text-[var(--accent-warning)]">
+                      v{updateStatus.result.latestVersion}
                     </span>
                   </div>
                   {updateStatus.result.releaseUrl && (
@@ -225,73 +199,65 @@ export function About() {
                       onClick={() =>
                         handleOpenExternal(updateStatus.result!.releaseUrl!)
                       }
-                      className="group px-4 py-2 bg-gradient-to-r from-[var(--accent-success)] to-emerald-500 hover:from-emerald-500 hover:to-[var(--accent-success)] rounded-lg text-xs text-white font-semibold transition-all duration-300 shadow-lg hover:shadow-emerald-500/25 hover:scale-105 active:scale-95"
+                      className="px-4 py-2 bg-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/90 text-white text-sm font-medium rounded-full transition-colors flex items-center gap-2 shadow-lg shadow-[var(--accent-primary)]/20"
                     >
-                      <span className="flex items-center gap-1.5">
-                        <svg
-                          className="h-3.5 w-3.5 group-hover:translate-y-[-2px] transition-transform"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                        >
-                          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" />
-                        </svg>
-                        {t.settings.downloadUpdate}
-                      </span>
+                      <Download className="w-4 h-4" />
+                      {t.settings.downloadUpdate}
                     </button>
                   )}
-                </div>
+                </motion.div>
               ) : (
-                <div className="flex items-center gap-2">
-                  <svg
-                    className="h-5 w-5 text-[var(--accent-success)]"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  >
-                    <path d="M22 11.08V12a10 10 0 11-5.93-9.14" />
-                    <polyline points="22 4 12 14.01 9 11.01" />
-                  </svg>
-                  <span className="text-sm text-[var(--accent-success)]">
-                    {t.settings.upToDate}
-                  </span>
-                </div>
-              )}
-            </div>
-          )}
-
-          {updateStatus.result?.error && (
-            <div className="pt-3 border-t border-[var(--glass-border)]">
-              <div className="flex items-center gap-2">
-                <svg
-                  className="h-5 w-5 text-[var(--accent-error)]"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
+                <button
+                  onClick={handleCheckUpdate}
+                  className="px-4 py-2 bg-[var(--glass-bg)] hover:bg-[var(--glass-bg-hover)] border border-[var(--glass-border)] hover:border-[var(--glass-border-hover)] rounded-full text-sm text-[var(--text-primary)] font-medium transition-all duration-200 flex items-center gap-2"
                 >
-                  <circle cx="12" cy="12" r="10" />
-                  <line x1="15" y1="9" x2="9" y2="15" />
-                  <line x1="9" y1="9" x2="15" y2="15" />
-                </svg>
-                <span className="text-sm text-[var(--accent-error)]">
-                  {t.settings.checkFailed}
-                </span>
-              </div>
-            </div>
-          )}
+                  <Globe className="h-4 w-4 text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors" />
+                  {t.settings.checkUpdate}
+                </button>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
+
+        <AnimatePresence>
+          {updateStatus.result && !updateStatus.checking && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="mt-4 pt-4 border-t border-[var(--glass-border)]">
+                {updateStatus.result.error ? (
+                  <div className="flex items-center gap-2 text-[var(--accent-error)]">
+                    <AlertCircle className="w-4 h-4" />
+                    <span className="text-sm font-medium">
+                      {t.settings.checkFailed}
+                    </span>
+                  </div>
+                ) : !updateStatus.result.hasUpdate ? (
+                  <div className="flex items-center gap-2 text-[var(--accent-success)]">
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span className="text-sm font-medium">
+                      {t.settings.upToDate}
+                    </span>
+                  </div>
+                ) : null}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
-      <div className="glass-card glass-card-indigo p-4">
-        <h3 className="text-xs font-bold tracking-widest text-[var(--text-dim)] mb-3">
+      <div className="text-center space-y-3 pt-8 pb-4 border-t border-[var(--glass-border)] opacity-60">
+        <p className="text-[11px] font-bold tracking-[0.2em] text-[var(--text-dim)] uppercase">
           {t.about.credits}
-        </h3>
-        <p className="text-sm text-[var(--text-muted)]">{t.about.builtWith}</p>
-        <p className="text-xs text-[var(--text-dim)] mt-4">
-          © 2024 霖君. MIT License.
+        </p>
+        <p className="text-xs text-[var(--text-muted)] max-w-lg mx-auto leading-relaxed">
+          {t.about.builtWith}
+        </p>
+        <p className="text-[10px] text-[var(--text-dim)] font-mono">
+          © 2026 霖君 • MIT License
         </p>
       </div>
     </div>

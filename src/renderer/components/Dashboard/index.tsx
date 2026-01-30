@@ -1,128 +1,16 @@
 import { useEffect, useMemo } from "react";
+import {
+  Activity,
+  AlertTriangle,
+  CheckCircle,
+  RefreshCw,
+  Zap,
+  Clock,
+  Database,
+  Users,
+} from "lucide-react";
 import { useDashboardStore } from "../../stores/dashboard";
 import { getProviderIcon } from "../icons/ProviderIcons";
-
-function IconActivity({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      className={className}
-    >
-      <polyline points="22,12 18,12 15,21 9,3 6,12 2,12" />
-    </svg>
-  );
-}
-
-function IconAlertTriangle({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      className={className}
-    >
-      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-      <line x1="12" y1="9" x2="12" y2="13" />
-      <line x1="12" y1="17" x2="12.01" y2="17" />
-    </svg>
-  );
-}
-
-function IconCheckCircle({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      className={className}
-    >
-      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-      <polyline points="22,4 12,14.01 9,11.01" />
-    </svg>
-  );
-}
-
-function IconRefresh({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      className={className}
-    >
-      <polyline points="23,4 23,10 17,10" />
-      <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
-    </svg>
-  );
-}
-
-function IconZap({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      className={className}
-    >
-      <polygon points="13,2 3,14 12,14 11,22 21,10 12,10" />
-    </svg>
-  );
-}
-
-function IconClock({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      className={className}
-    >
-      <circle cx="12" cy="12" r="10" />
-      <polyline points="12,6 12,12 16,14" />
-    </svg>
-  );
-}
-
-function IconDatabase({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      className={className}
-    >
-      <ellipse cx="12" cy="5" rx="9" ry="3" />
-      <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
-      <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
-    </svg>
-  );
-}
-
-function IconUsers({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      className={className}
-    >
-      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-      <circle cx="9" cy="7" r="4" />
-      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-    </svg>
-  );
-}
 
 function StatusBadge({ running }: { running: boolean }) {
   return (
@@ -289,7 +177,7 @@ function AccountStatusCard({
   return (
     <div className="glass-card p-4">
       <div className="flex items-center gap-2 mb-4">
-        <IconUsers className="w-4 h-4 text-[var(--text-muted)]" />
+        <Users className="w-4 h-4 text-[var(--text-muted)]" />
         <span className="text-sm font-medium text-[var(--text-primary)]">
           账户状态
         </span>
@@ -539,7 +427,7 @@ export function Dashboard() {
             disabled={isLoading}
             className="glass-btn p-2 disabled:opacity-50"
           >
-            <IconRefresh
+            <RefreshCw
               className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`}
             />
           </button>
@@ -630,32 +518,26 @@ export function Dashboard() {
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
-          icon={
-            <IconActivity className="w-5 h-5 text-[var(--accent-primary)]" />
-          }
+          icon={<Activity className="w-5 h-5 text-[var(--accent-primary)]" />}
           title="总请求数"
           value={stats.totalRequests.toLocaleString()}
           accent
         />
         <MetricCard
-          icon={<IconCheckCircle className="w-5 h-5 text-green-500" />}
+          icon={<CheckCircle className="w-5 h-5 text-green-500" />}
           title="成功请求"
           value={stats.successCount.toLocaleString()}
           subtitle={`错误: ${stats.errorCount}`}
         />
         <MetricCard
-          icon={
-            <IconClock className="w-5 h-5 text-[var(--accent-secondary)]" />
-          }
+          icon={<Clock className="w-5 h-5 text-[var(--accent-secondary)]" />}
           title="P95 延迟"
           value={formatLatency(stats.p95Latency)}
           unit="ms"
           subtitle={`P99: ${formatLatency(stats.p99Latency)}ms`}
         />
         <MetricCard
-          icon={
-            <IconDatabase className="w-5 h-5 text-[var(--accent-tertiary)]" />
-          }
+          icon={<Database className="w-5 h-5 text-[var(--accent-tertiary)]" />}
           title="Token 消耗"
           value={formatTokens(stats.totalTokens)}
           subtitle={
@@ -721,7 +603,7 @@ export function Dashboard() {
               Provider 效率
             </h3>
           </div>
-          <IconZap className="w-5 h-5 text-[var(--accent-tertiary)]" />
+          <Zap className="w-5 h-5 text-[var(--accent-tertiary)]" />
         </div>
         <ProviderTable providers={providerStats} />
       </div>
@@ -729,7 +611,7 @@ export function Dashboard() {
       {(stats.successRate < 95 || healthScore.overall < 80) && (
         <div className="glass-card p-4 border-l-4 border-amber-500">
           <div className="flex items-start gap-3">
-            <IconAlertTriangle className="w-5 h-5 text-amber-500" />
+            <AlertTriangle className="w-5 h-5 text-amber-500" />
             <div>
               <div className="font-medium text-[var(--text-primary)]">
                 需要关注

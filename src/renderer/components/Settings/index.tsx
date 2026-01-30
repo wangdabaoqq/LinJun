@@ -3,6 +3,8 @@ import {
   useTranslations,
   useSettingsStore,
   ThemeType,
+  startProxy,
+  stopProxy,
 } from "../../stores/settings";
 import { Language } from "../../i18n";
 import {
@@ -40,6 +42,7 @@ import {
   Link,
   AlertTriangle,
   Code,
+  Loader2,
 } from "lucide-react";
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -195,7 +198,7 @@ function ThemeCard({
           className={`p-2.5 rounded-xl transition-all duration-300 ${
             selected
               ? "bg-[var(--accent-primary)]/15 text-[var(--accent-primary)]"
-              : "bg-white/5 text-[var(--text-muted)] group-hover:bg-white/10"
+              : "bg-white/5 text-[var(--text-muted)]"
           }`}
         >
           <Icon className="w-5 h-5" />
@@ -284,7 +287,7 @@ function CustomToggle({
           className={`p-2.5 rounded-xl transition-all duration-300 ${
             value
               ? "bg-[var(--accent-primary)]/15 text-[var(--accent-primary)] shadow-sm"
-              : "bg-white/5 text-[var(--text-muted)]"
+              : "text-[var(--text-muted)]"
           }`}
         >
           <Icon className="w-4 h-4" />
@@ -529,20 +532,19 @@ export function Settings() {
   const [showPassword, setShowPassword] = useState(true);
   const {
     port,
-    endpoint,
     managementSecret,
     autoStart,
     autoLaunch,
     routingStrategy,
     requestRetry,
     maxRetryInterval,
+    proxyRunning,
     theme,
     language,
     switchProject,
     switchPreviewModel,
     developerMode,
     setPort,
-    setEndpoint,
     getEffectiveEndpoint,
     generateManagementSecret,
     setAutoStart,
@@ -556,6 +558,45 @@ export function Settings() {
     setSwitchPreviewModel,
     setDeveloperMode,
   } = useSettingsStore();
+
+  const [showRestartPrompt, setShowRestartPrompt] = useState(false);
+  const [isRestarting, setIsRestarting] = useState(false);
+  const [portInput, setPortInput] = useState(String(port));
+  const [portError, setPortError] = useState<string | null>(null);
+
+  const handleRestart = async () => {
+    setIsRestarting(true);
+    try {
+      await stopProxy();
+      await startProxy();
+      setShowRestartPrompt(false);
+    } catch (error) {
+      console.error("Failed to restart proxy:", error);
+    } finally {
+      setIsRestarting(false);
+    }
+  };
+
+  const handlePortChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPortInput(e.target.value);
+    setPortError(null);
+  };
+
+  const handlePortBlur = () => {
+    const newPort = Number(portInput);
+
+    if (newPort < 1024 || newPort > 49151) {
+      setPortError(t.settings.portRangeError);
+      return;
+    }
+
+    if (newPort !== port) {
+      setPort(newPort);
+      if (proxyRunning) {
+        setShowRestartPrompt(true);
+      }
+    }
+  };
 
   const handleCopy = () => {
     navigator.clipboard.writeText(managementSecret);
@@ -742,7 +783,7 @@ export function Settings() {
                               whileHover={{ scale: 1.1 }}
                               whileTap={{ scale: 0.9 }}
                               onClick={() => setShowPassword(!showPassword)}
-                              className="p-2 text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors"
+                              className="p-2 text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded-lg transition-colors"
                               title={
                                 showPassword ? "Hide API Key" : "Show API Key"
                               }
@@ -763,7 +804,7 @@ export function Settings() {
                               className={`p-2 rounded-lg transition-colors ${
                                 copied
                                   ? "text-green-500 bg-green-500/10"
-                                  : "text-[var(--text-muted)] hover:text-[var(--accent-primary)] hover:bg-black/5 dark:hover:bg-white/5"
+                                  : "text-[var(--text-muted)] hover:text-[var(--accent-primary)]"
                               }`}
                               title={t.settings.copy}
                             >
@@ -778,7 +819,7 @@ export function Settings() {
                               whileHover={{ scale: 1.1, rotate: 180 }}
                               whileTap={{ scale: 0.9 }}
                               onClick={generateManagementSecret}
-                              className="p-2 text-[var(--text-muted)] hover:text-[var(--accent-primary)] hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors"
+                              className="p-2 text-[var(--text-muted)] hover:text-[var(--accent-primary)] rounded-lg transition-colors"
                               title={t.settings.refresh}
                             >
                               <RefreshCw className="w-4 h-4" />
@@ -789,8 +830,7 @@ export function Settings() {
 
                       <p className="mt-2 text-xs text-[var(--text-dim)] flex items-center gap-1.5 pl-1">
                         <ShieldCheck className="w-3 h-3" />
-                        Keep this key secret. It provides full administrative
-                        access.
+                        {t.settings.apiKeySecurityTip}
                       </p>
                     </div>
                   </div>
@@ -808,11 +848,103 @@ export function Settings() {
                 <SettingRow label={t.settings.port} icon={Hash}>
                   <input
                     type="number"
-                    value={port}
-                    onChange={(e) => setPort(Number(e.target.value))}
-                    className="glass-input w-full font-mono text-lg py-3.5 px-5 bg-black/5 dark:bg-black/20 border-transparent focus:border-teal-500/40 focus:ring-2 focus:ring-teal-500/15"
+                    value={portInput}
+                    onChange={handlePortChange}
+                    onBlur={handlePortBlur}
+                    className={`glass-input w-full font-mono text-lg py-3.5 px-5 bg-black/5 dark:bg-black/20 border-transparent focus:ring-2 ${
+                      portError
+                        ? "border-red-500/50 focus:border-red-500/40 focus:ring-red-500/15"
+                        : "focus:border-teal-500/40 focus:ring-teal-500/15"
+                    }`}
                   />
                 </SettingRow>
+
+                <AnimatePresence>
+                  {portError && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                      animate={{ opacity: 1, height: "auto", marginTop: 8 }}
+                      exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                      className="text-sm text-red-500 pl-1 overflow-hidden"
+                    >
+                      {portError}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                <AnimatePresence>
+                  {showRestartPrompt && (
+                    <motion.div
+                      initial={{
+                        opacity: 0,
+                        height: 0,
+                        marginTop: 0,
+                        scale: 0.98,
+                      }}
+                      animate={{
+                        opacity: 1,
+                        height: "auto",
+                        marginTop: 16,
+                        scale: 1,
+                      }}
+                      exit={{
+                        opacity: 0,
+                        height: 0,
+                        marginTop: 0,
+                        scale: 0.98,
+                      }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 500,
+                        damping: 30,
+                      }}
+                      className="relative overflow-hidden bg-amber-500/5 dark:bg-amber-500/10 backdrop-blur-md border border-amber-500/20 dark:border-amber-500/30 rounded-2xl p-4"
+                    >
+                      <div className="flex items-center justify-between relative z-10">
+                        <div className="flex items-center gap-4">
+                          <div className="p-2.5 bg-amber-500/20 rounded-xl text-amber-500 shadow-lg shadow-amber-500/10">
+                            <motion.div
+                              animate={{ scale: [1, 1.1, 1] }}
+                              transition={{
+                                duration: 2,
+                                repeat: Infinity,
+                                ease: "easeInOut",
+                              }}
+                            >
+                              <AlertTriangle className="w-5 h-5" />
+                            </motion.div>
+                          </div>
+                          <div>
+                            <h4 className="text-sm font-bold text-amber-600 dark:text-amber-400">
+                              {t.settings.portChanged}
+                            </h4>
+                            <p className="text-[11px] text-amber-600/70 dark:text-amber-400/70 leading-relaxed mt-0.5">
+                              {t.settings.portChangedDesc}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => setShowRestartPrompt(false)}
+                            className="px-4 py-2 text-xs font-semibold text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 rounded-xl transition-all"
+                          >
+                            {t.settings.restartLater}
+                          </button>
+                          <button
+                            onClick={handleRestart}
+                            disabled={isRestarting}
+                            className="flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-xl transition-all shadow-lg shadow-amber-500/20 hover:shadow-amber-500/30 hover:-translate-y-0.5 active:scale-95 disabled:opacity-70 disabled:pointer-events-none"
+                          >
+                            {isRestarting && (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            )}
+                            {t.settings.restartNow}
+                          </button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </SettingCard>
 
               {/* Endpoint Configuration */}
