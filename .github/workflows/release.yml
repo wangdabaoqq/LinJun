@@ -5,6 +5,10 @@ on:
     tags:
       - 'v*'
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag (e.g., v1.0.1)'
+        required: true
 
 permissions:
   contents: write
@@ -70,7 +74,6 @@ jobs:
             SRC_NAME="cli-proxy-api-plus"
           fi
           
-          # Get latest version tag via authenticated request
           LATEST_TAG=$(curl -sH "Authorization: token $GH_TOKEN" \
             https://api.github.com/repos/router-for-me/CLIProxyAPIPlus/releases/latest \
             | grep -o '"tag_name": "[^"]*"' | cut -d'"' -f4)
@@ -137,6 +140,7 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
           files: artifacts/*
           draft: true
           generate_release_notes: true
