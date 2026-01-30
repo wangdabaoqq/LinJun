@@ -16,6 +16,11 @@ const electronAPI = {
     start: () => ipcRenderer.invoke("proxy:start"),
     stop: () => ipcRenderer.invoke("proxy:stop"),
     status: () => ipcRenderer.invoke("proxy:status"),
+    onStatusChange: (callback: (running: boolean) => void) => {
+      const handler = (_event: unknown, running: boolean) => callback(running);
+      ipcRenderer.on("proxy:statusChanged", handler);
+      return () => ipcRenderer.removeListener("proxy:statusChanged", handler);
+    },
   },
   api: {
     getAccounts: () => ipcRenderer.invoke("api:getAccounts"),
@@ -37,7 +42,8 @@ const electronAPI = {
     set: (key: string, value: unknown) =>
       ipcRenderer.invoke("settings:set", key, value),
     getAll: () => ipcRenderer.invoke("settings:getAll"),
-    setAutoLaunch: (enabled: boolean) => ipcRenderer.invoke("settings:setAutoLaunch", enabled),
+    setAutoLaunch: (enabled: boolean) =>
+      ipcRenderer.invoke("settings:setAutoLaunch", enabled),
     syncToYaml: (updates: {
       port?: number;
       apiKey?: string;

@@ -37,7 +37,7 @@ function Tooltip({
   return (
     <div className="relative group">
       {children}
-      <div className="absolute left-full ml-2 px-2 py-1 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-lg text-sm text-[var(--text-primary)] whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 shadow-lg">
+      <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2 py-1 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-lg text-sm text-[var(--text-primary)] whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 shadow-lg">
         {label}
         <div className="absolute left-0 top-1/2 -translate-x-1 -translate-y-1/2 w-2 h-2 bg-[var(--bg-secondary)] border-l border-b border-[var(--glass-border)] rotate-45" />
       </div>

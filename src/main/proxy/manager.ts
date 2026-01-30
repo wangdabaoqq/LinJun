@@ -1,6 +1,7 @@
 import { spawn, ChildProcess } from "child_process";
 import path from "path";
 import fs from "fs";
+import http from "http";
 import { app } from "electron";
 import { EventEmitter } from "events";
 import yaml from "js-yaml";
@@ -92,6 +93,8 @@ incognito-browser: true
 class ProxyManager extends EventEmitter {
   private process: ChildProcess | null = null;
   private port: number = DEFAULT_PORT;
+  private healthCheckInterval: NodeJS.Timeout | null = null;
+  private lastKnownRunning: boolean = false;
 
   getConfigDir(): string {
     return path.join(app.getPath("userData"), "cli-proxy");
@@ -176,18 +179,40 @@ class ProxyManager extends EventEmitter {
     this.process.on("exit", (code) => {
       console.log(`Proxy exited with code ${code}`);
       this.process = null;
+      this.stopHealthCheck();
       this.emit("statusChange", false);
     });
 
     this.emit("statusChange", true);
+    this.startHealthCheck();
   }
 
   async stop(): Promise<void> {
-    if (this.process) {
-      this.process.kill("SIGTERM");
-      this.process = null;
-      this.emit("statusChange", false);
+    if (!this.process) {
+      return;
     }
+
+    return new Promise((resolve) => {
+      const process = this.process!;
+      const timeout = setTimeout(() => {
+        console.warn(
+          "[ProxyManager] Process did not exit gracefully, force killing",
+        );
+        process.kill("SIGKILL");
+      }, 3000);
+
+      process.once("exit", () => {
+        clearTimeout(timeout);
+        this.process = null;
+        this.stopHealthCheck();
+        this.emit("statusChange", false);
+        console.log("[ProxyManager] Process stopped successfully");
+        resolve();
+      });
+
+      this.stopHealthCheck();
+      process.kill("SIGTERM");
+    });
   }
 
   isRunning(): boolean {
@@ -203,6 +228,82 @@ class ProxyManager extends EventEmitter {
       throw new Error("Cannot change port while proxy is running");
     }
     this.port = port;
+  }
+
+  /**
+   * Perform health check by pinging the proxy's HTTP endpoint
+   */
+  private async checkHealth(): Promise<boolean> {
+    return new Promise((resolve) => {
+      const req = http.get(
+        `http://127.0.0.1:${this.port}/management/status`,
+        { timeout: 3000 },
+        (res) => {
+          resolve(res.statusCode === 200);
+        },
+      );
+      req.on("error", () => resolve(false));
+      req.on("timeout", () => {
+        req.destroy();
+        resolve(false);
+      });
+    });
+  }
+
+  /**
+   * Start health check polling
+   */
+  private startHealthCheck(): void {
+    if (this.healthCheckInterval) {
+      clearInterval(this.healthCheckInterval);
+    }
+
+    this.lastKnownRunning = true;
+
+    // Check immediately
+    this.checkHealth().then((healthy) => {
+      if (!healthy && this.process) {
+        console.log(
+          "[ProxyManager] Health check failed immediately after start",
+        );
+      }
+    });
+
+    // Then check every 3 seconds
+    this.healthCheckInterval = setInterval(async () => {
+      if (!this.process) {
+        this.lastKnownRunning = false;
+        return;
+      }
+
+      const healthy = await this.checkHealth();
+      const currentlyRunning = this.process !== null;
+
+      if (currentlyRunning && !healthy && this.lastKnownRunning) {
+        // Process reference exists but not responding - external kill detected
+        console.log(
+          "[ProxyManager] Health check failed - process was externally killed",
+        );
+        this.process = null;
+        this.emit("statusChange", false);
+        this.lastKnownRunning = false;
+        this.stopHealthCheck();
+      } else if (healthy && !this.lastKnownRunning) {
+        // Recovered or started
+        this.lastKnownRunning = true;
+      }
+    }, 3000);
+  }
+
+  /**
+   * Stop health check polling
+   */
+  private stopHealthCheck(): void {
+    if (this.healthCheckInterval) {
+      clearInterval(this.healthCheckInterval);
+      this.healthCheckInterval = null;
+    }
+    this.lastKnownRunning = false;
   }
 
   /**

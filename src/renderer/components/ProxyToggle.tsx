@@ -25,6 +25,19 @@ export function ProxyToggle() {
       setProxyRunning(running);
     };
     initStatus();
+
+    if (
+      typeof window !== "undefined" &&
+      window.electronAPI?.proxy?.onStatusChange
+    ) {
+      const unsubscribe = window.electronAPI.proxy.onStatusChange((running) => {
+        setLocalRunning(running);
+        setProxyRunning(running);
+      });
+      return () => {
+        unsubscribe();
+      };
+    }
   }, [setProxyRunning]);
 
   const handleToggle = async () => {

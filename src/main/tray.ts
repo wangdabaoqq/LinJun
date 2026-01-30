@@ -48,8 +48,8 @@ export function createTray(mainWindow: BrowserWindow): void {
       { type: "separator" },
       {
         label: "Quit",
-        click: () => {
-          proxyManager.stop();
+        click: async () => {
+          await proxyManager.stop();
           app.quit();
         },
       },

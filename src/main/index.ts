@@ -6,6 +6,7 @@ import { proxyManager } from "./proxy/manager";
 import { store } from "./utils/store";
 
 let mainWindow: BrowserWindow | null = null;
+let isQuitting = false;
 
 // Single instance lock - only enforce in production
 if (process.env.NODE_ENV !== "development") {
@@ -86,8 +87,15 @@ function createWindow(): void {
     mainWindow = null;
   });
 
+  // Listen for proxy status changes and notify renderer
+  proxyManager.on("statusChange", (running: boolean) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send("proxy:statusChanged", running);
+    }
+  });
+
   mainWindow.on("close", (event) => {
-    if (process.platform === "darwin") {
+    if (process.platform === "darwin" && !isQuitting) {
       event.preventDefault();
       mainWindow?.hide();
     }
@@ -119,5 +127,6 @@ app.on("window-all-closed", () => {
 });
 
 app.on("before-quit", async () => {
+  isQuitting = true;
   await proxyManager.stop();
 });
