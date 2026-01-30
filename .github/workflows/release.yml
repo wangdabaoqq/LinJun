@@ -52,63 +52,53 @@ jobs:
 
       - name: Download CLIProxyAPIPlus binary
         shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          mkdir -p resources/binaries/${{ matrix.platform }}-${{ matrix.arch }}
+          TARGET_DIR="resources/binaries/${{ matrix.platform }}-${{ matrix.arch }}"
+          mkdir -p "$TARGET_DIR"
           
-          # Get latest release assets
-          RELEASE_INFO=$(curl -s https://api.github.com/repos/router-for-me/CLIProxyAPIPlus/releases/latest)
-          
-          # Platform name mapping
           if [ "${{ matrix.platform }}" = "win32" ]; then
             CLI_PLATFORM="windows"
             EXT="zip"
             BINARY_NAME="cliproxy.exe"
+            SRC_NAME="cli-proxy-api-plus.exe"
           else
             CLI_PLATFORM="${{ matrix.platform }}"
             EXT="tar.gz"
             BINARY_NAME="cliproxy"
+            SRC_NAME="cli-proxy-api-plus"
           fi
           
-          # Find download URL matching pattern: CLIProxyAPIPlus_*_{platform}_{arch}.{ext}
-          PATTERN="CLIProxyAPIPlus_[^_]*_${CLI_PLATFORM}_${{ matrix.cli-arch }}"
-          DOWNLOAD_URL=$(echo "$RELEASE_INFO" | grep -oE "https://github.com/router-for-me/CLIProxyAPIPlus/releases/download/[^\"]*${PATTERN}[^\"]*" | head -1)
+          # Get latest version tag via authenticated request
+          LATEST_TAG=$(curl -sH "Authorization: token $GH_TOKEN" \
+            https://api.github.com/repos/router-for-me/CLIProxyAPIPlus/releases/latest \
+            | grep -o '"tag_name": "[^"]*"' | cut -d'"' -f4)
+          VERSION="${LATEST_TAG#v}"
           
-          if [ -z "$DOWNLOAD_URL" ]; then
-            echo "::error::Could not find binary for ${CLI_PLATFORM}-${{ matrix.cli-arch }}"
-            echo "Available assets:"
-            echo "$RELEASE_INFO" | grep -o '"name": "[^"]*"' | head -20
-            exit 1
-          fi
+          DOWNLOAD_URL="https://github.com/router-for-me/CLIProxyAPIPlus/releases/download/${LATEST_TAG}/CLIProxyAPIPlus_${VERSION}_${CLI_PLATFORM}_${{ matrix.cli-arch }}.${EXT}"
           
-          echo "Downloading from: $DOWNLOAD_URL"
-          ARCHIVE_FILE="cliproxy-archive.${EXT}"
-          curl -L -o "$ARCHIVE_FILE" "$DOWNLOAD_URL"
+          echo "Downloading: $DOWNLOAD_URL"
+          curl -fSL -o "archive.${EXT}" "$DOWNLOAD_URL"
           
-          # Extract archive
           if [ "$EXT" = "tar.gz" ]; then
-            tar -xzf "$ARCHIVE_FILE"
+            tar -xzf "archive.${EXT}"
           else
-            unzip -o "$ARCHIVE_FILE"
+            unzip -o "archive.${EXT}"
           fi
           
-          # Find and move binary
-          if [ "${{ matrix.platform }}" = "win32" ]; then
-            FOUND_BINARY=$(find . -maxdepth 2 -type f -name "cli-proxy-api-plus.exe" | head -1)
+          FOUND=$(find . -maxdepth 2 -type f -name "$SRC_NAME" | head -1)
+          if [ -n "$FOUND" ]; then
+            mv "$FOUND" "${TARGET_DIR}/${BINARY_NAME}"
+            chmod +x "${TARGET_DIR}/${BINARY_NAME}"
+            echo "Installed: ${TARGET_DIR}/${BINARY_NAME}"
           else
-            FOUND_BINARY=$(find . -maxdepth 2 -type f -name "cli-proxy-api-plus" | head -1)
-          fi
-          if [ -n "$FOUND_BINARY" ]; then
-            mv "$FOUND_BINARY" "resources/binaries/${{ matrix.platform }}-${{ matrix.arch }}/${BINARY_NAME}"
-            chmod +x "resources/binaries/${{ matrix.platform }}-${{ matrix.arch }}/${BINARY_NAME}"
-            echo "Binary installed: resources/binaries/${{ matrix.platform }}-${{ matrix.arch }}/${BINARY_NAME}"
-          else
-            echo "::error::Could not find binary in archive"
-            ls -la
+            echo "::error::Binary $SRC_NAME not found in archive"
+            ls -laR
             exit 1
           fi
           
-          # Cleanup
-          rm -f "$ARCHIVE_FILE"
+          rm -f "archive.${EXT}"
 
       - name: Build Electron app
         run: bun run build
