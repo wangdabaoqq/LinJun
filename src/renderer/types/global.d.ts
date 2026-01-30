@@ -37,7 +37,8 @@ interface ElectronAPI {
     get: (key: string) => unknown;
     set: (key: string, value: unknown) => void;
     getAll: () => Record<string, unknown>;
-    syncToYaml: (updates: {
+    setAutoLaunch: (enabled: boolean) => Promise<{ success: boolean; error?: string }>;
+      syncToYaml: (updates: {
       port?: number;
       apiKey?: string;
       managementSecret?: string;

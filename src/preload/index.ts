@@ -37,6 +37,7 @@ const electronAPI = {
     set: (key: string, value: unknown) =>
       ipcRenderer.invoke("settings:set", key, value),
     getAll: () => ipcRenderer.invoke("settings:getAll"),
+    setAutoLaunch: (enabled: boolean) => ipcRenderer.invoke("settings:setAutoLaunch", enabled),
     syncToYaml: (updates: {
       port?: number;
       apiKey?: string;

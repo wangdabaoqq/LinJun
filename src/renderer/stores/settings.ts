@@ -163,7 +163,12 @@ export const useSettingsStore = create<SettingsState>()(
         get().setManagementSecret(newSecret);
       },
       setAutoStart: (autoStart) => set({ autoStart }),
-      setAutoLaunch: (autoLaunch) => set({ autoLaunch }),
+      setAutoLaunch: (autoLaunch) => {
+        set({ autoLaunch });
+        if (typeof window !== "undefined" && window.electronAPI) {
+          window.electronAPI.settings.setAutoLaunch(autoLaunch);
+        }
+      },
       setRoutingStrategy: (routingStrategy) => {
         set({ routingStrategy });
         if (

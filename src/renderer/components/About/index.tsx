@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslations } from "../../stores/settings";
 import appIconUrl from "../../assets/AppIcon.png";
 
@@ -12,6 +12,13 @@ interface UpdateInfo {
 
 export function About() {
   const t = useTranslations();
+  const [appVersion, setAppVersion] = useState<string>("1.0.0");
+
+  useEffect(() => {
+    window.electronAPI?.app.getVersion().then((v) => {
+      if (v) setAppVersion(v);
+    });
+  }, []);
 
   const [updateStatus, setUpdateStatus] = useState<{
     checking: boolean;
@@ -64,7 +71,7 @@ export function About() {
         </h1>
         <p className="text-[var(--text-muted)] mt-2">{t.about.tagline}</p>
         <div className="terminal-text text-xl text-[var(--accent-magenta)] glow-magenta mt-4">
-          v1.0.0
+          {`v${appVersion}`}
         </div>
       </div>
 
@@ -152,7 +159,7 @@ export function About() {
                 {t.settings.currentVersion}:{" "}
               </span>
               <span className="terminal-text text-[var(--accent-cyan)] glow-cyan">
-                {updateStatus.result?.currentVersion || "1.0.0"}
+                {updateStatus.result?.currentVersion || appVersion}
               </span>
             </div>
             <button

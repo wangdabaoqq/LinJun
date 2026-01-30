@@ -5,6 +5,7 @@ import crypto from "crypto";
 import { proxyManager } from "../proxy/manager";
 import { managementAPI, Provider } from "../proxy/api";
 import { store } from "../utils/store";
+import { setAutoLaunch } from "../utils/autoLaunch";
 import { checkForUpdates } from "../update/checker";
 import { readRecentRequestLogs, deleteAllLogs } from "../logging";
 import {
@@ -916,6 +917,17 @@ export function setupIpcHandlers(): void {
       return { success: true, filePath: destPath };
     } catch (error) {
       console.error("[IPC] Failed to import Kiro token:", error);
+      return { success: false, error: String(error) };
+    }
+  });
+
+  ipcMain.handle("settings:setAutoLaunch", (_event, enabled: boolean) => {
+    try {
+      setAutoLaunch(enabled);
+      store.set("autoLaunch", enabled);
+      return { success: true };
+    } catch (error) {
+      console.error("[IPC] Failed to set auto launch:", error);
       return { success: false, error: String(error) };
     }
   });
