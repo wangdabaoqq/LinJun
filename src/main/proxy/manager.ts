@@ -1,7 +1,7 @@
 import { spawn, ChildProcess } from "child_process";
 import path from "path";
 import fs from "fs";
-import http from "http";
+import net from "net";
 import { app } from "electron";
 import { EventEmitter } from "events";
 import yaml from "js-yaml";
@@ -231,22 +231,36 @@ class ProxyManager extends EventEmitter {
   }
 
   /**
-   * Perform health check by pinging the proxy's HTTP endpoint
+   * Perform health check by verifying TCP connectivity
    */
   private async checkHealth(): Promise<boolean> {
     return new Promise((resolve) => {
-      const req = http.get(
-        `http://127.0.0.1:${this.port}/management/status`,
-        { timeout: 3000 },
-        (res) => {
-          resolve(res.statusCode === 200);
-        },
-      );
-      req.on("error", () => resolve(false));
-      req.on("timeout", () => {
-        req.destroy();
+      const socket = new net.Socket();
+      const timeout = 3000;
+
+      const cleanup = () => {
+        socket.removeAllListeners();
+        socket.destroy();
+      };
+
+      socket.setTimeout(timeout);
+
+      socket.once("connect", () => {
+        cleanup();
+        resolve(true);
+      });
+
+      socket.once("timeout", () => {
+        cleanup();
         resolve(false);
       });
+
+      socket.once("error", () => {
+        cleanup();
+        resolve(false);
+      });
+
+      socket.connect(this.port, "127.0.0.1");
     });
   }
 
