@@ -1,3 +1,5 @@
+import { DEFAULT_PORT } from "../../shared/constants";
+
 export const en = {
   common: {
     cancel: "Cancel",
@@ -260,8 +262,8 @@ export const en = {
     checkFailed: "Check failed",
     portDesc: "Configure the proxy server listening port",
     endpoint: "API Endpoint",
-    endpointDesc: "Custom API endpoint URL (leave empty for default)",
-    endpointPlaceholder: "http://127.0.0.1:{port}/v1",
+    endpointDesc: "Custom API endpoint URL",
+    endpointPlaceholder: `http://127.0.0.1:${DEFAULT_PORT}/v1`,
     quotaExceeded: "Quota Exceeded Handling",
     quotaExceededDesc: "Configure behavior when account quota is exceeded",
     switchProject: "Auto-switch Project",

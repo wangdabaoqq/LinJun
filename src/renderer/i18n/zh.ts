@@ -1,4 +1,5 @@
 import { Translations } from "./en";
+import { DEFAULT_PORT } from "../../shared/constants";
 
 export const zh: Translations = {
   common: {
@@ -258,8 +259,8 @@ export const zh: Translations = {
     checkFailed: "检查失败",
     portDesc: "配置代理服务器监听端口",
     endpoint: "API 端点",
-    endpointDesc: "自定义 API 端点地址（留空使用默认值）",
-    endpointPlaceholder: "http://127.0.0.1:{port}/v1",
+    endpointDesc: "自定义 API 端点地址",
+    endpointPlaceholder: `http://127.0.0.1:${DEFAULT_PORT}/v1`,
     quotaExceeded: "配额超限处理",
     quotaExceededDesc: "配置账户配额超限时的处理行为",
     switchProject: "自动切换项目",

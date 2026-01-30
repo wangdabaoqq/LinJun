@@ -7,20 +7,21 @@ import { store } from "./utils/store";
 
 let mainWindow: BrowserWindow | null = null;
 
-// Ensure only one instance of the app runs at a time
-const gotTheLock = app.requestSingleInstanceLock();
+// Single instance lock - only enforce in production
+if (process.env.NODE_ENV !== "development") {
+  const gotTheLock = app.requestSingleInstanceLock();
 
-if (!gotTheLock) {
-  app.quit();
-} else {
-  app.on("second-instance", () => {
-    // Someone tried to run a second instance, focus our window
-    if (mainWindow) {
-      if (mainWindow.isMinimized()) mainWindow.restore();
-      mainWindow.show();
-      mainWindow.focus();
-    }
-  });
+  if (!gotTheLock) {
+    app.quit();
+  } else {
+    app.on("second-instance", () => {
+      if (mainWindow) {
+        if (mainWindow.isMinimized()) mainWindow.restore();
+        mainWindow.show();
+        mainWindow.focus();
+      }
+    });
+  }
 }
 
 async function initializeApp(): Promise<void> {
