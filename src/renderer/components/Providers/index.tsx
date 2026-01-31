@@ -15,6 +15,7 @@ import {
 } from "../icons/ProviderIcons";
 import { useProvidersStore, TokenAccount } from "../../stores/providers";
 import { CustomProviderForm } from "./CustomProviderForm";
+import { ConfirmModal } from "../ui/ConfirmModal";
 
 interface OpenAICompatProvider {
   name: string;
@@ -738,6 +739,13 @@ export function Providers() {
   const [showCustomProviderForm, setShowCustomProviderForm] = useState(false);
   const [editingCustomProvider, setEditingCustomProvider] =
     useState<OpenAICompatProvider | null>(null);
+  const [deleteConfirmProvider, setDeleteConfirmProvider] = useState<
+    string | null
+  >(null);
+  const [removeConfirmAccount, setRemoveConfirmAccount] = useState<{
+    providerId: string;
+    accountId: string;
+  } | null>(null);
 
   useEffect(() => {
     loadAccounts();
@@ -756,13 +764,11 @@ export function Providers() {
   };
 
   const handleDeleteCustomProvider = async (name: string) => {
-    if (!confirm(t.providers.customDeleteConfirm.replace("{name}", name))) {
-      return;
-    }
     try {
       const result = await window.electronAPI?.openaiCompat?.delete(name);
       if (result?.success) {
         setCustomProviders(result.providers || []);
+        setDeleteConfirmProvider(null);
       }
     } catch (err) {
       console.error("[Providers] Failed to delete custom provider:", err);
@@ -1009,7 +1015,14 @@ export function Providers() {
     await loadAccounts({ force: true });
   };
 
-  const handleRemoveAccount = async (providerId: string, accountId: string) => {
+  const handleRemoveAccount = (providerId: string, accountId: string) => {
+    setRemoveConfirmAccount({ providerId, accountId });
+  };
+
+  const performRemoveAccount = async (
+    providerId: string,
+    accountId: string,
+  ) => {
     const account = providerAccounts.find(
       (acc) => acc.provider === providerId && acc.id === accountId,
     );
@@ -1021,6 +1034,7 @@ export function Providers() {
         );
         if (result?.success) {
           await loadAccounts({ force: true });
+          setRemoveConfirmAccount(null);
         } else {
           console.error("[Providers] Failed to remove account:", result?.error);
         }
@@ -1029,6 +1043,7 @@ export function Providers() {
       }
     } else {
       removeAccountLocal(providerId, accountId);
+      setRemoveConfirmAccount(null);
     }
   };
 
@@ -1201,7 +1216,7 @@ export function Providers() {
                     <Edit2 className="w-4 h-4" />
                   </button>
                   <button
-                    onClick={() => handleDeleteCustomProvider(cp.name)}
+                    onClick={() => setDeleteConfirmProvider(cp.name)}
                     className="p-2 text-red-500/70 hover:text-red-500 hover:scale-110 transition-all"
                     title={t.providers.customDelete}
                   >
@@ -1339,6 +1354,41 @@ export function Providers() {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={!!deleteConfirmProvider}
+        onClose={() => setDeleteConfirmProvider(null)}
+        onConfirm={() => {
+          if (deleteConfirmProvider)
+            handleDeleteCustomProvider(deleteConfirmProvider);
+        }}
+        title={t.providers.customDeleteConfirm.replace(
+          "{name}",
+          deleteConfirmProvider || "",
+        )}
+        description={t.logs.deleteDesc}
+        confirmText={t.common.delete}
+        cancelText={t.common.cancel}
+        variant="danger"
+      />
+
+      <ConfirmModal
+        isOpen={!!removeConfirmAccount}
+        onClose={() => setRemoveConfirmAccount(null)}
+        onConfirm={() => {
+          if (removeConfirmAccount) {
+            performRemoveAccount(
+              removeConfirmAccount.providerId,
+              removeConfirmAccount.accountId,
+            );
+          }
+        }}
+        title={t.providers.removeAccountConfirm}
+        description={t.providers.removeAccountDesc}
+        confirmText={t.common.delete}
+        cancelText={t.common.cancel}
+        variant="danger"
+      />
     </div>
   );
 }

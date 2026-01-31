@@ -53,6 +53,9 @@ export default {
       transitionTimingFunction: {
         neu: "cubic-bezier(0.25, 0.46, 0.45, 0.94)",
       },
+      fontFamily: {
+        mono: ["'JetBrains Mono'", "SF Mono", "Fira Code", "monospace"],
+      },
     },
   },
   plugins: [],

@@ -13,6 +13,11 @@ export const en = {
     name: "霖君",
     systemActive: "SYSTEM ACTIVE",
   },
+  topbar: {
+    successRate: "Success",
+    requests: "Requests",
+    accounts: "Accounts",
+  },
   sidebar: {
     providers: "PROVIDERS",
     navigation: "NAVIGATION",
@@ -122,6 +127,9 @@ export const en = {
     customDelete: "Delete",
     customNoProviders: "No custom providers configured",
     customDeleteConfirm: 'Delete provider "{name}"?',
+    removeAccountConfirm: "Unlink account?",
+    removeAccountDesc:
+      "This will remove the credentials from LinJun. You will need to re-authenticate to use it again.",
     customProtocol: "Protocol",
     customCompatible: "Compatible",
     customClaudeEntries: "API Key Entries",
@@ -207,6 +215,7 @@ export const en = {
     deleteConfirm: "Delete all logs?",
     deleteDesc:
       "This will permanently delete all log files. This action cannot be undone.",
+    deleteSubtitle: "Permanent Action",
     cancel: "Cancel",
     delete: "Delete",
     deleting: "Deleting...",
@@ -214,6 +223,15 @@ export const en = {
     allProviders: "All Providers",
     refresh: "Refresh",
     waitingForRequests: "Requests will appear here automatically",
+    noContent: "No content",
+    expandJson: "Expand JSON",
+    collapse: "Collapse",
+    copied: "Copied",
+    copy: "Copy",
+    lines: "lines",
+    export: "Export",
+    exportSuccess: "Exported successfully",
+    exportFailed: "Export failed",
   },
   settings: {
     title: "SETTINGS",

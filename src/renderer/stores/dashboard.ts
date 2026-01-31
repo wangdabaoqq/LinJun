@@ -68,11 +68,20 @@ export interface HealthScore {
   quota: number;
 }
 
+export interface TokenBreakdown {
+  input: number;
+  output: number;
+  reasoning: number;
+  cached: number;
+  total: number;
+}
+
 export interface DashboardState {
   proxyStatus: ProxyStatus;
   accounts: Account[];
   quotas: QuotaInfo[];
   logs: LogEntry[];
+  usage: UsageResponse | null;
   isLoading: boolean;
   lastUpdated: Date | null;
   error: string | null;
@@ -81,6 +90,7 @@ export interface DashboardState {
   fetchAccounts: () => Promise<void>;
   fetchQuotas: () => Promise<void>;
   fetchLogs: (limit?: number) => Promise<void>;
+  fetchUsage: () => Promise<void>;
   refreshAll: () => Promise<void>;
 
   getRequestStats: () => RequestStats;
@@ -89,6 +99,8 @@ export interface DashboardState {
   getHealthScore: () => HealthScore;
   getRecentRequests: (minutes: number) => LogEntry[];
   getRequestTrend: (hours: number) => { hour: string; count: number }[];
+  getTokenBreakdown: () => TokenBreakdown | null;
+  getUsageTrend: () => { hour: string; count: number }[];
 }
 
 function calculatePercentile(values: number[], percentile: number): number {
@@ -111,6 +123,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   accounts: [],
   quotas: [],
   logs: [],
+  usage: null,
   isLoading: false,
   lastUpdated: null,
   error: null,
@@ -134,8 +147,25 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
 
   fetchAccounts: async () => {
     try {
-      const accounts = await window.electronAPI?.api.getAccounts();
-      if (accounts) {
+      const result = await window.electronAPI?.providers.getAccounts();
+      if (result?.success && result.accounts) {
+        const accounts: Account[] = result.accounts.map(
+          (ta: {
+            id: string;
+            provider: string;
+            email: string;
+            status: string;
+          }) => ({
+            id: ta.id,
+            provider: ta.provider,
+            email: ta.email,
+            status: (ta.status === "online"
+              ? "active"
+              : "error") as Account["status"],
+            quotaUsed: 0,
+            quotaLimit: 100,
+          }),
+        );
         set({ accounts });
       }
     } catch (error) {
@@ -144,24 +174,83 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   },
 
   fetchQuotas: async () => {
+    if (!window.electronAPI?.quota?.refreshAll) {
+      set({ quotas: [] });
+      return;
+    }
     try {
-      const quotas = await window.electronAPI?.api.getQuota();
-      if (quotas) {
+      const result = await window.electronAPI.quota.refreshAll();
+      if (result?.success && Array.isArray(result.accounts)) {
+        const quotas: QuotaInfo[] = result.accounts.map(
+          (account: {
+            id: string;
+            provider: string;
+            rateLimits?: {
+              primary?: {
+                usedPercent?: number;
+                resetIn?: string;
+              };
+            };
+          }) => {
+            const usedPercent = account.rateLimits?.primary?.usedPercent ?? 0;
+            return {
+              provider: account.provider,
+              accountId: account.id,
+              used: usedPercent,
+              limit: 100,
+              resetAt: account.rateLimits?.primary?.resetIn || "-",
+            };
+          },
+        );
         set({ quotas });
+      } else {
+        set({ quotas: [] });
       }
     } catch (error) {
       console.error("[Dashboard] Failed to fetch quotas:", error);
+      set({ quotas: [] });
     }
   },
 
   fetchLogs: async (limit = 500) => {
     try {
-      const logs = await window.electronAPI?.api.getLogs(limit);
-      if (logs) {
+      const entries = await window.electronAPI?.logs.fetch(limit);
+      if (entries && Array.isArray(entries)) {
+        const logs: LogEntry[] = entries.map(
+          (e: {
+            id: string;
+            timestamp: string;
+            provider?: string;
+            model?: string;
+            status: string;
+            duration?: number;
+          }) => ({
+            id: e.id,
+            timestamp: e.timestamp,
+            provider: e.provider || "unknown",
+            model: e.model || "unknown",
+            tokens: 0,
+            status: (e.status === "success"
+              ? "success"
+              : "error") as LogEntry["status"],
+            duration: e.duration || 0,
+          }),
+        );
         set({ logs });
       }
     } catch (error) {
       console.error("[Dashboard] Failed to fetch logs:", error);
+    }
+  },
+
+  fetchUsage: async () => {
+    try {
+      const usage = await window.electronAPI?.api.getUsage();
+      if (usage) {
+        set({ usage });
+      }
+    } catch (error) {
+      console.error("[Dashboard] Failed to fetch usage:", error);
     }
   },
 
@@ -173,6 +262,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
         get().fetchAccounts(),
         get().fetchQuotas(),
         get().fetchLogs(),
+        get().fetchUsage(),
       ]);
       set({ lastUpdated: new Date() });
     } catch (error) {
@@ -183,7 +273,38 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   },
 
   getRequestStats: () => {
-    const { logs } = get();
+    const { usage, logs } = get();
+
+    const validLatencies = logs.map((l) => l.duration).filter((d) => d > 0);
+    const avgLatency =
+      validLatencies.length > 0
+        ? validLatencies.reduce((a, b) => a + b, 0) / validLatencies.length
+        : 0;
+
+    const now = Date.now();
+    const fiveMinAgo = now - 5 * 60 * 1000;
+    const recentLogs = logs.filter(
+      (l) => new Date(l.timestamp).getTime() > fiveMinAgo,
+    );
+    const requestsPerMinute =
+      recentLogs.length > 0 ? Math.round(recentLogs.length / 5) : 0;
+
+    if (usage && usage.usage.total_requests > 0) {
+      const u = usage.usage;
+      return {
+        totalRequests: u.total_requests,
+        successCount: u.success_count,
+        errorCount: u.failure_count,
+        successRate:
+          u.total_requests > 0 ? (u.success_count / u.total_requests) * 100 : 0,
+        avgLatency,
+        p95Latency: calculatePercentile(validLatencies, 95),
+        p99Latency: calculatePercentile(validLatencies, 99),
+        totalTokens: u.total_tokens,
+        requestsPerMinute,
+      };
+    }
+
     if (logs.length === 0) {
       return {
         totalRequests: 0,
@@ -200,13 +321,6 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
 
     const successLogs = logs.filter((l) => l.status === "success");
     const errorLogs = logs.filter((l) => l.status === "error");
-    const latencies = logs.map((l) => l.duration);
-
-    const now = Date.now();
-    const oneMinuteAgo = now - 60 * 1000;
-    const recentLogs = logs.filter(
-      (l) => new Date(l.timestamp).getTime() > oneMinuteAgo,
-    );
 
     return {
       totalRequests: logs.length,
@@ -214,14 +328,11 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
       errorCount: errorLogs.length,
       successRate:
         logs.length > 0 ? (successLogs.length / logs.length) * 100 : 0,
-      avgLatency:
-        latencies.length > 0
-          ? latencies.reduce((a, b) => a + b, 0) / latencies.length
-          : 0,
-      p95Latency: calculatePercentile(latencies, 95),
-      p99Latency: calculatePercentile(latencies, 99),
+      avgLatency,
+      p95Latency: calculatePercentile(validLatencies, 95),
+      p99Latency: calculatePercentile(validLatencies, 99),
       totalTokens: logs.reduce((sum, l) => sum + l.tokens, 0),
-      requestsPerMinute: recentLogs.length,
+      requestsPerMinute,
     };
   },
 
@@ -365,6 +476,45 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
     }
 
     return trend;
+  },
+
+  getTokenBreakdown: () => {
+    const { usage } = get();
+    if (!usage) return null;
+
+    let input = 0;
+    let output = 0;
+    let reasoning = 0;
+    let cached = 0;
+
+    Object.values(usage.usage.apis).forEach((api) => {
+      Object.values(api.models).forEach((model) => {
+        model.details.forEach((req) => {
+          input += req.tokens.input_tokens;
+          output += req.tokens.output_tokens;
+          reasoning += req.tokens.reasoning_tokens;
+          cached += req.tokens.cached_tokens;
+        });
+      });
+    });
+
+    const total = input + output + reasoning + cached;
+    if (total === 0) return null;
+
+    return { input, output, reasoning, cached, total };
+  },
+
+  getUsageTrend: () => {
+    const { usage } = get();
+    if (!usage) return [];
+
+    const hourlyData = usage.usage.requests_by_hour;
+    return Object.entries(hourlyData)
+      .map(([hour, count]) => ({
+        hour: `${hour}:00`,
+        count,
+      }))
+      .sort((a, b) => parseInt(a.hour) - parseInt(b.hour));
   },
 }));
 

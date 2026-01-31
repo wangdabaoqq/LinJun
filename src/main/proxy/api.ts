@@ -24,79 +24,6 @@ class ManagementAPI {
     return {};
   }
 
-  async getStatus(): Promise<{ running: boolean; version: string }> {
-    const res = await this.client.get(`${this.baseURL}/management/status`);
-    return res.data;
-  }
-
-  async getAccounts(): Promise<Account[]> {
-    const res = await this.client.get(`${this.baseURL}/management/accounts`);
-    return res.data;
-  }
-
-  async getQuota(): Promise<QuotaInfo[]> {
-    const res = await this.client.get(`${this.baseURL}/management/quota`);
-    return res.data;
-  }
-
-  async startAuth(provider: Provider): Promise<{ authUrl: string }> {
-    const res = await this.client.post(
-      `${this.baseURL}/management/auth/${provider}/start`,
-    );
-    return res.data;
-  }
-
-  async removeAccount(provider: Provider, accountId: string): Promise<void> {
-    await this.client.delete(
-      `${this.baseURL}/management/accounts/${provider}/${accountId}`,
-    );
-  }
-
-  async validateApiKey(
-    provider: Provider,
-    apiKey: string,
-  ): Promise<{ valid: boolean; email?: string }> {
-    const res = await this.client.post(
-      `${this.baseURL}/management/auth/${provider}/apikey`,
-      {
-        apiKey,
-      },
-    );
-    return res.data;
-  }
-
-  async getLogs(limit: number = 100): Promise<LogEntry[]> {
-    const res = await this.client.get(`${this.baseURL}/management/logs`, {
-      params: { limit },
-    });
-    return res.data;
-  }
-
-  async getStats(): Promise<StatsResponse> {
-    try {
-      const res = await this.client.get(`${this.baseURL}/management/stats`);
-      return res.data;
-    } catch {
-      return {
-        totalRequests: 0,
-        successCount: 0,
-        errorCount: 0,
-        totalTokens: 0,
-        avgLatency: 0,
-        uptime: 0,
-      };
-    }
-  }
-
-  async getHealth(): Promise<HealthResponse> {
-    try {
-      const res = await this.client.get(`${this.baseURL}/management/health`);
-      return res.data;
-    } catch {
-      return { healthy: false, checks: {} };
-    }
-  }
-
   async getQwenAuthUrl(): Promise<QwenAuthUrlResponse> {
     try {
       const res = await this.client.get(
@@ -232,6 +159,31 @@ class ManagementAPI {
       return { status: "error" };
     }
   }
+
+  async getUsage(): Promise<UsageResponse> {
+    try {
+      const res = await this.client.get(`${this.baseURL}/v0/management/usage`, {
+        headers: this.getAuthHeaders(),
+      });
+      return res.data;
+    } catch (error) {
+      console.error("[ManagementAPI] Failed to get usage:", error);
+      return {
+        usage: {
+          total_requests: 0,
+          success_count: 0,
+          failure_count: 0,
+          total_tokens: 0,
+          requests_by_day: {},
+          requests_by_hour: {},
+          tokens_by_day: {},
+          tokens_by_hour: {},
+          apis: {},
+        },
+        failed_requests: 0,
+      };
+    }
+  }
 }
 
 export const managementAPI = new ManagementAPI();
@@ -246,47 +198,6 @@ export type Provider =
   | "copilot"
   | "kiro"
   | "custom";
-
-export interface Account {
-  id: string;
-  provider: Provider;
-  email: string;
-  status: "active" | "cooling" | "error";
-  quotaUsed: number;
-  quotaLimit: number;
-}
-
-export interface QuotaInfo {
-  provider: Provider;
-  accountId: string;
-  used: number;
-  limit: number;
-  resetAt: string;
-}
-
-export interface LogEntry {
-  id: string;
-  timestamp: string;
-  provider: Provider;
-  model: string;
-  tokens: number;
-  status: "success" | "error";
-  duration: number;
-}
-
-export interface StatsResponse {
-  totalRequests: number;
-  successCount: number;
-  errorCount: number;
-  totalTokens: number;
-  avgLatency: number;
-  uptime: number;
-}
-
-export interface HealthResponse {
-  healthy: boolean;
-  checks: Record<string, boolean>;
-}
 
 export interface QwenAuthUrlResponse {
   status: "ok" | "error";
@@ -304,4 +215,49 @@ export interface CopilotAuthUrlResponse {
   state: string;
   user_code: string;
   verification_uri: string;
+}
+
+export interface UsageTokenDetail {
+  input_tokens: number;
+  output_tokens: number;
+  reasoning_tokens: number;
+  cached_tokens: number;
+  total_tokens: number;
+}
+
+export interface UsageRequestDetail {
+  timestamp: string;
+  source: string;
+  auth_index: string;
+  tokens: UsageTokenDetail;
+  failed: boolean;
+}
+
+export interface UsageModelDetail {
+  total_requests: number;
+  total_tokens: number;
+  details: UsageRequestDetail[];
+}
+
+export interface UsageApiDetail {
+  total_requests: number;
+  total_tokens: number;
+  models: Record<string, UsageModelDetail>;
+}
+
+export interface UsageData {
+  total_requests: number;
+  success_count: number;
+  failure_count: number;
+  total_tokens: number;
+  requests_by_day: Record<string, number>;
+  requests_by_hour: Record<string, number>;
+  tokens_by_day: Record<string, number>;
+  tokens_by_hour: Record<string, number>;
+  apis: Record<string, UsageApiDetail>;
+}
+
+export interface UsageResponse {
+  usage: UsageData;
+  failed_requests: number;
 }

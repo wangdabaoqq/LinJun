@@ -7,3 +7,4 @@ dist/
 .env.local
 .env.production
 resources/binaries/*/cliproxy*
+.sisyphus/

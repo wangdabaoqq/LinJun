@@ -15,6 +15,7 @@ import {
   EyeOff,
   Sparkles,
 } from "lucide-react";
+import { ConfirmModal } from "../ui/ConfirmModal";
 
 export function ApiKeys() {
   const t = useTranslations();
@@ -480,61 +481,20 @@ export function ApiKeys() {
         document.body,
       )}
 
-      {createPortal(
-        <AnimatePresence mode="wait">
-          {showDeleteConfirm && (
-            <div
-              className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
-              onClick={() => setShowDeleteConfirm(null)}
-            >
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="fixed inset-0 bg-[var(--overlay-bg)] backdrop-blur-xl"
-                style={{ WebkitBackdropFilter: "blur(24px)" }}
-              />
-
-              <motion.div
-                initial={{ scale: 0.95, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.95, opacity: 0 }}
-                className="glass-card w-[420px] p-0 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] shadow-[0_0_50px_rgba(0,0,0,0.2)] dark:shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden relative z-10"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div className="p-8 pb-6 flex flex-col items-center text-center">
-                  <div className="w-16 h-16 rounded-full bg-[var(--error)]/10 flex items-center justify-center text-[var(--error)] mb-5 shadow-[0_0_20px_rgba(255,69,58,0.2)]">
-                    <Trash2 className="w-8 h-8" />
-                  </div>
-                  <h3 className="text-xl font-bold text-[var(--text-primary)] mb-2">
-                    {t.apiKeys.deleteConfirm}
-                  </h3>
-                  <p className="text-sm text-[var(--text-muted)] leading-relaxed px-4">
-                    {t.apiKeys.deleteDesc}
-                  </p>
-                </div>
-
-                <div className="flex border-t border-[var(--glass-border)] bg-[var(--bg-secondary)]/30">
-                  <button
-                    onClick={() => setShowDeleteConfirm(null)}
-                    className="flex-1 py-4 text-sm font-medium text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-white/5 transition-colors"
-                  >
-                    {t.apiKeys.cancel}
-                  </button>
-                  <div className="w-px bg-[var(--glass-border)]" />
-                  <button
-                    onClick={() => handleDelete(showDeleteConfirm)}
-                    className="flex-1 py-4 text-sm font-bold text-[var(--error)] hover:bg-[var(--error)]/10 transition-colors"
-                  >
-                    {t.apiKeys.delete}
-                  </button>
-                </div>
-              </motion.div>
-            </div>
-          )}
-        </AnimatePresence>,
-        document.body,
-      )}
+      <ConfirmModal
+        isOpen={!!showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(null)}
+        onConfirm={() => {
+          if (showDeleteConfirm) {
+            handleDelete(showDeleteConfirm);
+          }
+        }}
+        title={t.apiKeys.deleteConfirm}
+        description={t.apiKeys.deleteDesc}
+        confirmText={t.apiKeys.delete}
+        cancelText={t.apiKeys.cancel}
+        variant="danger"
+      />
     </div>
   );
 }

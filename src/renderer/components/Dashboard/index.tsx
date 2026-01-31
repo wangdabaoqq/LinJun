@@ -9,7 +9,12 @@ import {
   Database,
   Users,
 } from "lucide-react";
-import { useDashboardStore } from "../../stores/dashboard";
+import {
+  useDashboardStore,
+  useHealthScore,
+  useProviderStats,
+  useRequestStats,
+} from "../../stores/dashboard";
 import { getProviderIcon } from "../icons/ProviderIcons";
 
 function StatusBadge({ running }: { running: boolean }) {
@@ -130,12 +135,10 @@ function QuotaBar({
   provider,
   used,
   limit,
-  resetAt,
 }: {
   provider: string;
   used: number;
   limit: number;
-  resetAt: string;
 }) {
   const percentage = limit > 0 ? Math.min((used / limit) * 100, 100) : 0;
   const isWarning = percentage > 80;
@@ -148,7 +151,7 @@ function QuotaBar({
           {provider}
         </span>
         <span className="text-xs text-[var(--text-muted)]">
-          {used.toLocaleString()} / {limit.toLocaleString()} · 重置: {resetAt}
+          {Math.round(percentage)}%
         </span>
       </div>
       <div className="h-2 bg-soft rounded-full overflow-hidden">
@@ -335,6 +338,96 @@ function TrendChart({
   );
 }
 
+function TokenBreakdownCard({
+  breakdown,
+}: {
+  breakdown: {
+    input: number;
+    output: number;
+    reasoning: number;
+    cached: number;
+    total: number;
+  } | null;
+}) {
+  if (!breakdown || breakdown.total === 0) {
+    return (
+      <div className="glass-card p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <Database className="w-4 h-4 text-[var(--text-muted)]" />
+          <span className="text-sm font-medium text-[var(--text-primary)]">
+            Token 细分
+          </span>
+        </div>
+        <div className="text-center py-4 text-[var(--text-muted)] text-sm">
+          暂无 Token 数据
+        </div>
+      </div>
+    );
+  }
+
+  const items = [
+    { label: "输入", value: breakdown.input, color: "var(--accent-primary)" },
+    {
+      label: "输出",
+      value: breakdown.output,
+      color: "var(--accent-secondary)",
+    },
+    {
+      label: "推理",
+      value: breakdown.reasoning,
+      color: "var(--accent-tertiary)",
+    },
+    { label: "缓存", value: breakdown.cached, color: "#10b981" },
+  ];
+
+  const formatTokens = (n: number) => {
+    if (n >= 1000000) return `${(n / 1000000).toFixed(1)}M`;
+    if (n >= 1000) return `${(n / 1000).toFixed(1)}K`;
+    return n.toString();
+  };
+
+  return (
+    <div className="glass-card p-4">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <Database className="w-4 h-4 text-[var(--text-muted)]" />
+          <span className="text-sm font-medium text-[var(--text-primary)]">
+            Token 细分
+          </span>
+        </div>
+        <span className="text-xs text-[var(--text-dim)]">
+          {formatTokens(breakdown.total)} 总计
+        </span>
+      </div>
+      <div className="space-y-2">
+        {items.map((item) => {
+          const percentage =
+            breakdown.total > 0 ? (item.value / breakdown.total) * 100 : 0;
+          return (
+            <div key={item.label}>
+              <div className="flex justify-between text-xs mb-1">
+                <span className="text-[var(--text-muted)]">{item.label}</span>
+                <span className="text-[var(--text-primary)]">
+                  {formatTokens(item.value)} ({percentage.toFixed(0)}%)
+                </span>
+              </div>
+              <div className="h-1.5 bg-soft rounded-full overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all duration-300"
+                  style={{
+                    width: `${percentage}%`,
+                    backgroundColor: item.color,
+                  }}
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export function Dashboard() {
   const {
     proxyStatus,
@@ -343,10 +436,8 @@ export function Dashboard() {
     isLoading,
     lastUpdated,
     refreshAll,
-    getRequestStats,
-    getProviderStats,
-    getHealthScore,
     getRequestTrend,
+    getTokenBreakdown,
   } = useDashboardStore();
 
   useEffect(() => {
@@ -355,10 +446,14 @@ export function Dashboard() {
     return () => clearInterval(interval);
   }, [refreshAll]);
 
-  const stats = useMemo(() => getRequestStats(), [getRequestStats]);
-  const providerStats = useMemo(() => getProviderStats(), [getProviderStats]);
-  const healthScore = useMemo(() => getHealthScore(), [getHealthScore]);
+  const stats = useRequestStats();
+  const providerStats = useProviderStats();
+  const healthScore = useHealthScore();
   const trendData = useMemo(() => getRequestTrend(12), [getRequestTrend]);
+  const tokenBreakdown = useMemo(
+    () => getTokenBreakdown(),
+    [getTokenBreakdown],
+  );
 
   const accountStatus = useMemo(() => {
     const statusCounts = { active: 0, cooling: 0, error: 0 };
@@ -578,6 +673,8 @@ export function Dashboard() {
 
         <div className="space-y-4">
           <AccountStatusCard accounts={accountStatus} />
+
+          <TokenBreakdownCard breakdown={tokenBreakdown} />
 
           <div className="glass-card p-4">
             <div className="flex items-center justify-between mb-3">

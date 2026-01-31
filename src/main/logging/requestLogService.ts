@@ -17,10 +17,15 @@ export interface RequestLogEntry {
   model?: string;
   account?: string;
   requestBody?: string;
+  duration?: number;
 }
 
-const SUCCESS_PREFIX = "v1-responses";
+const SUCCESS_PREFIXES = ["v1-responses", "v1-messages"];
 const ERROR_PREFIX = "error-v1";
+
+function isSuccessLog(name: string): boolean {
+  return SUCCESS_PREFIXES.some((prefix) => name.startsWith(prefix));
+}
 
 export function readRecentRequestLogs(limit = 50): RequestLogEntry[] {
   const configDir = proxyManager.getConfigDir();
@@ -32,16 +37,11 @@ export function readRecentRequestLogs(limit = 50): RequestLogEntry[] {
 
   const files = fs
     .readdirSync(logDir)
-    .filter(
-      (name) =>
-        name.startsWith(SUCCESS_PREFIX) || name.startsWith(ERROR_PREFIX),
-    )
+    .filter((name) => isSuccessLog(name) || name.startsWith(ERROR_PREFIX))
     .map((name) => {
       const filePath = path.join(logDir, name);
       const stat = fs.statSync(filePath);
-      const status: RequestLogStatus = name.startsWith(SUCCESS_PREFIX)
-        ? "success"
-        : "error";
+      const status: RequestLogStatus = isSuccessLog(name) ? "success" : "error";
       return { filePath, mtime: stat.mtimeMs, status };
     })
     .sort((a, b) => b.mtime - a.mtime)
@@ -70,10 +70,7 @@ export function deleteAllLogs(): { success: boolean; error?: string } {
 
     const files = fs
       .readdirSync(logDir)
-      .filter(
-        (name) =>
-          name.startsWith(SUCCESS_PREFIX) || name.startsWith(ERROR_PREFIX),
-      );
+      .filter((name) => isSuccessLog(name) || name.startsWith(ERROR_PREFIX));
 
     for (const file of files) {
       fs.unlinkSync(path.join(logDir, file));
@@ -96,6 +93,7 @@ function parseLogFile(
     const requestInfo = extractSection(content, "=== REQUEST INFO ===");
     const requestBodySection = extractSection(content, "=== REQUEST BODY ===");
     const apiRequestSection = findFirstApiRequestSection(content);
+    const apiResponseSection = findFirstApiResponseSection(content);
     const responseSection = extractSection(content, "=== RESPONSE ===");
 
     if (!requestInfo && !requestBodySection) {
@@ -110,6 +108,7 @@ function parseLogFile(
     const rawProvider =
       apiRequestMap.provider || inferProviderFromUrl(apiRequestMap.upstreamUrl);
     const account = apiRequestMap.account;
+    const duration = calculateDuration(apiRequestSection, apiResponseSection);
 
     let model: string | undefined;
     if (requestBodySection) {
@@ -146,6 +145,7 @@ function parseLogFile(
       model,
       account,
       requestBody: requestBodySection || undefined,
+      duration,
     };
   } catch (error) {
     console.error("[Logs] Failed to parse log file", filePath, error);
@@ -170,6 +170,42 @@ function findFirstApiRequestSection(content: string): string {
   const match = content.match(/=== API REQUEST \d+ ===/);
   if (!match) return "";
   return extractSection(content, match[0]);
+}
+
+function findFirstApiResponseSection(content: string): string {
+  const match = content.match(/=== API RESPONSE \d+ ===/);
+  if (!match) return "";
+  return extractSection(content, match[0]);
+}
+
+function extractTimestampFromSection(section: string): string | undefined {
+  if (!section) return undefined;
+  const match = section.match(/Timestamp:\s*(.+)/);
+  return match ? match[1].trim() : undefined;
+}
+
+function calculateDuration(
+  requestSection: string,
+  responseSection: string,
+): number | undefined {
+  const reqTime = extractTimestampFromSection(requestSection);
+  const resTime = extractTimestampFromSection(responseSection);
+
+  if (!reqTime || !resTime) return undefined;
+
+  try {
+    const reqDate = new Date(reqTime);
+    const resDate = new Date(resTime);
+
+    if (isNaN(reqDate.getTime()) || isNaN(resDate.getTime())) {
+      return undefined;
+    }
+
+    const durationMs = resDate.getTime() - reqDate.getTime();
+    return durationMs > 0 ? durationMs / 1000 : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 function parseKeyValueBlock(block: string): Record<string, string> {

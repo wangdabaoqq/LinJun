@@ -23,19 +23,13 @@ const electronAPI = {
     },
   },
   api: {
-    getAccounts: () => ipcRenderer.invoke("api:getAccounts"),
-    getQuota: () => ipcRenderer.invoke("api:getQuota"),
-    startAuth: (provider: Provider) =>
-      ipcRenderer.invoke("api:startAuth", provider),
     cliLogin: (provider: string) =>
       ipcRenderer.invoke("api:cliLogin", provider),
-    removeAccount: (provider: Provider, accountId: string) =>
-      ipcRenderer.invoke("api:removeAccount", provider, accountId),
-    validateApiKey: (provider: Provider, apiKey: string) =>
+    startAuth: (provider: string) =>
+      ipcRenderer.invoke("api:startAuth", provider),
+    validateApiKey: (provider: string, apiKey: string) =>
       ipcRenderer.invoke("api:validateApiKey", provider, apiKey),
-    getLogs: (limit: number) => ipcRenderer.invoke("api:getLogs", limit),
-    getStats: () => ipcRenderer.invoke("api:getStats"),
-    getHealth: () => ipcRenderer.invoke("api:getHealth"),
+    getUsage: () => ipcRenderer.invoke("api:getUsage"),
   },
   settings: {
     get: (key: string) => ipcRenderer.invoke("settings:get", key),

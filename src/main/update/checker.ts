@@ -8,8 +8,6 @@ export interface UpdateInfo {
   currentVersion: string;
   latestVersion: string;
   releaseUrl?: string;
-  releaseNotes?: string;
-  publishedAt?: string;
   error?: string;
 }
 
@@ -17,28 +15,48 @@ export async function checkForUpdates(): Promise<UpdateInfo> {
   const currentVersion = app.getVersion();
 
   try {
+    // Use redirect-based approach to avoid API rate limits
+    // GET /releases/latest redirects to /releases/tag/vX.X.X
     const response = await axios.get(
-      `https://api.github.com/repos/${GITHUB_REPO}/releases/latest`,
-      { timeout: 10000 },
+      `https://github.com/${GITHUB_REPO}/releases/latest`,
+      {
+        timeout: 10000,
+        maxRedirects: 5,
+        headers: {
+          "User-Agent": "LinJun-App",
+        },
+      },
     );
 
-    const latestVersion = response.data.tag_name.replace(/^v/, "");
+    const finalUrl = response.request.res.responseUrl || response.config.url;
+    const tagMatch = finalUrl.match(/\/releases\/tag\/v?(.+)$/);
+
+    if (!tagMatch) {
+      return {
+        hasUpdate: false,
+        currentVersion,
+        latestVersion: currentVersion,
+        error: "Failed to parse release version",
+      };
+    }
+
+    const latestVersion = tagMatch[1];
     const hasUpdate = compareVersions(latestVersion, currentVersion) > 0;
 
     return {
       hasUpdate,
       currentVersion,
       latestVersion,
-      releaseUrl: response.data.html_url,
-      releaseNotes: response.data.body,
-      publishedAt: response.data.published_at,
+      releaseUrl: `https://github.com/${GITHUB_REPO}/releases/tag/v${latestVersion}`,
     };
   } catch (error) {
     console.error("[UpdateChecker] Failed to check updates:", error);
 
     let errorMessage = "Failed to check for updates";
-    if (axios.isAxiosError(error) && error.response?.status === 404) {
-      errorMessage = "No releases available yet";
+    if (axios.isAxiosError(error)) {
+      if (error.response?.status === 404) {
+        errorMessage = "No releases available yet";
+      }
     }
 
     return {

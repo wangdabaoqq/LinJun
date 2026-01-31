@@ -69,34 +69,6 @@ export function setupIpcHandlers(): void {
     }
   });
 
-  ipcMain.handle("api:getAccounts", async () => {
-    try {
-      return await managementAPI.getAccounts();
-    } catch (error) {
-      console.error("[IPC] Failed to get accounts:", error);
-      return [];
-    }
-  });
-
-  ipcMain.handle("api:getQuota", async () => {
-    try {
-      return await managementAPI.getQuota();
-    } catch (error) {
-      console.error("[IPC] Failed to get quota:", error);
-      return [];
-    }
-  });
-
-  ipcMain.handle("api:startAuth", async (_event, provider: Provider) => {
-    try {
-      const { authUrl } = await managementAPI.startAuth(provider);
-      await shell.openExternal(authUrl);
-      return { success: true };
-    } catch (error) {
-      return { success: false, error: String(error) };
-    }
-  });
-
   ipcMain.handle("api:cliLogin", async (_event, provider: string) => {
     try {
       return await proxyManager.runCliLogin(provider);
@@ -105,60 +77,27 @@ export function setupIpcHandlers(): void {
     }
   });
 
-  ipcMain.handle(
-    "api:removeAccount",
-    async (_event, provider: Provider, accountId: string) => {
-      try {
-        await managementAPI.removeAccount(provider, accountId);
-        return { success: true };
-      } catch (error) {
-        return { success: false, error: String(error) };
-      }
-    },
-  );
+  ipcMain.handle("api:startAuth", async (_event, provider: string) => {
+    try {
+      return await proxyManager.runCliLogin(provider);
+    } catch (error) {
+      return { success: false, error: String(error) };
+    }
+  });
 
   ipcMain.handle(
     "api:validateApiKey",
-    async (_event, provider: Provider, apiKey: string) => {
-      try {
-        return await managementAPI.validateApiKey(provider, apiKey);
-      } catch (error) {
-        return { valid: false, error: String(error) };
-      }
+    async (_event, _provider: string, _apiKey: string) => {
+      return { valid: true };
     },
   );
 
-  ipcMain.handle("api:getLogs", async (_event, limit: number) => {
+  ipcMain.handle("api:getUsage", async () => {
     try {
-      return await managementAPI.getLogs(limit);
+      return await managementAPI.getUsage();
     } catch (error) {
-      console.error("[IPC] Failed to get logs:", error);
-      return [];
-    }
-  });
-
-  ipcMain.handle("api:getStats", async () => {
-    try {
-      return await managementAPI.getStats();
-    } catch (error) {
-      console.error("[IPC] Failed to get stats:", error);
-      return {
-        totalRequests: 0,
-        successCount: 0,
-        errorCount: 0,
-        totalTokens: 0,
-        avgLatency: 0,
-        uptime: 0,
-      };
-    }
-  });
-
-  ipcMain.handle("api:getHealth", async () => {
-    try {
-      return await managementAPI.getHealth();
-    } catch (error) {
-      console.error("[IPC] Failed to get health:", error);
-      return { healthy: false, checks: {} };
+      console.error("[IPC] Failed to get usage:", error);
+      return null;
     }
   });
 

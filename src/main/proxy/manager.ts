@@ -89,6 +89,7 @@ debug: false
 incognito-browser: true
 logging-to-file: true
 request-log: true
+usage-statistics-enabled: true
 `;
 }
 
@@ -143,6 +144,10 @@ class ProxyManager extends EventEmitter {
 
       if (!content.includes("request-log")) {
         missing.push("request-log: true");
+      }
+
+      if (!content.includes("usage-statistics-enabled")) {
+        missing.push("usage-statistics-enabled: true");
       }
 
       if (missing.length > 0) {

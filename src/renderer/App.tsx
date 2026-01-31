@@ -21,6 +21,7 @@ import {
   useTheme,
   useLanguage,
 } from "./stores/settings";
+import { useDashboardStore } from "./stores/dashboard";
 import { ProxyToggle } from "./components/ProxyToggle";
 import { SunIcon } from "./components/ui/sun";
 import { MoonIcon } from "./components/ui/moon";
@@ -28,21 +29,35 @@ import { MoonIcon } from "./components/ui/moon";
 import { LanguagesIcon } from "./components/ui/languages";
 
 function LiveMetrics() {
+  const t = useTranslations();
+  const stats = useDashboardStore((state) => state.getRequestStats());
+  const accounts = useDashboardStore((state) => state.accounts);
+
+  const activeAccounts = accounts.filter((a) => a.status === "active").length;
+  const successRate =
+    stats.totalRequests > 0
+      ? ((stats.successCount / stats.totalRequests) * 100).toFixed(1) + "%"
+      : "--";
+
   return (
     <div className="flex items-center gap-3 no-drag">
       <div className="metric-badge flex items-center gap-2">
-        <span className="text-[var(--text-dim)]">TPS</span>
-        <span className="text-[var(--accent-primary)] font-semibold">42.5</span>
-      </div>
-      <div className="metric-badge flex items-center gap-2">
-        <span className="text-[var(--text-dim)]">P99</span>
-        <span className="text-[var(--accent-secondary)] font-semibold">
-          1.2s
+        <span className="text-[var(--text-dim)]">{t.topbar.successRate}</span>
+        <span className="text-[var(--accent-primary)] font-semibold">
+          {successRate}
         </span>
       </div>
       <div className="metric-badge flex items-center gap-2">
-        <span className="text-[var(--text-dim)]">Tok/s</span>
-        <span className="text-[var(--accent-tertiary)] font-semibold">847</span>
+        <span className="text-[var(--text-dim)]">{t.topbar.requests}</span>
+        <span className="text-[var(--accent-secondary)] font-semibold">
+          {stats.totalRequests.toLocaleString()}
+        </span>
+      </div>
+      <div className="metric-badge flex items-center gap-2">
+        <span className="text-[var(--text-dim)]">{t.topbar.accounts}</span>
+        <span className="text-[var(--accent-tertiary)] font-semibold">
+          {activeAccounts}
+        </span>
       </div>
     </div>
   );
@@ -135,10 +150,15 @@ function BokehBackground() {
 export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>("dashboard");
   const theme = useSettingsStore((s) => s.theme);
+  const refreshAll = useDashboardStore((s) => s.refreshAll);
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
   }, [theme]);
+
+  useEffect(() => {
+    refreshAll();
+  }, [refreshAll]);
 
   const renderPage = () => {
     switch (currentPage) {
@@ -169,7 +189,7 @@ export default function App() {
       <TopBar />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar currentPage={currentPage} onNavigate={setCurrentPage} />
-        <main className="flex-1 overflow-auto p-6">
+        <main className="flex-1 overflow-hidden p-6 flex flex-col">
           <AnimatePresence mode="wait">
             <motion.div
               key={currentPage}
@@ -177,6 +197,7 @@ export default function App() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -12, scale: 0.99 }}
               transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
+              className="flex-1 min-h-0 flex flex-col"
             >
               {renderPage()}
             </motion.div>

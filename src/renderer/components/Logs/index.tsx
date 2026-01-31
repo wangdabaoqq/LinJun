@@ -10,18 +10,22 @@ import {
   FileText,
   Info,
   Code,
-  Loader2,
+  Download,
 } from "lucide-react";
 import { useTranslations } from "../../stores/settings";
 import { getProviderIcon } from "../icons/ProviderIcons";
 import { useRequestLogs } from "../../hooks/useRequestLogs";
 import { RequestLogEntry } from "../../types/logs";
+import { ConfirmModal } from "../ui/ConfirmModal";
 
 const JsonViewer = ({ data }: { data: string }) => {
+  const t = useTranslations();
   const [isExpanded, setIsExpanded] = useState(false);
 
   if (!data)
-    return <span className="text-[var(--text-dim)] italic">No content</span>;
+    return (
+      <span className="text-[var(--text-dim)] italic">{t.logs.noContent}</span>
+    );
 
   const lines = data.split("\n");
   const isLong = lines.length > 20;
@@ -39,13 +43,13 @@ const JsonViewer = ({ data }: { data: string }) => {
         if (token.match(/^[{}[\],]$/)) {
           className = "text-[var(--text-primary)] opacity-40";
         } else if (token.match(/^"(?:\\.|[^"\\])*"\s*:$/)) {
-          className = "text-[var(--accent-primary)] font-bold";
+          className = "text-sky-600 dark:text-sky-300 font-medium";
         } else if (token.startsWith('"')) {
-          className = "text-[var(--accent-secondary)] font-medium";
+          className = "text-amber-600 dark:text-orange-200/80";
         } else if (token.match(/^-?\d/)) {
-          className = "text-[var(--accent-tertiary)] font-bold";
+          className = "text-emerald-600 dark:text-emerald-400";
         } else if (token.match(/^(true|false|null)$/)) {
-          className = "text-[var(--warning)] font-bold";
+          className = "text-violet-600 dark:text-violet-400 font-bold";
         }
 
         return (
@@ -59,7 +63,7 @@ const JsonViewer = ({ data }: { data: string }) => {
   return (
     <div className="relative group/code flex-1 min-h-0 flex flex-col">
       <div
-        className={`relative p-5 rounded-xl text-[13px] font-mono overflow-auto custom-scrollbar whitespace-pre-wrap break-all leading-relaxed bg-[var(--bg-deep)] border border-[var(--glass-border)] shadow-inner transition-all duration-300 ${isExpanded ? "flex-1" : "max-h-[300px]"}`}
+        className={`relative p-6 rounded-2xl text-[13px] font-mono overflow-auto custom-scrollbar whitespace-pre-wrap break-all leading-relaxed bg-[var(--bg-secondary)]/30 backdrop-blur-md border border-[var(--glass-border)] shadow-inner transition-all duration-300 ${isExpanded ? "flex-1 pb-16" : "max-h-[350px]"}`}
       >
         {renderTokens(data)}
       </div>
@@ -68,24 +72,40 @@ const JsonViewer = ({ data }: { data: string }) => {
         <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[var(--bg-deep)] to-transparent flex items-end justify-center pb-4 rounded-b-xl pointer-events-none">
           <button
             onClick={() => setIsExpanded(true)}
-            className="pointer-events-auto px-4 py-1.5 rounded-full bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[11px] font-bold text-[var(--text-primary)] shadow-lg hover:border-[var(--accent-primary)]/50 transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2"
+            className="pointer-events-auto px-4 py-1.5 rounded-full bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[11px] font-bold text-[var(--text-primary)] shadow-lg hover:border-[var(--accent-primary)]/50 transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2 outline-none focus:outline-none focus:ring-0 active:bg-[var(--bg-primary)] tap-highlight-transparent"
+            style={{ WebkitTapHighlightColor: "transparent" }}
           >
-            <span>Expand JSON</span>
+            <span>{t.logs.expandJson}</span>
             <span className="px-1.5 py-0.5 rounded-md bg-[var(--bg-secondary)] text-[var(--text-primary)] opacity-50 text-[10px]">
-              {lines.length} lines
+              {lines.length} {t.logs.lines}
             </span>
           </button>
         </div>
       )}
 
       {isExpanded && (
-        <button
-          onClick={() => setIsExpanded(false)}
-          className="absolute top-3 right-3 p-1.5 rounded-lg bg-[var(--bg-primary)]/80 backdrop-blur border border-[var(--glass-border)] text-[var(--text-primary)] opacity-60 hover:opacity-100 transition-all opacity-0 group-hover/code:opacity-100 z-10"
-          title="Collapse"
-        >
-          <ChevronDown className="w-3.5 h-3.5 rotate-180" />
-        </button>
+        <>
+          <button
+            onClick={() => setIsExpanded(false)}
+            className="absolute top-4 right-8 p-1.5 rounded-lg bg-[var(--bg-primary)]/80 backdrop-blur border border-[var(--glass-border)] text-[var(--text-primary)] opacity-60 hover:opacity-100 transition-all z-20 hover:bg-[var(--bg-secondary)] outline-none focus:outline-none focus:ring-0 active:bg-[var(--bg-primary)]/80 tap-highlight-transparent"
+            style={{ WebkitTapHighlightColor: "transparent" }}
+            title={t.logs.collapse}
+          >
+            <ChevronDown className="w-3.5 h-3.5 rotate-180" />
+          </button>
+
+          <div className="absolute inset-x-0 bottom-4 flex justify-center z-10 pointer-events-none">
+            <button
+              onClick={() => setIsExpanded(false)}
+              className="pointer-events-auto px-4 py-1.5 rounded-full bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[11px] font-bold text-[var(--text-primary)] shadow-lg hover:bg-[var(--bg-secondary)] transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2 outline-none focus:outline-none focus:ring-0 active:bg-[var(--bg-primary)] tap-highlight-transparent"
+              style={{ WebkitTapHighlightColor: "transparent" }}
+              title={t.logs.collapse}
+            >
+              <span>{t.logs.collapse}</span>
+              <ChevronDown className="w-3.5 h-3.5 rotate-180" />
+            </button>
+          </div>
+        </>
       )}
     </div>
   );
@@ -190,12 +210,30 @@ export function Logs() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleExport = () => {
+    if (!selectedLog) return;
+    try {
+      const dataStr = JSON.stringify(selectedLog, null, 2);
+      const blob = new Blob([dataStr], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `log-${selectedLog.id}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Export failed:", error);
+    }
+  };
+
   const getStatusColor = (statusCode: number) => {
     if (statusCode >= 200 && statusCode < 300)
-      return "text-green-700/80 bg-green-500/10 border-green-500/20 dark:text-[#4ade80] dark:bg-[#4ade80]/10 dark:border-[#4ade80]/10";
+      return "text-green-600 bg-green-500/10 border-green-500/20 dark:text-green-400 dark:bg-green-500/10 dark:border-green-500/20";
     if (statusCode >= 400)
-      return "text-red-700/80 bg-red-500/10 border-red-500/20 dark:text-[#f87171] dark:bg-[#f87171]/10 dark:border-[#f87171]/10";
-    return "text-yellow-700/80 bg-yellow-500/10 border-yellow-500/20 dark:text-[#fbbf24] dark:bg-[#fbbf24]/10 dark:border-[#fbbf24]/10";
+      return "text-red-600 bg-red-500/10 border-red-500/20 dark:text-red-400 dark:bg-red-500/10 dark:border-red-500/20";
+    return "text-amber-600 bg-amber-500/10 border-amber-500/20 dark:text-amber-400 dark:bg-amber-500/10 dark:border-amber-500/20";
   };
 
   const getStatusBadge = (statusCode: number) => {
@@ -300,7 +338,7 @@ export function Logs() {
               <button
                 key={f.key}
                 onClick={() => setFilter(f.key as "all" | "success" | "error")}
-                className={`relative px-4 py-2 text-xs font-bold transition-all duration-300 group/tab ${
+                className={`relative px-4 py-2 text-xs font-bold transition-all duration-300 group/tab outline-none focus:outline-none focus:ring-0 ${
                   filter === f.key
                     ? "text-[var(--accent-primary)] drop-shadow-[0_0_8px_rgba(var(--accent-primary),0.6)]"
                     : "text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:drop-shadow-[0_0_5px_rgba(255,255,255,0.2)]"
@@ -327,7 +365,7 @@ export function Logs() {
                 if (!isProviderOpen) updateDropdownPosition();
                 setIsProviderOpen(!isProviderOpen);
               }}
-              className={`relative pl-4 pr-10 py-2 rounded-xl text-xs font-medium transition-all duration-300 border backdrop-blur-md min-w-[140px] text-left group ${
+              className={`relative pl-4 pr-10 py-2 rounded-xl text-xs font-medium transition-all duration-300 border backdrop-blur-md min-w-[140px] text-left group outline-none focus:outline-none focus:ring-0 ${
                 isProviderOpen
                   ? "bg-[var(--accent-primary)]/10 border-[var(--accent-primary)]/30 text-[var(--accent-primary)] shadow-[0_0_15px_-5px_var(--accent-primary)]"
                   : "bg-[var(--bg-secondary)]/30 border-[var(--glass-border)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]/50 hover:border-[var(--glass-border-hover)] shadow-sm"
@@ -405,14 +443,16 @@ export function Logs() {
           <div className="flex items-center gap-2 ml-auto xl:ml-0 pl-2">
             <button
               onClick={handleRefresh}
-              className={`p-2.5 text-[var(--text-muted)] hover:text-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/10 border border-transparent hover:border-[var(--accent-primary)]/20 rounded-xl transition-all active:scale-95 ${isRefreshing ? "animate-spin text-[var(--accent-primary)]" : ""}`}
+              className={`p-2.5 text-[var(--text-muted)] hover:text-[var(--accent-primary)] border border-transparent rounded-xl transition-all active:scale-95 outline-none focus:outline-none focus:ring-0 active:bg-transparent tap-highlight-transparent ${isRefreshing ? "animate-spin text-[var(--accent-primary)]" : ""}`}
+              style={{ WebkitTapHighlightColor: "transparent" }}
               title={t.logs.refresh}
             >
               <RotateCw className="w-4 h-4" />
             </button>
             <button
               onClick={() => setShowDeleteConfirm(true)}
-              className="p-2.5 text-red-500/70 hover:text-red-500 hover:scale-110 transition-all active:scale-95"
+              className="p-2.5 text-red-500/70 hover:text-red-500 hover:scale-110 transition-all active:scale-95 outline-none focus:outline-none focus:ring-0 active:bg-transparent tap-highlight-transparent"
+              style={{ WebkitTapHighlightColor: "transparent" }}
               title={t.logs.deleteAll}
             >
               <Trash2 className="w-4 h-4" />
@@ -559,7 +599,8 @@ export function Logs() {
                   <div className="h-8 w-px bg-[var(--glass-border)]" />
                   <button
                     onClick={() => setSelectedLog(null)}
-                    className="text-[var(--text-primary)]/70 hover:text-[var(--text-primary)] hover:bg-white/10 transition-all p-2 rounded-xl"
+                    className="text-[var(--text-primary)]/70 hover:text-[var(--text-primary)] transition-all p-2 rounded-xl outline-none focus:outline-none focus:ring-0 active:bg-transparent tap-highlight-transparent"
+                    style={{ WebkitTapHighlightColor: "transparent" }}
                   >
                     <X />
                   </button>
@@ -598,10 +639,10 @@ export function Logs() {
                     ].map((item, i) => (
                       <div
                         key={i}
-                        className="bg-[var(--bg-deep)] p-4 rounded-2xl border border-white/10 hover:border-[var(--accent-primary)]/40 transition-all group/card shadow-sm hover:shadow-[0_0_20px_-10px_var(--accent-primary)] relative overflow-hidden"
+                        className="bg-[var(--bg-secondary)]/20 backdrop-blur-md p-4 rounded-2xl border border-[var(--glass-border)] hover:bg-[var(--bg-secondary)]/30 transition-all group/card shadow-sm hover:shadow-md relative overflow-hidden"
                       >
-                        <div className="absolute inset-0 bg-[var(--accent-primary)]/5 opacity-0 group-hover/card:opacity-100 transition-opacity" />
-                        <label className="text-[10px] text-[var(--text-primary)]/60 uppercase tracking-widest font-bold block mb-2 transition-colors relative z-10">
+                        <div className="absolute inset-0 bg-gradient-to-br from-[var(--accent-primary)]/5 to-transparent opacity-0 group-hover/card:opacity-100 transition-opacity" />
+                        <label className="text-[10px] text-[var(--text-muted)] uppercase tracking-widest font-bold block mb-2 transition-colors relative z-10">
                           {item.label}
                         </label>
                         <div
@@ -627,23 +668,54 @@ export function Logs() {
                           {t.logs.requestBody}
                         </span>
                       </label>
-                      <button
-                        onClick={() =>
-                          handleCopy(formatRequestBody(selectedLog.requestBody))
-                        }
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-white/5 border border-white/10 text-[var(--text-primary)] hover:bg-white/10 transition-all shadow-sm"
-                      >
-                        {copied ? (
-                          <Check className="w-3.5 h-3.5 text-[var(--success)]" />
-                        ) : (
-                          <Copy className="w-3.5 h-3.5" />
-                        )}
-                        {copied ? "Copied!" : "Copy JSON"}
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={handleExport}
+                          className="group/export flex items-center gap-1.5 px-3 py-1 rounded-lg text-[10px] font-medium transition-all duration-200 border-none outline-none focus:outline-none focus:ring-0 tap-highlight-transparent select-none bg-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)] active:bg-transparent"
+                          style={{ WebkitTapHighlightColor: "transparent" }}
+                          title={t.logs.export}
+                        >
+                          <Download className="w-3 h-3" />
+                          <span>{t.logs.export}</span>
+                        </button>
+                        <button
+                          onClick={() =>
+                            handleCopy(
+                              formatRequestBody(selectedLog.requestBody),
+                            )
+                          }
+                          className={`group/copy flex items-center gap-1.5 px-3 py-1 rounded-lg text-[10px] font-medium transition-all duration-200 border-none outline-none focus:outline-none focus:ring-0 tap-highlight-transparent select-none bg-transparent ${
+                            copied
+                              ? "text-green-500"
+                              : "text-[var(--text-muted)] hover:text-[var(--text-primary)] active:bg-transparent"
+                          }`}
+                          style={{ WebkitTapHighlightColor: "transparent" }}
+                        >
+                          <div className="relative w-3 h-3 flex items-center justify-center">
+                            <Copy
+                              className={`absolute inset-0 w-full h-full transition-all duration-300 ${
+                                copied
+                                  ? "scale-0 opacity-0 rotate-90"
+                                  : "scale-100 opacity-100 rotate-0"
+                              }`}
+                            />
+                            <Check
+                              className={`absolute inset-0 w-full h-full transition-all duration-300 ${
+                                copied
+                                  ? "scale-100 opacity-100 rotate-0"
+                                  : "scale-0 opacity-0 -rotate-90"
+                              }`}
+                            />
+                          </div>
+                          <span className="relative">
+                            {copied ? t.logs.copied : t.logs.copy}
+                          </span>
+                        </button>
+                      </div>
                     </div>
 
                     <div className="relative group/code flex-1 flex flex-col min-h-0">
-                      <div className="absolute -inset-0.5 bg-gradient-to-br from-[var(--accent-primary)]/20 to-[var(--accent-secondary)]/20 rounded-xl opacity-0 group-hover/code:opacity-100 transition-opacity duration-500 blur-sm" />
+                      <div className="absolute -inset-0.5 bg-gradient-to-br from-[var(--accent-primary)]/10 to-[var(--accent-secondary)]/10 rounded-xl opacity-0 group-hover/code:opacity-100 transition-opacity duration-500" />
 
                       <div className="relative z-10 flex-1 min-h-0 flex flex-col">
                         <JsonViewer
@@ -659,51 +731,17 @@ export function Logs() {
         </div>
       )}
 
-      {showDeleteConfirm && (
-        <div
-          className="fixed inset-0 bg-[var(--overlay-bg)] backdrop-blur-xl flex items-center justify-center z-[60] animate-in fade-in duration-200"
-          style={{ WebkitBackdropFilter: "blur(24px)" }}
-        >
-          <div className="glass-card w-[420px] p-0 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] shadow-[0_0_50px_rgba(0,0,0,0.2)] dark:shadow-[0_0_50px_rgba(0,0,0,0.5)] animate-in zoom-in-95 duration-200 overflow-hidden">
-            <div className="p-8 pb-6 flex flex-col items-center text-center">
-              <div className="w-16 h-16 rounded-full bg-[var(--error)]/10 flex items-center justify-center text-[var(--error)] mb-5 shadow-[0_0_20px_rgba(255,69,58,0.2)]">
-                <Trash2 className="w-8 h-8" />
-              </div>
-              <h3 className="text-xl font-bold text-[var(--text-primary)] mb-2">
-                {t.logs.deleteConfirm}
-              </h3>
-              <p className="text-sm text-[var(--text-muted)] leading-relaxed px-4">
-                {t.logs.deleteDesc}
-              </p>
-            </div>
-
-            <div className="flex border-t border-[var(--glass-border)] bg-[var(--bg-secondary)]/30">
-              <button
-                onClick={() => setShowDeleteConfirm(false)}
-                disabled={isDeleting}
-                className="flex-1 py-4 text-sm font-medium text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-white/5 transition-colors"
-              >
-                {t.logs.cancel}
-              </button>
-              <div className="w-px bg-[var(--glass-border)]" />
-              <button
-                onClick={handleDeleteAll}
-                disabled={isDeleting}
-                className="flex-1 py-4 text-sm font-bold text-[var(--error)] hover:bg-[var(--error)]/10 transition-colors relative overflow-hidden"
-              >
-                {isDeleting ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <Loader2 className="animate-spin h-4 w-4" />
-                    {t.logs.deleting}
-                  </span>
-                ) : (
-                  t.logs.delete
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmModal
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={handleDeleteAll}
+        title={t.logs.deleteConfirm}
+        description={t.logs.deleteDesc}
+        confirmText={t.logs.delete}
+        cancelText={t.logs.cancel}
+        isLoading={isDeleting}
+        variant="danger"
+      />
     </div>
   );
 }

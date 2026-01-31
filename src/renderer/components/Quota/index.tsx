@@ -80,7 +80,7 @@ export function Quota() {
               <div className="h-4 w-48 bg-[var(--surface-hover)] rounded-full"></div>
             </div>
           ) : accounts.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6 pb-20">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
               {accounts.map((account, index) => (
                 <div
                   key={account.id}
