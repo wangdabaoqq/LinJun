@@ -55,6 +55,7 @@ const electronAPI = {
     getVersion: () => ipcRenderer.invoke("app:getVersion"),
     checkForUpdates: () => ipcRenderer.invoke("app:checkForUpdates"),
     openExternal: (url: string) => ipcRenderer.invoke("app:openExternal", url),
+    quit: () => ipcRenderer.send("app:quit"),
   },
   apiKeys: {
     getAll: () => ipcRenderer.invoke("apiKeys:getAll"),
@@ -171,6 +172,10 @@ const electronAPI = {
         "proxy-url"?: string;
       }[],
     ) => ipcRenderer.invoke("codexCompat:save", entries),
+  },
+  tray: {
+    openDashboard: () => ipcRenderer.send("tray:open-dashboard"),
+    setHeight: (height: number) => ipcRenderer.send("tray:resize", height),
   },
 };
 

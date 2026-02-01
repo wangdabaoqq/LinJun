@@ -150,16 +150,29 @@ function convertAntigravityUsageToQuotaAccount(
     if (!model?.resetTime) {
       return "Monthly";
     }
-    const date = new Date(model.resetTime);
-    const datePart = date.toISOString().slice(0, 10);
+    const resetDate = new Date(model.resetTime);
+    const now = new Date();
+    const diffMs = resetDate.getTime() - now.getTime();
+
+    if (diffMs <= 0) return "0m";
+
+    const seconds = Math.floor(diffMs / 1000);
+    const days = Math.floor(seconds / 86400);
+    const hours = Math.floor((seconds % 86400) / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
     const language = store.get("language");
-    const locale = language === "en" ? "en-US" : "zh-CN";
-    const timePart = date.toLocaleTimeString(locale, {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: true,
-    });
-    return `${datePart} ${timePart}`;
+
+    if (days > 0) {
+      return language === "zh"
+        ? `${days}天 ${hours}小时`
+        : `${days}d ${hours}h`;
+    }
+    if (hours > 0) {
+      return language === "zh"
+        ? `${hours}小时 ${minutes}分钟`
+        : `${hours}h ${minutes}m`;
+    }
+    return language === "zh" ? `${minutes}分钟` : `${minutes}m`;
   };
 
   const additional: QuotaWindow[] = remainingModels.map((model) => ({

@@ -258,6 +258,10 @@ export function setupIpcHandlers(): void {
   // API Keys Management - CRUD operations for config.yaml api-keys field
   // ═══════════════════════════════════════════════════════════════════════════════
 
+  ipcMain.on("app:quit", () => {
+    app.quit();
+  });
+
   ipcMain.handle("apiKeys:getAll", () => {
     try {
       const config = proxyManager.loadConfigFromYaml();

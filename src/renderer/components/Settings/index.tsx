@@ -20,7 +20,7 @@ export function Settings() {
   ];
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8 pb-20">
+    <div className="mx-[80px] space-y-8 pb-20">
       {/* Header */}
       <header className="flex flex-col gap-4">
         <div className="flex items-center gap-4">

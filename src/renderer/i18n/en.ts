@@ -368,6 +368,18 @@ export const en = {
     builtWith:
       "Built with Electron, React, TypeScript, and Tailwind CSS. Powered by CLIProxyAPIPlus.",
   },
+  tray: {
+    copyUrl: "Copy URL",
+    copied: "Copied!",
+    openDashboard: "Open Dashboard",
+    quit: "Quit",
+    loading: "Loading...",
+    noAccounts: "No accounts",
+    proxyStarted: "Proxy Started",
+    proxyStopped: "Proxy Stopped",
+    startProxy: "Start Proxy",
+    stopProxy: "Stop Proxy",
+  },
 };
 
 export type Translations = typeof en;

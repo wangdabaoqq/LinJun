@@ -360,4 +360,16 @@ export const zh: Translations = {
     builtWith:
       "使用 Electron、React、TypeScript 和 Tailwind CSS 构建。由 CLIProxyAPIPlus 提供支持。",
   },
+  tray: {
+    copyUrl: "复制地址",
+    copied: "已复制!",
+    openDashboard: "打开仪表盘",
+    quit: "退出",
+    loading: "加载中...",
+    noAccounts: "暂无账户",
+    proxyStarted: "代理已启动",
+    proxyStopped: "代理已停止",
+    startProxy: "启动代理",
+    stopProxy: "停止代理",
+  },
 };

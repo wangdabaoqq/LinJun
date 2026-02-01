@@ -29,6 +29,8 @@ import { MoonIcon } from "./components/ui/moon";
 import { LanguagesIcon } from "./components/ui/languages";
 import log from "@renderer/utils/logger";
 
+import { TrayView } from "./components/Tray/TrayView";
+
 function LiveMetrics() {
   const t = useTranslations();
   const stats = useDashboardStore((state) => state.getRequestStats());
@@ -154,17 +156,30 @@ function BokehBackground() {
 }
 
 export default function App() {
+  const [isTrayMode, setIsTrayMode] = useState(
+    window.location.hash === "#tray",
+  );
   const [currentPage, setCurrentPage] = useState<Page>("dashboard");
   const theme = useSettingsStore((s) => s.theme);
   const refreshAll = useDashboardStore((s) => s.refreshAll);
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      setIsTrayMode(window.location.hash === "#tray");
+    };
+    window.addEventListener("hashchange", handleHashChange);
+    return () => window.removeEventListener("hashchange", handleHashChange);
+  }, []);
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
   }, [theme]);
 
   useEffect(() => {
-    refreshAll();
-  }, [refreshAll]);
+    if (!isTrayMode) {
+      refreshAll();
+    }
+  }, [refreshAll, isTrayMode]);
 
   const renderPage = () => {
     switch (currentPage) {
@@ -188,6 +203,10 @@ export default function App() {
         return <Dashboard />;
     }
   };
+
+  if (isTrayMode) {
+    return <TrayView />;
+  }
 
   return (
     <div className="flex flex-col h-screen relative">

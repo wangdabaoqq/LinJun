@@ -90,16 +90,26 @@ export const useQuotaStore = create<QuotaState>((set, get) => ({
 
   selectProvider: async (provider: ProviderType) => {
     const cachedAccounts = get().cachedAccounts[provider];
+    const hasCached = cachedAccounts && cachedAccounts.length > 0;
+
     set({
       selectedProvider: provider,
       accounts: cachedAccounts ?? [],
-      isLoading: !cachedAccounts,
+      isLoading: !hasCached,
       error: null,
+    });
+
+    if (hasCached) {
+      return;
+    }
+
+    set({
       loadingProviders: {
         ...get().loadingProviders,
         [provider]: true,
       },
     });
+
     try {
       const result = await window.electronAPI?.quota.getByProvider(provider);
       if (result?.success) {
