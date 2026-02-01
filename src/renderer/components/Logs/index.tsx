@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import log from "@renderer/utils/logger";
 import { createPortal } from "react-dom";
 import {
   RotateCw,
@@ -43,13 +44,13 @@ const JsonViewer = ({ data }: { data: string }) => {
         if (token.match(/^[{}[\],]$/)) {
           className = "text-[var(--text-primary)] opacity-40";
         } else if (token.match(/^"(?:\\.|[^"\\])*"\s*:$/)) {
-          className = "text-sky-600 dark:text-sky-300 font-medium";
+          className = "text-[#64d2ff]";
         } else if (token.startsWith('"')) {
-          className = "text-amber-600 dark:text-orange-200/80";
+          className = "text-[#ffd60a]";
         } else if (token.match(/^-?\d/)) {
-          className = "text-emerald-600 dark:text-emerald-400";
+          className = "text-[#bf5af2]";
         } else if (token.match(/^(true|false|null)$/)) {
-          className = "text-violet-600 dark:text-violet-400 font-bold";
+          className = "text-[#ff453a] font-bold";
         }
 
         return (
@@ -197,7 +198,7 @@ export function Logs() {
         alert(t.logs.deleteFailed);
       }
     } catch (error) {
-      console.error("[Logs] Delete failed:", error);
+      log.error("[Logs] Delete failed:", error);
       alert(t.logs.deleteFailed);
     } finally {
       setIsDeleting(false);
@@ -224,7 +225,7 @@ export function Logs() {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch (error) {
-      console.error("Export failed:", error);
+      log.error("Export failed:", error);
     }
   };
 

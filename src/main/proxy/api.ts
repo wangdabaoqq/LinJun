@@ -1,4 +1,6 @@
 import axios, { AxiosInstance } from "axios";
+
+import log from "../utils/logger";
 import { proxyManager } from "./manager";
 import { store } from "../utils/store";
 
@@ -35,7 +37,7 @@ class ManagementAPI {
       );
       return res.data;
     } catch (error) {
-      console.error("[ManagementAPI] Failed to get Qwen auth URL:", error);
+      log.error("[ManagementAPI] Failed to get Qwen auth URL:", error);
       return { status: "error", url: "", state: "" };
     }
   }
@@ -51,10 +53,7 @@ class ManagementAPI {
       );
       return res.data;
     } catch (error) {
-      console.error(
-        "[ManagementAPI] Failed to get Antigravity auth URL:",
-        error,
-      );
+      log.error("[ManagementAPI] Failed to get Antigravity auth URL:", error);
       return { status: "error", url: "", state: "" };
     }
   }
@@ -70,7 +69,7 @@ class ManagementAPI {
       );
       return res.data;
     } catch (error) {
-      console.error("[ManagementAPI] Failed to get iFlow auth URL:", error);
+      log.error("[ManagementAPI] Failed to get iFlow auth URL:", error);
       return { status: "error", url: "", state: "" };
     }
   }
@@ -86,7 +85,7 @@ class ManagementAPI {
       );
       return res.data;
     } catch (error) {
-      console.error("[ManagementAPI] Failed to get Claude auth URL:", error);
+      log.error("[ManagementAPI] Failed to get Claude auth URL:", error);
       return { status: "error", url: "", state: "" };
     }
   }
@@ -102,7 +101,7 @@ class ManagementAPI {
       );
       return res.data;
     } catch (error) {
-      console.error("[ManagementAPI] Failed to get Gemini auth URL:", error);
+      log.error("[ManagementAPI] Failed to get Gemini auth URL:", error);
       return { status: "error", url: "", state: "" };
     }
   }
@@ -118,7 +117,7 @@ class ManagementAPI {
       );
       return res.data;
     } catch (error) {
-      console.error("[ManagementAPI] Failed to get Codex auth URL:", error);
+      log.error("[ManagementAPI] Failed to get Codex auth URL:", error);
       return { status: "error", url: "", state: "" };
     }
   }
@@ -133,7 +132,7 @@ class ManagementAPI {
       );
       return res.data;
     } catch (error) {
-      console.error("[ManagementAPI] Failed to get Copilot auth URL:", error);
+      log.error("[ManagementAPI] Failed to get Copilot auth URL:", error);
       return {
         status: "error",
         url: "",
@@ -155,7 +154,7 @@ class ManagementAPI {
       );
       return res.data;
     } catch (error) {
-      console.error("[ManagementAPI] Failed to get Qwen auth status:", error);
+      log.error("[ManagementAPI] Failed to get Qwen auth status:", error);
       return { status: "error" };
     }
   }
@@ -167,7 +166,7 @@ class ManagementAPI {
       });
       return res.data;
     } catch (error) {
-      console.error("[ManagementAPI] Failed to get usage:", error);
+      log.error("[ManagementAPI] Failed to get usage:", error);
       return {
         usage: {
           total_requests: 0,

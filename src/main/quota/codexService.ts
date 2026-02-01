@@ -1,4 +1,6 @@
 import axios from "axios";
+
+import log from "../utils/logger";
 import { TokenReadResult, updateTokenFile } from "./tokenReader";
 
 const CODEX_CLIENT_ID = "app_EMoamEEZ73f0CkXaXp7hrann";
@@ -89,7 +91,7 @@ export async function fetchCodexUsage(
       axios.isAxiosError(error) &&
       (error.response?.status === 401 || error.response?.status === 403)
     ) {
-      console.log(
+      log.info(
         `[CodexService] Token expired for ${token.email}, refreshing...`,
       );
 

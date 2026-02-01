@@ -14,8 +14,13 @@ import { PlayIcon } from "./ui/play";
 
 export function ProxyToggle() {
   const t = useTranslations();
-  const { proxyRunning, proxyLoading, setProxyRunning, setProxyLoading, port } =
-    useProxy();
+  const {
+    proxyRunning: _proxyRunning,
+    proxyLoading,
+    setProxyRunning,
+    setProxyLoading,
+    port,
+  } = useProxy();
   const [localRunning, setLocalRunning] = useState(false);
 
   useEffect(() => {

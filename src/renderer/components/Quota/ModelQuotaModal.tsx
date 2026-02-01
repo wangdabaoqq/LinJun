@@ -1,4 +1,5 @@
 import { useState } from "react";
+import log from "@renderer/utils/logger";
 import { Copy, Check } from "lucide-react";
 import { Modal } from "../ui/Modal";
 import { QuotaWindowBar } from "./QuotaWindowBar";
@@ -28,7 +29,7 @@ export function ModelQuotaModal({
   isOpen,
   onClose,
   email,
-  badge,
+  badge: _badge,
   providerId,
   rateLimits,
 }: ModelQuotaModalProps) {
@@ -57,7 +58,7 @@ export function ModelQuotaModal({
       setCopiedModelId(modelId);
       setTimeout(() => setCopiedModelId(null), 2000);
     } catch (err) {
-      console.error("Failed to copy model ID:", err);
+      log.error("Failed to copy model ID:", err);
     }
   };
 

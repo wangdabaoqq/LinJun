@@ -42,7 +42,7 @@ const PanelLeftOpenIcon = forwardRef<
   });
 
   const handleMouseEnter = useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
+    (_e: React.MouseEvent<HTMLDivElement>) => {
       if (!isControlledRef.current) {
         controls.start("animate");
       }
@@ -51,7 +51,7 @@ const PanelLeftOpenIcon = forwardRef<
   );
 
   const handleMouseLeave = useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
+    (_e: React.MouseEvent<HTMLDivElement>) => {
       if (!isControlledRef.current) {
         controls.start("normal");
       }

@@ -3,6 +3,7 @@ import path from "path";
 import { proxyManager } from "./proxy/manager";
 
 let tray: Tray | null = null;
+let statusChangeListener: (() => void) | null = null;
 
 export function createTray(mainWindow: BrowserWindow): void {
   const iconPath = path.join(__dirname, "../../resources/icon.png");
@@ -59,6 +60,8 @@ export function createTray(mainWindow: BrowserWindow): void {
   };
 
   updateMenu();
+
+  statusChangeListener = updateMenu;
   proxyManager.on("statusChange", updateMenu);
 
   tray.on("click", () => {
@@ -68,6 +71,10 @@ export function createTray(mainWindow: BrowserWindow): void {
 }
 
 export function destroyTray(): void {
+  if (statusChangeListener) {
+    proxyManager.off("statusChange", statusChangeListener);
+    statusChangeListener = null;
+  }
   tray?.destroy();
   tray = null;
 }

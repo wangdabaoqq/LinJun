@@ -1,5 +1,6 @@
 import axios from "axios";
 
+import log from "../utils/logger";
 import { TokenReadResult, updateTokenFile } from "./tokenReader";
 
 const KIRO_USAGE_URL =
@@ -140,10 +141,10 @@ export async function refreshKiroTokenManually(
       expiresAt: expiresAt,
     });
 
-    console.log(`[Kiro] Token refreshed successfully: ${token.filePath}`);
+    log.info(`[Kiro] Token refreshed successfully: ${token.filePath}`);
     return { success: true, accessToken: newAccessToken, expiresAt };
   } catch (error) {
-    console.error("[Kiro] Failed to refresh token:", error);
+    log.error("[Kiro] Failed to refresh token:", error);
     return {
       success: false,
       error: axios.isAxiosError(error)

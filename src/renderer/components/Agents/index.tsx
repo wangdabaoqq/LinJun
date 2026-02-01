@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import log from "@renderer/utils/logger";
 import { useTranslations, useSettingsStore } from "../../stores/settings";
 import { X, Zap, Box, Globe, RefreshCw } from "lucide-react";
 import { DEFAULT_PORT } from "../../../shared/constants";
@@ -213,7 +214,7 @@ function getCachedTools(): CLIToolInfo[] | null {
 
     return data.tools;
   } catch (error) {
-    console.error("Failed to read cache:", error);
+    log.error("Failed to read cache:", error);
     return null;
   }
 }
@@ -226,7 +227,7 @@ function setCachedTools(tools: CLIToolInfo[]): void {
     };
     localStorage.setItem(CACHE_KEY, JSON.stringify(data));
   } catch (error) {
-    console.error("Failed to write cache:", error);
+    log.error("Failed to write cache:", error);
   }
 }
 
@@ -268,7 +269,7 @@ function ConfigModal({ tool, onClose }: ConfigModalProps) {
           setApiKey(result.keys[0]);
         }
       } catch (error) {
-        console.error("Failed to load API key:", error);
+        log.error("Failed to load API key:", error);
       }
     };
     loadApiKey();
@@ -287,7 +288,7 @@ function ConfigModal({ tool, onClose }: ConfigModalProps) {
           setActiveProviders(providerIds);
         }
       } catch (error) {
-        console.error("Failed to load providers:", error);
+        log.error("Failed to load providers:", error);
       }
     };
     loadProviders();
@@ -335,7 +336,7 @@ wire_api = "responses"`;
   };
 
   const getDefaultClaudeEnv = () => {
-    const port = proxyUrl.split(":").pop() || String(DEFAULT_PORT);
+    const _port = proxyUrl.split(":").pop() || String(DEFAULT_PORT);
     return `# CLIProxyAPI Configuration for Claude Code
 export ANTHROPIC_BASE_URL="${proxyUrl}"
 export ANTHROPIC_AUTH_TOKEN="${apiKey}"
@@ -833,7 +834,7 @@ export function Agents() {
   const detectTools = async (force = false) => {
     const now = Date.now();
     if (!force && lastDetectTime && now - lastDetectTime < 30000) {
-      console.log("[Agents] Skipping detection, last scan was recent");
+      log.info("[Agents] Skipping detection, last scan was recent");
       return;
     }
 
@@ -846,7 +847,7 @@ export function Agents() {
         setLastDetectTime(now);
       }
     } catch (error) {
-      console.error("Failed to detect CLI tools:", error);
+      log.error("Failed to detect CLI tools:", error);
     } finally {
       setLoading(false);
       setScanning(false);

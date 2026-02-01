@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import log from "@renderer/utils/logger";
 import { RequestLogEntry } from "../types/logs";
 
 export function useRequestLogs(limit = 50, refreshInterval = 2000) {
@@ -10,7 +11,7 @@ export function useRequestLogs(limit = 50, refreshInterval = 2000) {
       const entries = await window.electronAPI.logs.fetch(limit);
       setLogs(entries);
     } catch (error) {
-      console.error("[useRequestLogs] Failed to fetch logs", error);
+      log.error("[useRequestLogs] Failed to fetch logs", error);
     }
   }, [limit]);
 

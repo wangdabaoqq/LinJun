@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect } from "react";
+import log from "@renderer/utils/logger";
 import { createPortal } from "react-dom";
 import { useTranslations } from "../../stores/settings";
 import { motion, AnimatePresence } from "motion/react";
@@ -68,7 +69,7 @@ export function ApiKeys() {
         }
       }
     } catch (err) {
-      console.error("Failed to load API keys:", err);
+      log.error("Failed to load API keys:", err);
     } finally {
       setLoading(false);
     }
@@ -139,7 +140,7 @@ export function ApiKeys() {
         setShowDeleteConfirm(null);
       }
     } catch (err) {
-      console.error("Failed to delete key:", err);
+      log.error("Failed to delete key:", err);
     }
   };
 
@@ -149,7 +150,7 @@ export function ApiKeys() {
       setCopiedKey(key);
       setTimeout(() => setCopiedKey(null), 2000);
     } catch (err) {
-      console.error("Failed to copy:", err);
+      log.error("Failed to copy:", err);
     }
   };
 

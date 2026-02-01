@@ -1,5 +1,7 @@
 import fs from "fs";
 import path from "path";
+
+import log from "../utils/logger";
 import { proxyManager } from "../proxy/manager";
 
 function getAuthDir(): string {
@@ -78,7 +80,7 @@ export function scanTokenFiles(): TokenReadResult[] {
   const authDir = getAuthDir();
 
   if (!fs.existsSync(authDir)) {
-    console.warn(`[TokenReader] Auth directory not found: ${authDir}`);
+    log.warn(`[TokenReader] Auth directory not found: ${authDir}`);
     return [];
   }
 
@@ -99,7 +101,7 @@ export function scanTokenFiles(): TokenReadResult[] {
     }
   }
 
-  console.log(
+  log.info(
     `[TokenReader] Found ${tokenFiles.length} token files in ${authDir}`,
   );
   return tokenFiles;
@@ -140,7 +142,7 @@ function readTokenFile(filePath: string): TokenReadResult | null {
     const content = fs.readFileSync(filePath, "utf-8");
     const data: TokenFile = JSON.parse(content);
     const filename = path.basename(filePath);
-    let provider: ProviderType | null =
+    const provider: ProviderType | null =
       parseProviderFromFilename(filename) ||
       (data.type === "github-copilot" ? "copilot" : data.type) ||
       null;
@@ -153,7 +155,7 @@ function readTokenFile(filePath: string): TokenReadResult | null {
 
     const isCopilot = provider === "copilot";
     if (!provider || !accessToken || (!refreshToken && !isCopilot)) {
-      console.warn(`[TokenReader] Invalid token file: ${filePath}`);
+      log.warn(`[TokenReader] Invalid token file: ${filePath}`);
       return null;
     }
 
@@ -168,10 +170,7 @@ function readTokenFile(filePath: string): TokenReadResult | null {
       raw: data,
     };
   } catch (error) {
-    console.error(
-      `[TokenReader] Failed to read token file: ${filePath}`,
-      error,
-    );
+    log.error(`[TokenReader] Failed to read token file: ${filePath}`, error);
     return null;
   }
 }
@@ -222,13 +221,10 @@ export function updateTokenFile(
     };
 
     fs.writeFileSync(filePath, JSON.stringify(updatedData, null, 2), "utf-8");
-    console.log(`[TokenReader] Updated token file: ${filePath}`);
+    log.info(`[TokenReader] Updated token file: ${filePath}`);
     return true;
   } catch (error) {
-    console.error(
-      `[TokenReader] Failed to update token file: ${filePath}`,
-      error,
-    );
+    log.error(`[TokenReader] Failed to update token file: ${filePath}`, error);
     return false;
   }
 }

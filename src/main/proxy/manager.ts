@@ -5,6 +5,8 @@ import net from "net";
 import { app } from "electron";
 import { EventEmitter } from "events";
 import yaml from "js-yaml";
+
+import log from "../utils/logger";
 import { DEFAULT_PORT } from "../../shared/constants";
 
 export interface OpenAICompatibilityApiKeyEntry {
@@ -126,8 +128,8 @@ class ProxyManager extends EventEmitter {
 
     if (!fs.existsSync(configPath)) {
       fs.writeFileSync(configPath, getDefaultConfig(authDir), "utf-8");
-      console.log("[ProxyManager] Created default config at:", configPath);
-      console.log("[ProxyManager] Auth directory:", authDir);
+      log.info("[ProxyManager] Created default config at:", configPath);
+      log.info("[ProxyManager] Auth directory:", authDir);
     } else {
       this.migrateConfig(configPath);
     }
@@ -153,13 +155,10 @@ class ProxyManager extends EventEmitter {
       if (missing.length > 0) {
         content = content.trimEnd() + "\n" + missing.join("\n") + "\n";
         fs.writeFileSync(configPath, content, "utf-8");
-        console.log(
-          "[ProxyManager] Migrated config: added",
-          missing.join(", "),
-        );
+        log.info("[ProxyManager] Migrated config: added", missing.join(", "));
       }
     } catch (error) {
-      console.error("[ProxyManager] Config migration failed:", error);
+      log.error("[ProxyManager] Config migration failed:", error);
     }
   }
 
@@ -194,7 +193,7 @@ class ProxyManager extends EventEmitter {
 
     const config = this.loadConfigFromYaml();
     if (config?.port && config.port !== this.port) {
-      console.log(
+      log.info(
         `[ProxyManager] Syncing port from config: ${this.port} -> ${config.port}`,
       );
       this.port = config.port;
@@ -203,7 +202,7 @@ class ProxyManager extends EventEmitter {
     const binaryPath = this.getBinaryPath();
     const configPath = this.getConfigPath();
 
-    console.log("[ProxyManager] Starting proxy with config:", configPath);
+    log.info("[ProxyManager] Starting proxy with config:", configPath);
 
     this.process = spawn(binaryPath, ["--config", configPath], {
       stdio: ["ignore", "pipe", "pipe"],
@@ -211,17 +210,17 @@ class ProxyManager extends EventEmitter {
     });
 
     this.process.stdout?.on("data", (data) => {
-      console.log(`[Proxy] ${data}`);
+      log.info(`[Proxy] ${data}`);
       this.emit("log", { type: "stdout", data: data.toString() });
     });
 
     this.process.stderr?.on("data", (data) => {
-      console.error(`[Proxy Error] ${data}`);
+      log.error(`[Proxy Error] ${data}`);
       this.emit("log", { type: "stderr", data: data.toString() });
     });
 
     this.process.on("exit", (code) => {
-      console.log(`Proxy exited with code ${code}`);
+      log.info(`Proxy exited with code ${code}`);
       this.process = null;
       this.stopHealthCheck();
       this.emit("statusChange", false);
@@ -239,7 +238,7 @@ class ProxyManager extends EventEmitter {
     return new Promise((resolve) => {
       const process = this.process!;
       const timeout = setTimeout(() => {
-        console.warn(
+        log.warn(
           "[ProxyManager] Process did not exit gracefully, force killing",
         );
         process.kill("SIGKILL");
@@ -250,7 +249,7 @@ class ProxyManager extends EventEmitter {
         this.process = null;
         this.stopHealthCheck();
         this.emit("statusChange", false);
-        console.log("[ProxyManager] Process stopped successfully");
+        log.info("[ProxyManager] Process stopped successfully");
         resolve();
       });
 
@@ -319,13 +318,17 @@ class ProxyManager extends EventEmitter {
     this.lastKnownRunning = true;
 
     // Check immediately
-    this.checkHealth().then((healthy) => {
-      if (!healthy && this.process) {
-        console.log(
-          "[ProxyManager] Health check failed immediately after start",
-        );
-      }
-    });
+    this.checkHealth()
+      .then((healthy) => {
+        if (!healthy && this.process) {
+          log.info(
+            "[ProxyManager] Health check failed immediately after start",
+          );
+        }
+      })
+      .catch((error) => {
+        log.error("[ProxyManager] Initial health check failed:", error);
+      });
 
     // Then check every 3 seconds
     this.healthCheckInterval = setInterval(async () => {
@@ -339,7 +342,7 @@ class ProxyManager extends EventEmitter {
 
       if (currentlyRunning && !healthy && this.lastKnownRunning) {
         // Process reference exists but not responding - external kill detected
-        console.log(
+        log.info(
           "[ProxyManager] Health check failed - process was externally killed",
         );
         this.process = null;
@@ -375,10 +378,10 @@ class ProxyManager extends EventEmitter {
     try {
       const content = fs.readFileSync(configPath, "utf-8");
       const config = yaml.load(content) as ProxyConfig;
-      console.log("[ProxyManager] Loaded config from:", configPath);
+      log.info("[ProxyManager] Loaded config from:", configPath);
       return config;
     } catch (error) {
-      console.error("[ProxyManager] Failed to load config:", error);
+      log.error("[ProxyManager] Failed to load config:", error);
       return null;
     }
   }
@@ -416,22 +419,22 @@ class ProxyManager extends EventEmitter {
       }
     }
 
-    console.log("[ProxyManager] Synced config to store, port:", this.port);
+    log.info("[ProxyManager] Synced config to store, port:", this.port);
     return true;
   }
 
   updateConfigYaml(updates: Partial<ProxyConfig>): boolean {
     const config = this.loadConfigFromYaml();
     if (!config) {
-      console.log("[ProxyManager] No config loaded, returning false");
+      log.info("[ProxyManager] No config loaded, returning false");
       return false;
     }
 
-    console.log(
+    log.info(
       "[ProxyManager] Original config remote-management:",
       JSON.stringify(config["remote-management"], null, 2),
     );
-    console.log(
+    log.info(
       "[ProxyManager] Updates remote-management:",
       JSON.stringify(updates["remote-management"], null, 2),
     );
@@ -445,7 +448,7 @@ class ProxyManager extends EventEmitter {
       },
     };
 
-    console.log(
+    log.info(
       "[ProxyManager] Final remote-management:",
       JSON.stringify(updatedConfig["remote-management"], null, 2),
     );
@@ -463,10 +466,10 @@ class ProxyManager extends EventEmitter {
         forceQuotes: true,
       });
       fs.writeFileSync(configPath, yamlContent, "utf-8");
-      console.log("[ProxyManager] Updated config.yaml with:", updates);
+      log.info("[ProxyManager] Updated config.yaml with:", updates);
       return true;
     } catch (error) {
-      console.error("[ProxyManager] Failed to write config:", error);
+      log.error("[ProxyManager] Failed to write config:", error);
       return false;
     }
   }
@@ -479,16 +482,16 @@ class ProxyManager extends EventEmitter {
       const binaryPath = this.getBinaryPath();
       const configPath = this.getConfigPath();
 
-      console.log("[CLI Login] Binary path:", binaryPath);
-      console.log("[CLI Login] Config path:", configPath);
-      console.log("[CLI Login] Config path exists:", fs.existsSync(configPath));
+      log.info("[CLI Login] Binary path:", binaryPath);
+      log.info("[CLI Login] Config path:", configPath);
+      log.info("[CLI Login] Config path exists:", fs.existsSync(configPath));
 
       const providerParts = provider.split(" ");
       const providerName = providerParts[0];
       const extraArgs = providerParts.slice(1);
 
       const cliCommand = `"${binaryPath}" --config "${configPath}" --${providerName}-login ${extraArgs.join(" ")}`;
-      console.log("[CLI Login] Full command:", cliCommand);
+      log.info("[CLI Login] Full command:", cliCommand);
 
       const platform = process.platform;
 

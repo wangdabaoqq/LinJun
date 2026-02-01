@@ -1,6 +1,8 @@
 import axios from "axios";
 import { app } from "electron";
 
+import log from "../utils/logger";
+
 const GITHUB_REPO = "wangdabaoqq/LinJun";
 
 export interface UpdateInfo {
@@ -50,7 +52,7 @@ export async function checkForUpdates(): Promise<UpdateInfo> {
       releaseUrl: `https://github.com/${GITHUB_REPO}/releases/tag/v${latestVersion}`,
     };
   } catch (error) {
-    console.error("[UpdateChecker] Failed to check updates:", error);
+    log.error("[UpdateChecker] Failed to check updates:", error);
 
     let errorMessage = "Failed to check for updates";
     if (axios.isAxiosError(error)) {

@@ -2,8 +2,10 @@ import { app, ipcMain, shell } from "electron";
 import path from "path";
 import fs from "fs";
 import crypto from "crypto";
+
+import log from "../utils/logger";
 import { proxyManager } from "../proxy/manager";
-import { managementAPI, Provider } from "../proxy/api";
+import { managementAPI } from "../proxy/api";
 import { store } from "../utils/store";
 import { setAutoLaunch } from "../utils/autoLaunch";
 import { checkForUpdates } from "../update/checker";
@@ -24,6 +26,11 @@ import {
   isKiroTokenValid,
   refreshKiroTokenManually,
 } from "../quota";
+import {
+  validateApiKey,
+  isValidSettingKey,
+  isPathSafe,
+} from "../utils/validation";
 
 export function setupIpcHandlers(): void {
   ipcMain.handle("proxy:start", async () => {
@@ -55,7 +62,7 @@ export function setupIpcHandlers(): void {
     try {
       return readRecentRequestLogs(limit);
     } catch (error) {
-      console.error("[IPC] Failed to read request logs:", error);
+      log.error("[IPC] Failed to read request logs:", error);
       return [];
     }
   });
@@ -64,7 +71,7 @@ export function setupIpcHandlers(): void {
     try {
       return deleteAllLogs();
     } catch (error) {
-      console.error("[IPC] Failed to delete logs:", error);
+      log.error("[IPC] Failed to delete logs:", error);
       return { success: false, error: String(error) };
     }
   });
@@ -87,8 +94,8 @@ export function setupIpcHandlers(): void {
 
   ipcMain.handle(
     "api:validateApiKey",
-    async (_event, _provider: string, _apiKey: string) => {
-      return { valid: true };
+    async (_event, provider: string, apiKey: string) => {
+      return validateApiKey(provider, apiKey);
     },
   );
 
@@ -96,17 +103,25 @@ export function setupIpcHandlers(): void {
     try {
       return await managementAPI.getUsage();
     } catch (error) {
-      console.error("[IPC] Failed to get usage:", error);
+      log.error("[IPC] Failed to get usage:", error);
       return null;
     }
   });
 
   ipcMain.handle("settings:get", (_event, key: string) => {
-    return store.get(key);
+    if (!isValidSettingKey(key)) {
+      log.warn(`[IPC] Attempted to get invalid setting key: ${key}`);
+      return undefined;
+    }
+    return store.get(key as keyof typeof store.store);
   });
 
   ipcMain.handle("settings:set", (_event, key: string, value: unknown) => {
-    store.set(key, value);
+    if (!isValidSettingKey(key)) {
+      log.warn(`[IPC] Attempted to set invalid setting key: ${key}`);
+      return { success: false, error: "Invalid setting key" };
+    }
+    store.set(key as keyof typeof store.store, value);
     return { success: true };
   });
 
@@ -205,22 +220,22 @@ export function setupIpcHandlers(): void {
             ...currentRemoteMgmt,
             "secret-key": updates.managementSecret,
           };
-          console.log(
+          log.info(
             "[IPC] Setting managementSecret, yamlUpdates:",
             JSON.stringify(yamlUpdates, null, 2),
           );
           store.set("managementSecret", updates.managementSecret);
         }
 
-        console.log(
+        log.info(
           "[IPC] Calling updateConfigYaml with:",
           JSON.stringify(yamlUpdates, null, 2),
         );
         const success = proxyManager.updateConfigYaml(yamlUpdates);
-        console.log("[IPC] updateConfigYaml result:", success);
+        log.info("[IPC] updateConfigYaml result:", success);
         return { success };
       } catch (error) {
-        console.error("[IPC] Failed to sync settings to YAML:", error);
+        log.error("[IPC] Failed to sync settings to YAML:", error);
         return { success: false, error: String(error) };
       }
     },
@@ -249,7 +264,7 @@ export function setupIpcHandlers(): void {
       const apiKeys = config?.["api-keys"] || [];
       return { success: true, keys: apiKeys };
     } catch (error) {
-      console.error("[IPC] Failed to get API keys:", error);
+      log.error("[IPC] Failed to get API keys:", error);
       return { success: false, keys: [], error: String(error) };
     }
   });
@@ -270,7 +285,7 @@ export function setupIpcHandlers(): void {
       const success = proxyManager.updateConfigYaml({ "api-keys": newKeys });
       return { success, keys: newKeys };
     } catch (error) {
-      console.error("[IPC] Failed to add API key:", error);
+      log.error("[IPC] Failed to add API key:", error);
       return { success: false, error: String(error) };
     }
   });
@@ -297,7 +312,7 @@ export function setupIpcHandlers(): void {
       const success = proxyManager.updateConfigYaml({ "api-keys": newKeys });
       return { success, keys: newKeys };
     } catch (error) {
-      console.error("[IPC] Failed to update API key:", error);
+      log.error("[IPC] Failed to update API key:", error);
       return { success: false, error: String(error) };
     }
   });
@@ -319,7 +334,7 @@ export function setupIpcHandlers(): void {
       const success = proxyManager.updateConfigYaml({ "api-keys": newKeys });
       return { success, keys: newKeys };
     } catch (error) {
-      console.error("[IPC] Failed to delete API key:", error);
+      log.error("[IPC] Failed to delete API key:", error);
       return { success: false, error: String(error) };
     }
   });
@@ -330,10 +345,7 @@ export function setupIpcHandlers(): void {
       const providers = config?.["openai-compatibility"] || [];
       return { success: true, providers };
     } catch (error) {
-      console.error(
-        "[IPC] Failed to get OpenAI compatibility providers:",
-        error,
-      );
+      log.error("[IPC] Failed to get OpenAI compatibility providers:", error);
       return { success: false, providers: [], error: String(error) };
     }
   });
@@ -369,10 +381,7 @@ export function setupIpcHandlers(): void {
         });
         return { success, providers: newProviders };
       } catch (error) {
-        console.error(
-          "[IPC] Failed to add OpenAI compatibility provider:",
-          error,
-        );
+        log.error("[IPC] Failed to add OpenAI compatibility provider:", error);
         return { success: false, error: String(error) };
       }
     },
@@ -411,7 +420,7 @@ export function setupIpcHandlers(): void {
         });
         return { success, providers: newProviders };
       } catch (error) {
-        console.error(
+        log.error(
           "[IPC] Failed to update OpenAI compatibility provider:",
           error,
         );
@@ -440,10 +449,7 @@ export function setupIpcHandlers(): void {
       });
       return { success, providers: newProviders };
     } catch (error) {
-      console.error(
-        "[IPC] Failed to delete OpenAI compatibility provider:",
-        error,
-      );
+      log.error("[IPC] Failed to delete OpenAI compatibility provider:", error);
       return { success: false, error: String(error) };
     }
   });
@@ -458,7 +464,7 @@ export function setupIpcHandlers(): void {
       const entries = config?.["claude-api-key"] || [];
       return { success: true, entries };
     } catch (error) {
-      console.error("[IPC] Failed to get Claude API key entries:", error);
+      log.error("[IPC] Failed to get Claude API key entries:", error);
       return { success: false, entries: [], error: String(error) };
     }
   });
@@ -480,7 +486,7 @@ export function setupIpcHandlers(): void {
         });
         return { success };
       } catch (error) {
-        console.error("[IPC] Failed to save Claude API key entries:", error);
+        log.error("[IPC] Failed to save Claude API key entries:", error);
         return { success: false, error: String(error) };
       }
     },
@@ -496,7 +502,7 @@ export function setupIpcHandlers(): void {
       const entries = config?.["gemini-api-key"] || [];
       return { success: true, entries };
     } catch (error) {
-      console.error("[IPC] Failed to get Gemini API key entries:", error);
+      log.error("[IPC] Failed to get Gemini API key entries:", error);
       return { success: false, entries: [], error: String(error) };
     }
   });
@@ -518,7 +524,7 @@ export function setupIpcHandlers(): void {
         });
         return { success };
       } catch (error) {
-        console.error("[IPC] Failed to save Gemini API key entries:", error);
+        log.error("[IPC] Failed to save Gemini API key entries:", error);
         return { success: false, error: String(error) };
       }
     },
@@ -530,7 +536,7 @@ export function setupIpcHandlers(): void {
       const entries = config?.["codex-api-key"] || [];
       return { success: true, entries };
     } catch (error) {
-      console.error("[IPC] Failed to get Codex API key entries:", error);
+      log.error("[IPC] Failed to get Codex API key entries:", error);
       return { success: false, entries: [], error: String(error) };
     }
   });
@@ -551,7 +557,7 @@ export function setupIpcHandlers(): void {
         });
         return { success };
       } catch (error) {
-        console.error("[IPC] Failed to save Codex API key entries:", error);
+        log.error("[IPC] Failed to save Codex API key entries:", error);
         return { success: false, error: String(error) };
       }
     },
@@ -562,7 +568,7 @@ export function setupIpcHandlers(): void {
       const tools = await detectAllCLITools();
       return { success: true, tools };
     } catch (error) {
-      console.error("[IPC] Failed to detect CLI tools:", error);
+      log.error("[IPC] Failed to detect CLI tools:", error);
       return { success: false, tools: [], error: String(error) };
     }
   });
@@ -574,7 +580,7 @@ export function setupIpcHandlers(): void {
         const tool = await detectCLITool(toolName, command);
         return { success: true, tool };
       } catch (error) {
-        console.error("[IPC] Failed to detect CLI tool:", error);
+        log.error("[IPC] Failed to detect CLI tool:", error);
         return { success: false, error: String(error) };
       }
     },
@@ -585,7 +591,7 @@ export function setupIpcHandlers(): void {
       const config = await readCLIConfig(toolName);
       return { success: true, config };
     } catch (error) {
-      console.error("[IPC] Failed to read CLI config:", error);
+      log.error("[IPC] Failed to read CLI config:", error);
       return { success: false, error: String(error) };
     }
   });
@@ -599,10 +605,16 @@ export function setupIpcHandlers(): void {
       backup: boolean = true,
     ) => {
       try {
+        // Validate path is within user's home directory
+        const homeDir = app.getPath("home");
+        if (!isPathSafe(homeDir, filePath.replace(homeDir, ""))) {
+          log.warn(`[IPC] Rejected unsafe path: ${filePath}`);
+          return { success: false, error: "Invalid file path" };
+        }
         const result = writeConfig(filePath, content, backup);
         return result;
       } catch (error) {
-        console.error("[IPC] Failed to write CLI config:", error);
+        log.error("[IPC] Failed to write CLI config:", error);
         return { success: false, error: String(error) };
       }
     },
@@ -615,7 +627,7 @@ export function setupIpcHandlers(): void {
         const result = await testProxyConnection(url, apiKey);
         return result;
       } catch (error) {
-        console.error("[IPC] Failed to test connection:", error);
+        log.error("[IPC] Failed to test connection:", error);
         return { success: false, error: String(error) };
       }
     },
@@ -625,7 +637,7 @@ export function setupIpcHandlers(): void {
     try {
       return { success: true, providers: await getProviders() };
     } catch (error) {
-      console.error("[IPC] Failed to get providers:", error);
+      log.error("[IPC] Failed to get providers:", error);
       return { success: false, providers: [], error: String(error) };
     }
   });
@@ -637,7 +649,7 @@ export function setupIpcHandlers(): void {
         const accounts = await getQuotaByProvider(provider);
         return { success: true, accounts };
       } catch (error) {
-        console.error("[IPC] Failed to get quota by provider:", error);
+        log.error("[IPC] Failed to get quota by provider:", error);
         return { success: false, accounts: [], error: String(error) };
       }
     },
@@ -648,7 +660,7 @@ export function setupIpcHandlers(): void {
       const account = await refreshQuota(accountId);
       return { success: true, account };
     } catch (error) {
-      console.error("[IPC] Failed to refresh quota:", error);
+      log.error("[IPC] Failed to refresh quota:", error);
       return { success: false, error: String(error) };
     }
   });
@@ -656,14 +668,24 @@ export function setupIpcHandlers(): void {
   ipcMain.handle("quota:refreshAll", async () => {
     try {
       const providers = await getProviders();
-      const allAccounts = [];
-      for (const provider of providers) {
-        const accounts = await getQuotaByProvider(provider.id);
-        allAccounts.push(...accounts);
+      const results = await Promise.allSettled(
+        providers.map((provider) => getQuotaByProvider(provider.id)),
+      );
+
+      const allAccounts = results.flatMap((result) =>
+        result.status === "fulfilled" ? result.value : [],
+      );
+
+      const failedCount = results.filter((r) => r.status === "rejected").length;
+      if (failedCount > 0) {
+        log.warn(
+          `[IPC] ${failedCount}/${providers.length} providers failed to refresh`,
+        );
       }
+
       return { success: true, accounts: allAccounts };
     } catch (error) {
-      console.error("[IPC] Failed to refresh all quotas:", error);
+      log.error("[IPC] Failed to refresh all quotas:", error);
       return { success: false, accounts: [], error: String(error) };
     }
   });
@@ -681,9 +703,7 @@ export function setupIpcHandlers(): void {
         if (token.provider === "kiro") {
           const isValid = await isKiroTokenValid(token);
           if (!isValid) {
-            console.log(
-              `[IPC] Skipping expired Kiro account: ${token.filePath}`,
-            );
+            log.info(`[IPC] Skipping expired Kiro account: ${token.filePath}`);
             continue;
           }
         }
@@ -700,7 +720,7 @@ export function setupIpcHandlers(): void {
 
       return { success: true, accounts };
     } catch (error) {
-      console.error("[IPC] Failed to get provider accounts:", error);
+      log.error("[IPC] Failed to get provider accounts:", error);
       return { success: false, accounts: [], error: String(error) };
     }
   });
@@ -709,14 +729,20 @@ export function setupIpcHandlers(): void {
     "providers:removeAccount",
     async (_event, filePath: string) => {
       try {
-        const fs = await import("fs");
+        const authDir = proxyManager.getAuthDir();
+        if (!isPathSafe(authDir, path.relative(authDir, filePath))) {
+          log.warn(
+            `[IPC] Rejected unsafe path for account removal: ${filePath}`,
+          );
+          return { success: false, error: "Invalid file path" };
+        }
         if (fs.existsSync(filePath)) {
           fs.unlinkSync(filePath);
           return { success: true };
         }
         return { success: false, error: "Token file not found" };
       } catch (error) {
-        console.error("[IPC] Failed to remove account:", error);
+        log.error("[IPC] Failed to remove account:", error);
         return { success: false, error: String(error) };
       }
     },
@@ -734,7 +760,7 @@ export function setupIpcHandlers(): void {
       }
       return result;
     } catch (error) {
-      console.error("[IPC] Failed to get Qwen auth URL:", error);
+      log.error("[IPC] Failed to get Qwen auth URL:", error);
       return { status: "error", url: "", state: "" };
     }
   });
@@ -747,7 +773,7 @@ export function setupIpcHandlers(): void {
       }
       return result;
     } catch (error) {
-      console.error("[IPC] Failed to get Antigravity auth URL:", error);
+      log.error("[IPC] Failed to get Antigravity auth URL:", error);
       return { status: "error", url: "", state: "" };
     }
   });
@@ -760,7 +786,7 @@ export function setupIpcHandlers(): void {
       }
       return result;
     } catch (error) {
-      console.error("[IPC] Failed to get iFlow auth URL:", error);
+      log.error("[IPC] Failed to get iFlow auth URL:", error);
       return { status: "error", url: "", state: "" };
     }
   });
@@ -773,7 +799,7 @@ export function setupIpcHandlers(): void {
       }
       return result;
     } catch (error) {
-      console.error("[IPC] Failed to get Claude auth URL:", error);
+      log.error("[IPC] Failed to get Claude auth URL:", error);
       return { status: "error", url: "", state: "" };
     }
   });
@@ -786,7 +812,7 @@ export function setupIpcHandlers(): void {
       }
       return result;
     } catch (error) {
-      console.error("[IPC] Failed to get Gemini auth URL:", error);
+      log.error("[IPC] Failed to get Gemini auth URL:", error);
       return { status: "error", url: "", state: "" };
     }
   });
@@ -799,7 +825,7 @@ export function setupIpcHandlers(): void {
       }
       return result;
     } catch (error) {
-      console.error("[IPC] Failed to get Codex auth URL:", error);
+      log.error("[IPC] Failed to get Codex auth URL:", error);
       return { status: "error", url: "", state: "" };
     }
   });
@@ -808,7 +834,7 @@ export function setupIpcHandlers(): void {
     try {
       return await managementAPI.getCopilotAuthUrl();
     } catch (error) {
-      console.error("[IPC] Failed to get Copilot auth URL:", error);
+      log.error("[IPC] Failed to get Copilot auth URL:", error);
       return {
         status: "error",
         url: "",
@@ -823,7 +849,7 @@ export function setupIpcHandlers(): void {
     try {
       return await managementAPI.getQwenAuthStatus(state);
     } catch (error) {
-      console.error("[IPC] Failed to get Qwen auth status:", error);
+      log.error("[IPC] Failed to get Qwen auth status:", error);
       return { status: "error" };
     }
   });
@@ -851,11 +877,11 @@ export function setupIpcHandlers(): void {
       const destPath = path.join(authDir, destFilename);
 
       fs.copyFileSync(kiroFile, destPath);
-      console.log(`[IPC] Kiro token imported: ${destPath}`);
+      log.info(`[IPC] Kiro token imported: ${destPath}`);
 
       return { success: true, filePath: destPath };
     } catch (error) {
-      console.error("[IPC] Failed to import Kiro token:", error);
+      log.error("[IPC] Failed to import Kiro token:", error);
       return { success: false, error: String(error) };
     }
   });
@@ -866,7 +892,7 @@ export function setupIpcHandlers(): void {
       store.set("autoLaunch", enabled);
       return { success: true };
     } catch (error) {
-      console.error("[IPC] Failed to set auto launch:", error);
+      log.error("[IPC] Failed to set auto launch:", error);
       return { success: false, error: String(error) };
     }
   });
@@ -886,7 +912,7 @@ export function setupIpcHandlers(): void {
 
       return await refreshKiroTokenManually(token);
     } catch (error) {
-      console.error("[IPC] Failed to refresh Kiro token:", error);
+      log.error("[IPC] Failed to refresh Kiro token:", error);
       return { success: false, error: String(error) };
     }
   });

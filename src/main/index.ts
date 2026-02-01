@@ -1,5 +1,7 @@
 import { app, BrowserWindow, nativeImage } from "electron";
 import path from "path";
+
+import log from "./utils/logger";
 import { createTray } from "./tray";
 import { setupIpcHandlers } from "./ipc/handlers";
 import { proxyManager } from "./proxy/manager";
@@ -7,6 +9,7 @@ import { store } from "./utils/store";
 
 let mainWindow: BrowserWindow | null = null;
 let isQuitting = false;
+let statusChangeHandler: ((running: boolean) => void) | null = null;
 
 // Single instance lock - only enforce in production
 if (process.env.NODE_ENV !== "development") {
@@ -32,9 +35,9 @@ async function initializeApp(): Promise<void> {
   if (autoStart) {
     try {
       await proxyManager.start();
-      console.log("[Main] Proxy auto-started on port:", proxyManager.getPort());
+      log.info("[Main] Proxy auto-started on port:", proxyManager.getPort());
     } catch (error) {
-      console.error("[Main] Failed to auto-start proxy:", error);
+      log.error("[Main] Failed to auto-start proxy:", error);
     }
   }
 }
@@ -91,15 +94,19 @@ function createWindow(): void {
   }
 
   mainWindow.on("closed", () => {
+    if (statusChangeHandler) {
+      proxyManager.off("statusChange", statusChangeHandler);
+      statusChangeHandler = null;
+    }
     mainWindow = null;
   });
 
-  // Listen for proxy status changes and notify renderer
-  proxyManager.on("statusChange", (running: boolean) => {
+  statusChangeHandler = (running: boolean) => {
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send("proxy:statusChanged", running);
     }
-  });
+  };
+  proxyManager.on("statusChange", statusChangeHandler);
 
   mainWindow.on("close", (event) => {
     if (process.platform === "darwin" && !isQuitting) {
@@ -109,23 +116,29 @@ function createWindow(): void {
   });
 }
 
-app.whenReady().then(async () => {
-  await initializeApp();
-  setupIpcHandlers();
-  createWindow();
+app
+  .whenReady()
+  .then(async () => {
+    await initializeApp();
+    setupIpcHandlers();
+    createWindow();
 
-  if (mainWindow) {
-    createTray(mainWindow);
-  }
-
-  app.on("activate", () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
-    } else {
-      mainWindow?.show();
+    if (mainWindow) {
+      createTray(mainWindow);
     }
+
+    app.on("activate", () => {
+      if (BrowserWindow.getAllWindows().length === 0) {
+        createWindow();
+      } else {
+        mainWindow?.show();
+      }
+    });
+  })
+  .catch((error) => {
+    log.error("[App] Failed to initialize:", error);
+    app.quit();
   });
-});
 
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {

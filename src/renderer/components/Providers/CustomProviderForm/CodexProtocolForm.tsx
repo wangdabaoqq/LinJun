@@ -1,0 +1,119 @@
+import { memo } from "react";
+import { Globe, Box, Key } from "lucide-react";
+import { useTranslations } from "../../../stores/settings";
+import { CodexApiKeyEntry, ModelEntry } from "./types";
+import { ModelEntryList } from "./ModelEntryList";
+
+interface CodexProtocolFormProps {
+  entry: CodexApiKeyEntry;
+  onUpdate: (
+    field: keyof CodexApiKeyEntry,
+    value: string | ModelEntry[] | undefined,
+  ) => void;
+}
+
+export const CodexProtocolForm = memo(function CodexProtocolForm({
+  entry,
+  onUpdate,
+}: CodexProtocolFormProps) {
+  const t = useTranslations();
+
+  const updateModel = (
+    modelIndex: number,
+    field: keyof ModelEntry,
+    value: string,
+  ) => {
+    const newModels = [...(entry.models || [])];
+    newModels[modelIndex] = {
+      ...newModels[modelIndex],
+      [field]: value || undefined,
+    };
+    onUpdate("models", newModels);
+  };
+
+  const addModel = () => {
+    const newModels = [...(entry.models || []), { name: "" }];
+    onUpdate("models", newModels);
+  };
+
+  const removeModel = (modelIndex: number) => {
+    const newModels = (entry.models || []).filter((_, i) => i !== modelIndex);
+    onUpdate("models", newModels.length > 0 ? newModels : undefined);
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="space-y-2">
+        <label className="flex items-center gap-2 text-xs font-bold text-[var(--text-primary)] uppercase tracking-widest px-1">
+          <Key className="w-3.5 h-3.5" />
+          API Key *
+        </label>
+        <input
+          type="password"
+          value={entry["api-key"]}
+          onChange={(e) => onUpdate("api-key", e.target.value)}
+          placeholder={t.providers.customApiKeyPlaceholder}
+          className="glass-input w-full font-mono text-sm bg-[var(--bg-deep)] border border-white/10 text-[var(--text-primary)] placeholder:text-[var(--text-muted)]"
+        />
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <label className="flex items-center gap-2 text-xs font-bold text-[var(--text-primary)] uppercase tracking-widest px-1">
+            <Globe className="w-3.5 h-3.5" />
+            {t.providers.customBaseUrl} ({t.providers.optional})
+          </label>
+          <input
+            type="text"
+            value={entry["base-url"] || ""}
+            onChange={(e) => onUpdate("base-url", e.target.value)}
+            placeholder="https://api.example.com"
+            className="glass-input w-full font-mono text-xs bg-[var(--bg-deep)] border border-white/10 text-[var(--text-primary)] placeholder:text-[var(--text-muted)]"
+          />
+        </div>
+        <div className="space-y-2">
+          <label className="text-xs font-bold text-[var(--text-primary)] uppercase tracking-widest px-1">
+            {t.providers.customProxyUrl} ({t.providers.optional})
+          </label>
+          <input
+            type="text"
+            value={entry["proxy-url"] || ""}
+            onChange={(e) => onUpdate("proxy-url", e.target.value)}
+            placeholder={t.providers.customProxyUrlPlaceholder}
+            className="glass-input w-full font-mono text-xs bg-[var(--bg-deep)] border border-white/10 text-[var(--text-primary)] placeholder:text-[var(--text-muted)]"
+          />
+        </div>
+      </div>
+      <div className="space-y-2">
+        <label className="flex items-center gap-2 text-xs font-bold text-[var(--text-primary)] uppercase tracking-widest px-1">
+          <Box className="w-3.5 h-3.5" />
+          {t.providers.customPrefix} ({t.providers.optional})
+        </label>
+        <div className="relative">
+          <input
+            type="text"
+            value={entry.prefix || ""}
+            onChange={(e) => onUpdate("prefix", e.target.value)}
+            placeholder={t.providers.customPrefixPlaceholder}
+            className="glass-input w-full font-mono text-sm bg-[var(--bg-deep)] border border-white/10 text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent-primary)]/50 transition-all"
+          />
+          <p className="text-[10px] text-[var(--text-muted)] mt-1 px-1">
+            {t.providers.customPrefixHint}
+          </p>
+        </div>
+      </div>
+      <div className="space-y-3">
+        <label className="flex items-center gap-2 text-xs font-bold text-[var(--text-primary)] uppercase tracking-widest px-1">
+          <Box className="w-3.5 h-3.5" />
+          {t.providers.customModels} ({t.providers.optional})
+        </label>
+        <ModelEntryList
+          models={entry.models || []}
+          onUpdate={updateModel}
+          onAdd={addModel}
+          onRemove={removeModel}
+          accentColor="var(--accent-primary)"
+        />
+      </div>
+    </div>
+  );
+});

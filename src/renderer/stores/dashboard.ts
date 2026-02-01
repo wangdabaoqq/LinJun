@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import log from "@renderer/utils/logger";
 import { DEFAULT_PORT } from "../../shared/constants";
 
 export interface ProxyStatus {
@@ -110,7 +111,7 @@ function calculatePercentile(values: number[], percentile: number): number {
   return sorted[Math.max(0, index)];
 }
 
-function parseTimeAgo(resetAt: string): number {
+function _parseTimeAgo(resetAt: string): number {
   const match = resetAt.match(/(\d+)h\s*(\d+)m/);
   if (match) {
     return parseInt(match[1]) * 60 + parseInt(match[2]);
@@ -141,7 +142,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
         }));
       }
     } catch (error) {
-      console.error("[Dashboard] Failed to fetch proxy status:", error);
+      log.error("[Dashboard] Failed to fetch proxy status:", error);
     }
   },
 
@@ -169,7 +170,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
         set({ accounts });
       }
     } catch (error) {
-      console.error("[Dashboard] Failed to fetch accounts:", error);
+      log.error("[Dashboard] Failed to fetch accounts:", error);
     }
   },
 
@@ -207,7 +208,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
         set({ quotas: [] });
       }
     } catch (error) {
-      console.error("[Dashboard] Failed to fetch quotas:", error);
+      log.error("[Dashboard] Failed to fetch quotas:", error);
       set({ quotas: [] });
     }
   },
@@ -239,7 +240,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
         set({ logs });
       }
     } catch (error) {
-      console.error("[Dashboard] Failed to fetch logs:", error);
+      log.error("[Dashboard] Failed to fetch logs:", error);
     }
   },
 
@@ -250,7 +251,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
         set({ usage });
       }
     } catch (error) {
-      console.error("[Dashboard] Failed to fetch usage:", error);
+      log.error("[Dashboard] Failed to fetch usage:", error);
     }
   },
 

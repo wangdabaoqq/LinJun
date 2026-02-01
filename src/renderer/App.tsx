@@ -27,6 +27,7 @@ import { SunIcon } from "./components/ui/sun";
 import { MoonIcon } from "./components/ui/moon";
 
 import { LanguagesIcon } from "./components/ui/languages";
+import log from "@renderer/utils/logger";
 
 function LiveMetrics() {
   const t = useTranslations();
@@ -101,14 +102,19 @@ function LanguageToggle() {
 
 function TopBar() {
   const t = useTranslations();
-  const port = useSettingsStore((s) => s.port);
+  const _port = useSettingsStore((s) => s.port);
   const isMac = navigator.userAgent.includes("Mac");
   const [version, setVersion] = useState<string>("");
 
   useEffect(() => {
-    window.electronAPI?.app.getVersion().then((v) => {
-      setVersion(v ? `v${v}` : "");
-    });
+    window.electronAPI?.app
+      .getVersion()
+      .then((v) => {
+        setVersion(v ? `v${v}` : "");
+      })
+      .catch((error) => {
+        log.error("[App] Failed to get version:", error);
+      });
   }, []);
 
   return (

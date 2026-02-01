@@ -1,5 +1,6 @@
 import path from "path";
 
+import log from "../utils/logger";
 import {
   scanTokenFiles,
   getTokensByProvider,
@@ -195,7 +196,7 @@ function convertAntigravityUsageToQuotaAccount(
   };
 }
 
-function formatUnixSecondsToLocal(seconds?: number): string {
+function _formatUnixSecondsToLocal(seconds?: number): string {
   if (!seconds) return "-";
   const date = new Date(seconds * 1000);
   return `${date.toLocaleDateString()} ${date.toLocaleTimeString("zh-CN", {
@@ -220,7 +221,7 @@ function convertKiroUsageToQuotaAccount(
     breakdown?.freeTrialInfo?.usageLimitWithPrecision ??
     breakdown?.usageLimitWithPrecision ??
     0;
-  const resetSeconds =
+  const _resetSeconds =
     breakdown?.nextDateReset ??
     usage.nextDateReset ??
     breakdown?.freeTrialInfo?.freeTrialExpiry;
@@ -315,7 +316,7 @@ export async function getQuotaByProvider(
         const usage = await fetchCodexUsage(token);
         results.push(convertCodexUsageToQuotaAccount(token, usage));
       } catch (error) {
-        console.error(
+        log.error(
           `[QuotaManager] Failed to fetch quota for ${token.email}:`,
           error,
         );
@@ -331,7 +332,7 @@ export async function getQuotaByProvider(
         const usage = await fetchAntigravityUsage(token);
         results.push(convertAntigravityUsageToQuotaAccount(token, usage));
       } catch (error) {
-        console.error(
+        log.error(
           `[QuotaManager] Failed to fetch Antigravity quota for ${token.email}:`,
           error,
         );
@@ -360,7 +361,7 @@ export async function getQuotaByProvider(
           convertKiroUsageToQuotaAccount(token, usage, safeName, accountId),
         );
       } catch (error) {
-        console.error(
+        log.error(
           `[QuotaManager] Skipping expired Kiro account ${token.filePath}:`,
           error,
         );
@@ -398,7 +399,7 @@ export async function refreshQuota(
   );
 
   if (!token) {
-    console.error(`[QuotaManager] Token not found for account: ${accountId}`);
+    log.error(`[QuotaManager] Token not found for account: ${accountId}`);
     return null;
   }
 

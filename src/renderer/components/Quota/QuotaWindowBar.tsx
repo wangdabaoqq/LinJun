@@ -20,7 +20,7 @@ export function QuotaWindowBar({
   usedPercent,
   resetIn,
   limitReached = false,
-  providerId,
+  providerId: _providerId,
 }: QuotaWindowBarProps) {
   const t = useTranslations();
   const { language } = useLanguage();

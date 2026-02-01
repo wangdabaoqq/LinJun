@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import log from "@renderer/utils/logger";
 
 export type ProviderType =
   | "codex"
@@ -82,7 +83,7 @@ export const useQuotaStore = create<QuotaState>((set, get) => ({
         }
       }
     } catch (error) {
-      console.error("[QuotaStore] Failed to load providers:", error);
+      log.error("[QuotaStore] Failed to load providers:", error);
       set({ error: String(error) });
     }
   },
@@ -123,7 +124,7 @@ export const useQuotaStore = create<QuotaState>((set, get) => ({
         set({ error: result?.error || "Failed to load accounts" });
       }
     } catch (error) {
-      console.error("[QuotaStore] Failed to select provider:", error);
+      log.error("[QuotaStore] Failed to select provider:", error);
       set({ error: String(error) });
     } finally {
       set({
@@ -165,7 +166,7 @@ export const useQuotaStore = create<QuotaState>((set, get) => ({
         });
       }
     } catch (error) {
-      console.error("[QuotaStore] Failed to refresh account:", error);
+      log.error("[QuotaStore] Failed to refresh account:", error);
       set({
         accounts: get().accounts.map((acc) =>
           acc.id === accountId ? { ...acc, status: "error" as const } : acc,

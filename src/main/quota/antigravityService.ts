@@ -1,10 +1,14 @@
 import axios from "axios";
+
+import log from "../utils/logger";
 import { TokenReadResult, updateTokenFile } from "./tokenReader";
 
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 const GOOGLE_CLIENT_ID =
+  process.env.GOOGLE_CLIENT_ID ||
   "1071006060591-tmhssin2h21lcre235vtolojh4g403ep.apps.googleusercontent.com";
-const GOOGLE_CLIENT_SECRET = "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";
+const GOOGLE_CLIENT_SECRET =
+  process.env.GOOGLE_CLIENT_SECRET || "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";
 const CLOUDCODE_LOAD_URL =
   "https://cloudcode-pa.googleapis.com/v1internal:loadCodeAssist";
 const CLOUDCODE_MODELS_URL =
@@ -146,7 +150,11 @@ async function fetchAvailableModels(
 
   if (response.data?.models && typeof response.data.models === "object") {
     for (const [modelId, modelData] of Object.entries(response.data.models)) {
-      const model = modelData as any;
+      const model = modelData as {
+        isInternal?: boolean;
+        displayName?: string;
+        quotaInfo?: { remainingFraction?: number; resetTime?: string };
+      };
 
       if (model.isInternal || !ALLOWED_MODELS.includes(modelId)) {
         continue;
@@ -240,7 +248,7 @@ export async function fetchAntigravityUsage(
       axios.isAxiosError(error) &&
       (error.response?.status === 401 || error.response?.status === 403)
     ) {
-      console.log(
+      log.info(
         `[AntigravityService] Token expired for ${token.email}, refreshing...`,
       );
 

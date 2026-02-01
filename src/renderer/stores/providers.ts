@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import log from "@renderer/utils/logger";
 export interface TokenAccount {
   id: string;
   provider: string;
@@ -38,7 +39,7 @@ export const useProvidersStore = create<ProvidersState>((set, get) => ({
         });
       }
     } catch (error) {
-      console.error("[ProvidersStore] Failed to load accounts:", error);
+      log.error("[ProvidersStore] Failed to load accounts:", error);
       set({ error: String(error) });
     } finally {
       set({ isLoading: false });

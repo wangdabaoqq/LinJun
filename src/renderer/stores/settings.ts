@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import log from "@renderer/utils/logger";
 import { Language, getTranslations, Translations } from "../i18n";
 import { DEFAULT_PORT } from "../../shared/constants";
 
@@ -344,10 +345,10 @@ export function initializeSettingsFromMain(): Promise<void> {
     .getAll()
     .then((mainSettings) => {
       useSettingsStore.getState().syncFromMain(mainSettings);
-      console.log("[Settings] Synced from main:", mainSettings);
+      log.info("[Settings] Synced from main:", mainSettings);
     })
     .catch((error) => {
-      console.error("[Settings] Failed to sync from main:", error);
+      log.error("[Settings] Failed to sync from main:", error);
     });
 }
 
@@ -368,7 +369,7 @@ export async function fetchProxyStatus(): Promise<boolean> {
     const status = await window.electronAPI.proxy.status();
     return status.running;
   } catch (error) {
-    console.error("[Proxy] Failed to fetch status:", error);
+    log.error("[Proxy] Failed to fetch status:", error);
     return false;
   }
 }
@@ -379,7 +380,7 @@ export async function startProxy(): Promise<boolean> {
     const result = await window.electronAPI.proxy.start();
     return result.success;
   } catch (error) {
-    console.error("[Proxy] Failed to start:", error);
+    log.error("[Proxy] Failed to start:", error);
     return false;
   }
 }
@@ -390,7 +391,7 @@ export async function stopProxy(): Promise<boolean> {
     const result = await window.electronAPI.proxy.stop();
     return result.success;
   } catch (error) {
-    console.error("[Proxy] Failed to stop:", error);
+    log.error("[Proxy] Failed to stop:", error);
     return false;
   }
 }

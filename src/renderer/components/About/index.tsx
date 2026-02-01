@@ -8,8 +8,6 @@ import {
   Github,
   FileText,
   Bug,
-  Cpu,
-  Layers,
   Zap,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";

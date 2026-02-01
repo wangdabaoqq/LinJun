@@ -1,5 +1,7 @@
 import fs from "fs";
 import path from "path";
+
+import log from "../utils/logger";
 import { proxyManager } from "../proxy/manager";
 
 export type RequestLogStatus = "success" | "error";
@@ -76,10 +78,10 @@ export function deleteAllLogs(): { success: boolean; error?: string } {
       fs.unlinkSync(path.join(logDir, file));
     }
 
-    console.log(`[Logs] Deleted ${files.length} log files`);
+    log.info(`[Logs] Deleted ${files.length} log files`);
     return { success: true };
   } catch (error) {
-    console.error("[Logs] Failed to delete logs:", error);
+    log.error("[Logs] Failed to delete logs:", error);
     return { success: false, error: String(error) };
   }
 }
@@ -148,7 +150,7 @@ function parseLogFile(
       duration,
     };
   } catch (error) {
-    console.error("[Logs] Failed to parse log file", filePath, error);
+    log.error("[Logs] Failed to parse log file", filePath, error);
     return null;
   }
 }
@@ -225,7 +227,7 @@ function parseKeyValueBlock(block: string): Record<string, string> {
   return map;
 }
 
-function extractProvider(section: string): string | undefined {
+function _extractProvider(section: string): string | undefined {
   if (!section) return undefined;
   const authLine = section
     .split(/\r?\n/)

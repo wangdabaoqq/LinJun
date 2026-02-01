@@ -3,6 +3,10 @@ import { promisify } from "util";
 import fs from "fs";
 import path from "path";
 import os from "os";
+import http, { IncomingMessage } from "http";
+import https from "https";
+
+import log from "./logger";
 
 const execAsync = promisify(exec);
 
@@ -54,7 +58,7 @@ export async function detectCLITool(
       version = versionOutput.trim().split("\n")[0];
     } catch (err) {
       // 版本获取失败不影响检测结果
-      console.log(`[CLIDetector] Failed to get version for ${command}:`, err);
+      log.info(`[CLIDetector] Failed to get version for ${command}:`, err);
     }
 
     // 获取配置文件路径
@@ -86,7 +90,7 @@ function getConfigPaths(toolName: string): {
   authPath?: string;
 } {
   const homeDir = os.homedir();
-  const isWindows = process.platform === "win32";
+  const _isWindows = process.platform === "win32";
 
   const pathMap: Record<string, { configPath?: string; authPath?: string }> = {
     "Claude Code": {
@@ -118,10 +122,7 @@ export async function readCLIConfig(toolName: string): Promise<CLIConfig> {
     try {
       result.configContent = fs.readFileSync(configPath, "utf-8");
     } catch (error) {
-      console.error(
-        `[CLIDetector] Failed to read config: ${configPath}`,
-        error,
-      );
+      log.error(`[CLIDetector] Failed to read config: ${configPath}`, error);
     }
   }
 
@@ -129,7 +130,7 @@ export async function readCLIConfig(toolName: string): Promise<CLIConfig> {
     try {
       result.authContent = fs.readFileSync(authPath, "utf-8");
     } catch (error) {
-      console.error(`[CLIDetector] Failed to read auth: ${authPath}`, error);
+      log.error(`[CLIDetector] Failed to read auth: ${authPath}`, error);
     }
   }
 
@@ -149,10 +150,10 @@ export function backupConfig(filePath: string): string | null {
 
   try {
     fs.copyFileSync(filePath, backupPath);
-    console.log(`[CLIDetector] Backed up ${filePath} to ${backupPath}`);
+    log.info(`[CLIDetector] Backed up ${filePath} to ${backupPath}`);
     return backupPath;
   } catch (error) {
-    console.error(`[CLIDetector] Failed to backup ${filePath}:`, error);
+    log.error(`[CLIDetector] Failed to backup ${filePath}:`, error);
     return null;
   }
 }
@@ -180,17 +181,14 @@ export function writeConfig(
 
     // 写入新配置
     fs.writeFileSync(filePath, content, "utf-8");
-    console.log(`[CLIDetector] Wrote config to ${filePath}`);
+    log.info(`[CLIDetector] Wrote config to ${filePath}`);
 
     return {
       success: true,
       backupPath: backupPath || undefined,
     };
   } catch (error) {
-    console.error(
-      `[CLIDetector] Failed to write config to ${filePath}:`,
-      error,
-    );
+    log.error(`[CLIDetector] Failed to write config to ${filePath}:`, error);
     return {
       success: false,
       error: String(error),
@@ -225,8 +223,6 @@ export async function testProxyConnection(
 ): Promise<{ success: boolean; error?: string; latency?: number }> {
   return new Promise((resolve) => {
     const startTime = Date.now();
-    const https = require("https");
-    const http = require("http");
 
     const urlObj = new URL(url);
     const protocol = urlObj.protocol === "https:" ? https : http;
@@ -240,7 +236,7 @@ export async function testProxyConnection(
       timeout: 5000,
     };
 
-    const req = protocol.request(options, (res: any) => {
+    const req = protocol.request(options, (res: IncomingMessage) => {
       const latency = Date.now() - startTime;
 
       if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
