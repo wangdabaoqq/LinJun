@@ -6,7 +6,7 @@ directories:
   output: dist
 
 asar: true
-compression: maximum
+compression: normal
 
 dmg:
   writeUpdateInfo: false
