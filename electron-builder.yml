@@ -36,6 +36,8 @@ extraResources:
       - "!.DS_Store"
       - "!.gitkeep"
       - "!static"
+  - from: "resources/icons/icons/32x32.png"
+    to: "icons/tray-icon.png"
 
 mac:
   category: public.app-category.developer-tools
