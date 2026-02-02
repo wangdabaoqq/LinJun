@@ -79,20 +79,29 @@ export interface ProxyConfig {
   "claude-api-key"?: ClaudeApiKeyEntry[];
   "gemini-api-key"?: GeminiApiKeyEntry[];
   "codex-api-key"?: CodexApiKeyEntry[];
+  "incognito-browser"?: boolean;
+  "request-log"?: boolean;
 }
 
 function getDefaultConfig(authDir: string): string {
-  return `# CLIProxyAPIPlus Configuration (managed by linjun)
-host: "127.0.0.1"
-port: ${DEFAULT_PORT}
-auth-dir: "${authDir}"
-api-keys: []
-debug: false
-incognito-browser: true
-logging-to-file: true
-request-log: true
-usage-statistics-enabled: true
-`;
+  const config = {
+    host: "127.0.0.1",
+    port: DEFAULT_PORT,
+    "auth-dir": authDir,
+    "api-keys": [],
+    debug: false,
+    "incognito-browser": true,
+    "logging-to-file": true,
+    "request-log": true,
+    "usage-statistics-enabled": true,
+  };
+  const yamlContent = yaml.dump(config, {
+    indent: 2,
+    lineWidth: -1,
+    quotingType: '"',
+    forceQuotes: true,
+  });
+  return `# CLIProxyAPIPlus Configuration (managed by linjun)\n${yamlContent}`;
 }
 
 class ProxyManager extends EventEmitter {
@@ -370,6 +379,7 @@ class ProxyManager extends EventEmitter {
   /**
    * Load and parse config.yaml, returning the parsed config object.
    * Creates default config if it doesn't exist.
+   * Attempts auto-repair if YAML parsing fails (e.g., Windows path escaping issues).
    */
   loadConfigFromYaml(): ProxyConfig | null {
     this.ensureConfig();
@@ -381,7 +391,87 @@ class ProxyManager extends EventEmitter {
       log.info("[ProxyManager] Loaded config from:", configPath);
       return config;
     } catch (error) {
-      log.error("[ProxyManager] Failed to load config:", error);
+      log.warn(
+        "[ProxyManager] Failed to parse config, attempting repair:",
+        error,
+      );
+      return this.attemptConfigRepair(configPath);
+    }
+  }
+
+  /**
+   * Attempt to repair a corrupted config.yaml file.
+   * Specifically handles Windows path escaping issues with auth-dir.
+   */
+  private attemptConfigRepair(configPath: string): ProxyConfig | null {
+    try {
+      const rawContent = fs.readFileSync(configPath, "utf-8");
+
+      // Extract auth-dir value from raw content using regex
+      const authDirMatch = rawContent.match(/^auth-dir:\s*(.+)$/m);
+      let extractedAuthDir = authDirMatch ? authDirMatch[1].trim() : null;
+      if (extractedAuthDir) {
+        // Remove inline comments
+        const commentIndex = extractedAuthDir.indexOf(" #");
+        if (commentIndex > -1) {
+          extractedAuthDir = extractedAuthDir.slice(0, commentIndex).trim();
+        }
+        // Strip surrounding quotes if present
+        if (
+          (extractedAuthDir.startsWith('"') &&
+            extractedAuthDir.endsWith('"')) ||
+          (extractedAuthDir.startsWith("'") && extractedAuthDir.endsWith("'"))
+        ) {
+          extractedAuthDir = extractedAuthDir.slice(1, -1);
+        }
+      }
+
+      // Try to parse partial config to preserve other keys
+      let existingConfig: Partial<ProxyConfig> = {};
+      try {
+        // Remove auth-dir line to avoid Windows path parsing issues
+        const contentWithoutAuthDir = rawContent.replace(/^auth-dir:.*$/m, "");
+        existingConfig = yaml.load(
+          contentWithoutAuthDir,
+        ) as Partial<ProxyConfig>;
+      } catch {
+        // Parsing failed completely, we'll use defaults
+        log.warn(
+          "[ProxyManager] Could not parse any config values, using defaults",
+        );
+      }
+
+      // Build repaired config with defaults and extracted values
+      const repairedConfig: ProxyConfig = {
+        host: existingConfig.host ?? "127.0.0.1",
+        port: existingConfig.port ?? DEFAULT_PORT,
+        "auth-dir": extractedAuthDir ?? this.getAuthDir(),
+        "api-keys": existingConfig["api-keys"] ?? [],
+        debug: existingConfig.debug ?? false,
+        "incognito-browser": existingConfig["incognito-browser"] ?? true,
+        "logging-to-file": existingConfig["logging-to-file"] ?? true,
+        "request-log": existingConfig["request-log"] ?? true,
+        "usage-statistics-enabled":
+          existingConfig["usage-statistics-enabled"] ?? true,
+      };
+
+      // Write repaired config using yaml.dump with same options as updateConfigYaml
+      const yamlContent = yaml.dump(repairedConfig, {
+        indent: 2,
+        lineWidth: -1,
+        quotingType: '"',
+        forceQuotes: true,
+      });
+      fs.writeFileSync(configPath, yamlContent, "utf-8");
+      log.info("[ProxyManager] Repaired and rewrote config at:", configPath);
+
+      // Retry loading the repaired config
+      const repairedContent = fs.readFileSync(configPath, "utf-8");
+      const config = yaml.load(repairedContent) as ProxyConfig;
+      log.info("[ProxyManager] Successfully loaded repaired config");
+      return config;
+    } catch (repairError) {
+      log.error("[ProxyManager] Config repair failed:", repairError);
       return null;
     }
   }
