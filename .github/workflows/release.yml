@@ -23,21 +23,25 @@ jobs:
             platform: darwin
             arch: arm64
             cli-arch: arm64
+            cli-platform: darwin
             electron-args: --mac --arm64
-          - os: macos-15-intel
+          - os: macos-13
             platform: darwin
             arch: x64
             cli-arch: amd64
+            cli-platform: darwin
             electron-args: --mac --x64
           - os: ubuntu-latest
             platform: linux
             arch: x64
             cli-arch: amd64
+            cli-platform: linux
             electron-args: --linux
-          - os: windows-latest
+          - os: ubuntu-latest
             platform: win32
             arch: x64
             cli-arch: amd64
+            cli-platform: windows
             electron-args: --win
 
     runs-on: ${{ matrix.os }}
@@ -51,18 +55,15 @@ jobs:
         with:
           bun-version: latest
 
-      - name: Setup Node.js (Windows)
+      - name: Install Wine (for Windows cross-compile)
         if: matrix.platform == 'win32'
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
+        run: |
+          sudo dpkg --add-architecture i386
+          sudo apt-get update
+          sudo apt-get install -y wine64
 
       - name: Install dependencies
         run: bun install
-
-      - name: Install dependencies (npm fallback for Windows)
-        if: matrix.platform == 'win32'
-        run: npm install
 
       - name: Download CLIProxyAPIPlus binary
         shell: bash
@@ -72,13 +73,11 @@ jobs:
           TARGET_DIR="resources/binaries/${{ matrix.platform }}-${{ matrix.arch }}"
           mkdir -p "$TARGET_DIR"
 
-          if [ "${{ matrix.platform }}" = "win32" ]; then
-            CLI_PLATFORM="windows"
+          if [ "${{ matrix.cli-platform }}" = "windows" ]; then
             EXT="zip"
             BINARY_NAME="cliproxy.exe"
             SRC_NAME="cli-proxy-api-plus.exe"
           else
-            CLI_PLATFORM="${{ matrix.platform }}"
             EXT="tar.gz"
             BINARY_NAME="cliproxy"
             SRC_NAME="cli-proxy-api-plus"
@@ -89,7 +88,7 @@ jobs:
             | grep -o '"tag_name": "[^"]*"' | cut -d'"' -f4)
           VERSION="${LATEST_TAG#v}"
 
-          DOWNLOAD_URL="https://github.com/router-for-me/CLIProxyAPIPlus/releases/download/${LATEST_TAG}/CLIProxyAPIPlus_${VERSION}_${CLI_PLATFORM}_${{ matrix.cli-arch }}.${EXT}"
+          DOWNLOAD_URL="https://github.com/router-for-me/CLIProxyAPIPlus/releases/download/${LATEST_TAG}/CLIProxyAPIPlus_${VERSION}_${{ matrix.cli-platform }}_${{ matrix.cli-arch }}.${EXT}"
 
           echo "Downloading: $DOWNLOAD_URL"
           curl -fSL -o "archive.${EXT}" "$DOWNLOAD_URL"
@@ -103,7 +102,7 @@ jobs:
           FOUND=$(find . -maxdepth 2 -type f -name "$SRC_NAME" | head -1)
           if [ -n "$FOUND" ]; then
             mv "$FOUND" "${TARGET_DIR}/${BINARY_NAME}"
-            chmod +x "${TARGET_DIR}/${BINARY_NAME}"
+            chmod +x "${TARGET_DIR}/${BINARY_NAME}" 2>/dev/null || true
             echo "Installed: ${TARGET_DIR}/${BINARY_NAME}"
           else
             echo "::error::Binary $SRC_NAME not found in archive"
@@ -117,16 +116,9 @@ jobs:
         run: bun run build
 
       - name: Package for ${{ matrix.platform }}
-        shell: bash
-        run: |
-          if [ "${{ matrix.platform }}" = "win32" ]; then
-            npx electron-builder ${{ matrix.electron-args }} --publish never
-          else
-            bunx electron-builder ${{ matrix.electron-args }} --publish never
-          fi
+        run: bunx electron-builder ${{ matrix.electron-args }} --publish never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          DEBUG: electron-builder
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
