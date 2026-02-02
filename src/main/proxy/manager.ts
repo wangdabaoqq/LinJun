@@ -19,6 +19,12 @@ function generateSecret(): string {
   return `${hex.substring(0, 8)}-${hex.substring(8, 12)}-${hex.substring(12, 16)}-${hex.substring(16, 20)}-${hex.substring(20)}`;
 }
 
+function isBcryptHash(value?: string): boolean {
+  return Boolean(
+    value && (value.startsWith("$2a$") || value.startsWith("$2b$")),
+  );
+}
+
 export interface OpenAICompatibilityApiKeyEntry {
   "api-key": string;
   "proxy-url"?: string;
@@ -156,7 +162,7 @@ class ProxyManager extends EventEmitter {
         const content = fs.readFileSync(configPath, "utf-8");
         const config = yaml.load(content) as Partial<ProxyConfig>;
         const configSecret = config?.["remote-management"]?.["secret-key"];
-        if (configSecret) {
+        if (configSecret && !isBcryptHash(configSecret)) {
           secret = configSecret;
         }
       } catch (error) {
@@ -164,7 +170,10 @@ class ProxyManager extends EventEmitter {
       }
     }
     if (!secret) {
-      secret = existingSecret || generateSecret();
+      secret =
+        existingSecret && !isBcryptHash(existingSecret)
+          ? existingSecret
+          : generateSecret();
     }
     if (secret && secret !== existingSecret) {
       store.set("managementSecret", secret);
@@ -257,14 +266,16 @@ class ProxyManager extends EventEmitter {
       "secret-key"?: string;
       "panel-github-repository"?: string;
     } = parsedConfig["remote-management"] || {};
-    const hasSecret = Boolean(remoteManagement["secret-key"]);
+    const hasSecret =
+      Boolean(remoteManagement["secret-key"]) &&
+      !isBcryptHash(remoteManagement["secret-key"]);
     const hasAllowRemote = remoteManagement["allow-remote"] !== undefined;
 
     if (!hasSecret || !hasAllowRemote) {
       updates["remote-management"] = {
         ...remoteManagement,
         "allow-remote": remoteManagement["allow-remote"] ?? false,
-        "secret-key": remoteManagement["secret-key"] ?? secret,
+        "secret-key": hasSecret ? remoteManagement["secret-key"] : secret,
       } as ProxyConfig["remote-management"];
     }
 

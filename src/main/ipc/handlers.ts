@@ -168,7 +168,6 @@ export function setupIpcHandlers(): void {
 
         if (updates.apiKey !== undefined) {
           yamlUpdates["api-keys"] = [updates.apiKey];
-          store.set("managementSecret", updates.apiKey);
         }
 
         if (updates.routingStrategy !== undefined) {
