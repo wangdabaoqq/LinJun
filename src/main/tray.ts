@@ -13,12 +13,14 @@ let tray: Tray | null = null;
 let trayWindow: BrowserWindow | null = null;
 
 export function createTray(mainWindow: BrowserWindow): void {
-  const iconPath = path.join(__dirname, "../../resources/AppIcon.png");
+  const iconPath = path.join(
+    __dirname,
+    "../../resources/icons/icons/32x32.png",
+  );
 
   const icon = nativeImage
     .createFromPath(iconPath)
-    .resize({ width: 16, height: 16 });
-  icon.setTemplateImage(true);
+    .resize({ width: 22, height: 22 });
 
   tray = new Tray(icon);
   tray.setToolTip("霖君");

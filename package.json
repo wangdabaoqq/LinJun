@@ -55,6 +55,7 @@
     "autoprefixer": "^10.4.16",
     "electron": "33.4.11",
     "electron-builder": "^24.9.0",
+    "electron-icon-builder": "^2.0.1",
     "electron-vite": "^2.0.0",
     "eslint": "^8.55.0",
     "postcss": "^8.4.32",
