@@ -2,12 +2,22 @@ import { spawn, ChildProcess } from "child_process";
 import path from "path";
 import fs from "fs";
 import net from "net";
+import crypto from "crypto";
 import { app } from "electron";
 import { EventEmitter } from "events";
 import yaml from "js-yaml";
 
 import log from "../utils/logger";
+import { store } from "../utils/store";
 import { DEFAULT_PORT } from "../../shared/constants";
+
+function generateSecret(): string {
+  const bytes = crypto.randomBytes(16);
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = bytes.toString("hex").toUpperCase();
+  return `${hex.substring(0, 8)}-${hex.substring(8, 12)}-${hex.substring(12, 16)}-${hex.substring(16, 20)}-${hex.substring(20)}`;
+}
 
 export interface OpenAICompatibilityApiKeyEntry {
   "api-key": string;
@@ -83,13 +93,17 @@ export interface ProxyConfig {
   "request-log"?: boolean;
 }
 
-function getDefaultConfig(authDir: string): string {
+function getDefaultConfig(authDir: string, secret: string): string {
   const config = {
     host: "127.0.0.1",
     port: DEFAULT_PORT,
     "auth-dir": authDir,
     "api-keys": [],
     debug: false,
+    "remote-management": {
+      "allow-remote": false,
+      "secret-key": secret,
+    },
     "incognito-browser": true,
     "logging-to-file": true,
     "request-log": true,
@@ -135,16 +149,37 @@ class ProxyManager extends EventEmitter {
       fs.mkdirSync(authDir, { recursive: true });
     }
 
+    const existingSecret = store.get("managementSecret");
+    let secret = "";
+    if (fs.existsSync(configPath)) {
+      try {
+        const content = fs.readFileSync(configPath, "utf-8");
+        const config = yaml.load(content) as Partial<ProxyConfig>;
+        const configSecret = config?.["remote-management"]?.["secret-key"];
+        if (configSecret) {
+          secret = configSecret;
+        }
+      } catch (error) {
+        log.warn("[ProxyManager] Failed to read config secret:", error);
+      }
+    }
+    if (!secret) {
+      secret = existingSecret || generateSecret();
+    }
+    if (secret && secret !== existingSecret) {
+      store.set("managementSecret", secret);
+    }
+
     if (!fs.existsSync(configPath)) {
-      fs.writeFileSync(configPath, getDefaultConfig(authDir), "utf-8");
+      fs.writeFileSync(configPath, getDefaultConfig(authDir, secret), "utf-8");
       log.info("[ProxyManager] Created default config at:", configPath);
       log.info("[ProxyManager] Auth directory:", authDir);
     } else {
-      this.migrateConfig(configPath);
+      this.migrateConfig(configPath, secret);
     }
   }
 
-  private migrateConfig(configPath: string): void {
+  private migrateConfig(configPath: string, secret: string): void {
     try {
       let content = fs.readFileSync(configPath, "utf-8");
       const missing: string[] = [];
@@ -161,13 +196,95 @@ class ProxyManager extends EventEmitter {
         missing.push("usage-statistics-enabled: true");
       }
 
-      if (missing.length > 0) {
-        content = content.trimEnd() + "\n" + missing.join("\n") + "\n";
-        fs.writeFileSync(configPath, content, "utf-8");
-        log.info("[ProxyManager] Migrated config: added", missing.join(", "));
+      let parsedConfig: Partial<ProxyConfig> | null = null;
+      try {
+        parsedConfig = yaml.load(content) as Partial<ProxyConfig>;
+      } catch (error) {
+        log.warn("[ProxyManager] Failed to parse config for migration:", error);
       }
+
+      this.migrateConfigYaml({
+        content,
+        missing,
+        parsedConfig,
+        secret,
+        configPath,
+      });
     } catch (error) {
       log.error("[ProxyManager] Config migration failed:", error);
+    }
+  }
+
+  private migrateConfigYaml({
+    content,
+    missing,
+    parsedConfig,
+    secret,
+    configPath,
+  }: {
+    content: string;
+    missing: string[];
+    parsedConfig: Partial<ProxyConfig> | null;
+    secret: string;
+    configPath: string;
+  }): void {
+    const updates: Partial<ProxyConfig> = {};
+
+    if (!parsedConfig || typeof parsedConfig !== "object") {
+      if (missing.length > 0) {
+        const updatedContent =
+          content.trimEnd() + "\n" + missing.join("\n") + "\n";
+        fs.writeFileSync(configPath, updatedContent, "utf-8");
+        log.info("[ProxyManager] Migrated config: added", missing.join(", "));
+      }
+      return;
+    }
+
+    if (parsedConfig["logging-to-file"] === undefined) {
+      updates["logging-to-file"] = true;
+    }
+
+    if (parsedConfig["request-log"] === undefined) {
+      updates["request-log"] = true;
+    }
+
+    if (parsedConfig["usage-statistics-enabled"] === undefined) {
+      updates["usage-statistics-enabled"] = true;
+    }
+
+    const remoteManagement: {
+      "allow-remote"?: boolean;
+      "secret-key"?: string;
+      "panel-github-repository"?: string;
+    } = parsedConfig["remote-management"] || {};
+    const hasSecret = Boolean(remoteManagement["secret-key"]);
+    const hasAllowRemote = remoteManagement["allow-remote"] !== undefined;
+
+    if (!hasSecret || !hasAllowRemote) {
+      updates["remote-management"] = {
+        ...remoteManagement,
+        "allow-remote": remoteManagement["allow-remote"] ?? false,
+        "secret-key": remoteManagement["secret-key"] ?? secret,
+      } as ProxyConfig["remote-management"];
+    }
+
+    if (Object.keys(updates).length > 0) {
+      const success = this.updateConfigYaml(updates);
+      if (success) {
+        const addedKeys = [...missing];
+        if (!hasSecret) {
+          addedKeys.push("remote-management.secret-key");
+        }
+        if (!hasAllowRemote) {
+          addedKeys.push("remote-management.allow-remote");
+        }
+        if (addedKeys.length > 0) {
+          log.info(
+            "[ProxyManager] Migrated config: added",
+            addedKeys.join(", "),
+          );
+        }
+      }
     }
   }
 
