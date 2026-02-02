@@ -70,7 +70,7 @@ function ProgressBar({
           </span>
           <div className="flex items-center gap-1.5">
             {resetIn && (
-              <span className="text-[8px] font-medium text-gray-400/70 dark:text-gray-500/70">
+              <span className="text-[8px] font-medium text-gray-400/70 dark:text-gray-500/70 whitespace-nowrap">
                 {resetIn}
               </span>
             )}
@@ -261,7 +261,7 @@ export function TrayView() {
             className="flex items-center gap-1.5 py-0.5 rounded-md hover:bg-black/5 dark:hover:bg-white/10 transition-colors group"
           >
             <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 font-mono">
-              127.0.0.1:${port}
+              127.0.0.1:{port}
             </span>
             {copied ? (
               <Check size={10} className="text-emerald-500" />

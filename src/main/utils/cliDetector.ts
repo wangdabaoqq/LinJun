@@ -10,6 +10,113 @@ import log from "./logger";
 
 const execAsync = promisify(exec);
 
+/**
+ * 查找 nvm 管理的最新 node 版本的 bin 目录
+ */
+function findNvmNodeBin(): string | null {
+  const homeDir = os.homedir();
+  const nvmDir = path.join(homeDir, ".nvm", "versions", "node");
+
+  if (!fs.existsSync(nvmDir)) {
+    return null;
+  }
+
+  try {
+    const versions = fs
+      .readdirSync(nvmDir)
+      .filter((v) => v.startsWith("v"))
+      .sort((a, b) => {
+        const parseVersion = (v: string) =>
+          v
+            .slice(1)
+            .split(".")
+            .map((n) => parseInt(n, 10) || 0);
+        const [aMajor, aMinor, aPatch] = parseVersion(a);
+        const [bMajor, bMinor, bPatch] = parseVersion(b);
+        return bMajor - aMajor || bMinor - aMinor || bPatch - aPatch;
+      });
+
+    if (versions.length > 0) {
+      const binPath = path.join(nvmDir, versions[0], "bin");
+      if (fs.existsSync(binPath)) {
+        return binPath;
+      }
+    }
+  } catch (error) {
+    log.info("[CLIDetector] Failed to find nvm node:", error);
+  }
+
+  return null;
+}
+
+/**
+ * 获取增强的 PATH 环境变量
+ * 解决从 Dock/Finder 启动时 PATH 不完整的问题
+ */
+function getEnhancedPath(): string {
+  const homeDir = os.homedir();
+  const isWindows = process.platform === "win32";
+  const delimiter = isWindows ? ";" : ":";
+
+  const additionalPaths: string[] = isWindows
+    ? [
+        `${homeDir}\\AppData\\Local\\Programs`,
+        `${homeDir}\\AppData\\Roaming\\npm`,
+        `${homeDir}\\.cargo\\bin`,
+        `${homeDir}\\.bun\\bin`,
+      ]
+    : [
+        "/usr/local/bin",
+        "/opt/homebrew/bin",
+        "/opt/homebrew/sbin",
+        `${homeDir}/.local/bin`,
+        `${homeDir}/.npm-global/bin`,
+        `${homeDir}/.cargo/bin`,
+        `${homeDir}/.bun/bin`,
+        "/usr/local/go/bin",
+        `${homeDir}/go/bin`,
+      ];
+
+  if (!isWindows) {
+    const nvmBin = process.env.NVM_BIN || findNvmNodeBin();
+    if (nvmBin) {
+      additionalPaths.push(nvmBin);
+    }
+  }
+
+  const currentPath = process.env.PATH || "";
+  return [...additionalPaths, currentPath].join(delimiter);
+}
+
+/**
+ * 获取执行命令时使用的环境变量
+ */
+function getExecEnv(): NodeJS.ProcessEnv {
+  const env: NodeJS.ProcessEnv = {
+    ...process.env,
+    PATH: getEnhancedPath(),
+  };
+
+  if (!env.OPENCODE_BIN_PATH) {
+    const homeDir = os.homedir();
+    const opencodeBin = path.join(
+      homeDir,
+      ".bun",
+      "install",
+      "global",
+      "node_modules",
+      "opencode-darwin-arm64",
+      "bin",
+      "opencode",
+    );
+    if (fs.existsSync(opencodeBin)) {
+      env.OPENCODE_BIN_PATH = opencodeBin;
+    }
+  }
+
+  return env;
+}
+
 export interface CLIToolInfo {
   name: string;
   command: string;
@@ -34,10 +141,13 @@ export async function detectCLITool(
   toolName: string,
   command: string,
 ): Promise<CLIToolInfo> {
+  const execEnv = getExecEnv();
+
   try {
-    // 尝试使用 which/where 命令查找工具路径
     const whichCommand = process.platform === "win32" ? "where" : "which";
-    const { stdout } = await execAsync(`${whichCommand} ${command}`);
+    const { stdout } = await execAsync(`${whichCommand} ${command}`, {
+      env: execEnv,
+    });
     const toolPath = stdout.trim().split("\n")[0];
 
     if (!toolPath) {
@@ -48,20 +158,17 @@ export async function detectCLITool(
       };
     }
 
-    // 尝试获取版本信息
     let version = "unknown";
     try {
       const { stdout: versionOutput } = await execAsync(
         `${command} --version`,
-        { timeout: 5000 },
+        { timeout: 10000, env: execEnv },
       );
       version = versionOutput.trim().split("\n")[0];
     } catch (err) {
-      // 版本获取失败不影响检测结果
       log.info(`[CLIDetector] Failed to get version for ${command}:`, err);
     }
 
-    // 获取配置文件路径
     const { configPath, authPath } = getConfigPaths(toolName);
 
     return {
@@ -74,6 +181,7 @@ export async function detectCLITool(
       authPath,
     };
   } catch (error) {
+    log.info(`[CLIDetector] Tool not found: ${command}`, error);
     return {
       name: toolName,
       command,
@@ -90,7 +198,6 @@ function getConfigPaths(toolName: string): {
   authPath?: string;
 } {
   const homeDir = os.homedir();
-  const _isWindows = process.platform === "win32";
 
   const pathMap: Record<string, { configPath?: string; authPath?: string }> = {
     "Claude Code": {

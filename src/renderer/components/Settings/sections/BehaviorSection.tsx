@@ -1,4 +1,4 @@
-import { Rocket, Power, Code } from "lucide-react";
+import { Rocket, Power } from "lucide-react";
 import { useSettingsStore, useTranslations } from "../../../stores/settings";
 import { SettingCard } from "../shared/SettingCard";
 import { SectionHeader } from "../shared/SectionHeader";
@@ -6,14 +6,8 @@ import { CustomToggle } from "../shared/CustomToggle";
 
 export function BehaviorSection() {
   const t = useTranslations();
-  const {
-    autoLaunch,
-    autoStart,
-    developerMode,
-    setAutoLaunch,
-    setAutoStart,
-    setDeveloperMode,
-  } = useSettingsStore();
+  const { autoLaunch, autoStart, setAutoLaunch, setAutoStart } =
+    useSettingsStore();
 
   return (
     <SettingCard variant="magenta">
@@ -37,13 +31,6 @@ export function BehaviorSection() {
           label={t.settings.autoStart}
           desc={t.settings.autoStartDesc}
           icon={Rocket}
-        />
-        <CustomToggle
-          value={developerMode}
-          onChange={setDeveloperMode}
-          label={t.settings.developerMode}
-          desc={t.settings.developerModeDesc}
-          icon={Code}
         />
       </div>
     </SettingCard>

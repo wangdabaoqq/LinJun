@@ -186,8 +186,16 @@ export const useQuotaStore = create<QuotaState>((set, get) => ({
   },
 
   refreshQuotas: async () => {
-    const { selectedProvider } = get();
+    const { selectedProvider, cachedAccounts } = get();
+
     if (selectedProvider) {
+      set({
+        cachedAccounts: {
+          ...cachedAccounts,
+          [selectedProvider]: [],
+        },
+        isLoading: true,
+      });
       await get().selectProvider(selectedProvider);
     }
     await get().loadProviders();

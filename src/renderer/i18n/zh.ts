@@ -251,8 +251,6 @@ export const zh: Translations = {
     autoStartDesc: "应用开启后自动启动代理服务进程",
     autoLaunch: "开机自启动",
     autoLaunchDesc: "开启此项将在计算机启动时自动运行应用",
-    developerMode: "开发者模式",
-    developerModeDesc: "启用 F12 快捷键打开开发者工具",
     requestRetry: "请求重试次数",
     maxRetryInterval: "最长等待时间(秒)",
     core: "核心设置",

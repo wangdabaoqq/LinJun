@@ -19,7 +19,6 @@ interface MainSettings {
   loggingToFile?: boolean;
   switchProject?: boolean;
   switchPreviewModel?: boolean;
-  developerMode?: boolean;
 }
 
 interface SettingsState {
@@ -39,7 +38,6 @@ interface SettingsState {
   loggingToFile: boolean;
   switchProject: boolean;
   switchPreviewModel: boolean;
-  developerMode: boolean;
   translations: Translations;
   initialized: boolean;
   setLanguage: (lang: Language) => void;
@@ -62,7 +60,6 @@ interface SettingsState {
   setLoggingToFile: (enabled: boolean) => void;
   setSwitchProject: (enabled: boolean) => void;
   setSwitchPreviewModel: (enabled: boolean) => void;
-  setDeveloperMode: (enabled: boolean) => void;
   syncFromMain: (settings: MainSettings) => void;
 }
 
@@ -121,7 +118,6 @@ export const useSettingsStore = create<SettingsState>()(
       loggingToFile: false,
       switchProject: true,
       switchPreviewModel: true,
-      developerMode: false,
       translations: getTranslations("zh"),
       initialized: false,
 
@@ -216,12 +212,6 @@ export const useSettingsStore = create<SettingsState>()(
           });
         }
       },
-      setDeveloperMode: (enabled: boolean) => {
-        set({ developerMode: enabled });
-        if (typeof window !== "undefined" && window.electronAPI) {
-          window.electronAPI.settings.syncToYaml({ developerMode: enabled });
-        }
-      },
       syncFromMain: (settings) => {
         const currentSecret = get().managementSecret;
         const newSecret =
@@ -265,9 +255,6 @@ export const useSettingsStore = create<SettingsState>()(
           ...(settings.switchPreviewModel !== undefined && {
             switchPreviewModel: settings.switchPreviewModel,
           }),
-          ...(settings.developerMode !== undefined && {
-            developerMode: settings.developerMode,
-          }),
           initialized: true,
         });
       },
@@ -288,7 +275,6 @@ export const useSettingsStore = create<SettingsState>()(
         maxRetryInterval: state.maxRetryInterval,
         switchProject: state.switchProject,
         switchPreviewModel: state.switchPreviewModel,
-        developerMode: state.developerMode,
       }),
       onRehydrateStorage: () => (state) => {
         if (state?.theme) {

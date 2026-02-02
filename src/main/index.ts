@@ -47,6 +47,8 @@ function createWindow(): void {
   // In development mode, macOS also needs explicit icon setting
   const iconPath = path.join(__dirname, "../../resources/icon.png");
 
+  const isDev = process.env.NODE_ENV === "development";
+
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
@@ -57,6 +59,7 @@ function createWindow(): void {
       preload: path.join(__dirname, "../preload/index.js"),
       nodeIntegration: false,
       contextIsolation: true,
+      devTools: isDev,
     },
     titleBarStyle: "hiddenInset",
     ...(process.platform === "darwin"
@@ -66,31 +69,11 @@ function createWindow(): void {
       : {}),
   });
 
-  if (process.env.NODE_ENV === "development") {
+  if (isDev) {
     mainWindow.loadURL("http://localhost:5173");
     mainWindow.webContents.openDevTools();
   } else {
     mainWindow.loadFile(path.join(__dirname, "../renderer/index.html"));
-
-    mainWindow.webContents.on("before-input-event", (event, input) => {
-      const devMode = store.get("developerMode");
-      if (!devMode) {
-        const isDevToolsShortcut =
-          input.key === "F12" ||
-          (input.control && input.shift && input.key.toLowerCase() === "i") ||
-          (input.meta && input.alt && input.key.toLowerCase() === "i");
-        if (isDevToolsShortcut) {
-          event.preventDefault();
-        }
-      }
-    });
-
-    mainWindow.webContents.on("devtools-opened", () => {
-      const devMode = store.get("developerMode");
-      if (!devMode) {
-        mainWindow?.webContents.closeDevTools();
-      }
-    });
   }
 
   mainWindow.on("closed", () => {

@@ -80,7 +80,6 @@ const ALLOWED_SETTINGS = [
   "managementSecret",
   "switchProject",
   "switchPreviewModel",
-  "developerMode",
   "language",
   "theme",
 ] as const;
