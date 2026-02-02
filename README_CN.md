@@ -191,6 +191,16 @@ LinJun/
 - `kiro-google-{id}.json`
 - 等等
 
+## ❓ 常见问题
+
+### macOS 提示"应用已损坏，无法打开"？
+
+由于 macOS 的安全机制，非 App Store 下载的应用可能会触发此提示。运行以下命令即可修复：
+
+```bash
+sudo xattr -rd com.apple.quarantine "/Applications/霖君.app"
+```
+
 ## 🤝 贡献
 
 1. Fork 本项目

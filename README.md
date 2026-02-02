@@ -191,6 +191,16 @@ Authentication tokens are stored in `~/.cli-proxy-api/` directory as JSON files:
 - `kiro-google-{id}.json`
 - etc.
 
+## ❓ FAQ
+
+### macOS: "App is damaged and can't be opened"
+
+Due to macOS security mechanisms, apps downloaded outside the App Store may trigger this warning. Run the following command to fix it:
+
+```bash
+sudo xattr -rd com.apple.quarantine "/Applications/霖君.app"
+```
+
 ## 🤝 Contributing
 
 1. Fork the project

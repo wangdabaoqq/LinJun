@@ -13,10 +13,9 @@ let tray: Tray | null = null;
 let trayWindow: BrowserWindow | null = null;
 
 export function createTray(mainWindow: BrowserWindow): void {
-  const iconPath = path.join(
-    __dirname,
-    "../../resources/icons/icons/32x32.png",
-  );
+  const iconPath = app.isPackaged
+    ? path.join(process.resourcesPath, "icons/tray-icon.png")
+    : path.join(__dirname, "../../resources/icons/icons/32x32.png");
 
   const icon = nativeImage
     .createFromPath(iconPath)
