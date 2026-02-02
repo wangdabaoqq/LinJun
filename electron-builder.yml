@@ -26,8 +26,8 @@ files:
   - "!**/{npm-debug.log,yarn.lock,.yarn-integrity,.yarn-metadata.json}"
 
 extraResources:
-  - from: "resources/binaries/${platform}-${arch}"
-    to: "binaries/${platform}-${arch}"
+  - from: "resources/binaries/"
+    to: "binaries/"
     filter:
       - "**/*"
       - "!LICENSE"
