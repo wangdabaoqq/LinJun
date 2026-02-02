@@ -183,26 +183,27 @@ export function About() {
                   animate={{ opacity: 1, x: 0 }}
                   className="flex items-center gap-3"
                 >
-                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--accent-warning)]/10 border border-[var(--accent-warning)]/20">
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--success)]/10 shadow-[0_0_8px_var(--success)]">
                     <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--accent-warning)] opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-[var(--accent-warning)]"></span>
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--success)] opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-[var(--success)]"></span>
                     </span>
-                    <span className="text-xs font-medium text-[var(--accent-warning)]">
+                    <span className="text-xs font-medium text-[var(--success)]">
                       v{updateStatus.result.latestVersion}
                     </span>
                   </div>
-                  {updateStatus.result.releaseUrl && (
-                    <button
-                      onClick={() =>
-                        handleOpenExternal(updateStatus.result!.releaseUrl!)
-                      }
-                      className="px-4 py-2 bg-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/90 text-white text-sm font-medium rounded-full transition-colors flex items-center gap-2 shadow-lg shadow-[var(--accent-primary)]/20"
-                    >
-                      <Download className="w-4 h-4" />
-                      {t.settings.downloadUpdate}
-                    </button>
-                  )}
+                  <button
+                    onClick={() =>
+                      handleOpenExternal(
+                        updateStatus.result!.releaseUrl ||
+                          "https://github.com/wangdabaoqq/LinJun/releases",
+                      )
+                    }
+                    className="px-4 py-2 bg-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/90 text-white text-sm font-medium rounded-full transition-colors flex items-center gap-2 shadow-lg shadow-[var(--accent-primary)]/20"
+                  >
+                    <Download className="w-4 h-4" />
+                    {t.settings.downloadUpdate}
+                  </button>
                 </motion.div>
               ) : (
                 <button

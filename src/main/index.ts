@@ -10,6 +10,7 @@ import { store } from "./utils/store";
 let mainWindow: BrowserWindow | null = null;
 let isQuitting = false;
 let statusChangeHandler: ((running: boolean) => void) | null = null;
+const isHiddenStart = process.argv.includes("--hidden");
 
 // Single instance lock - only enforce in production
 if (process.env.NODE_ENV !== "development") {
@@ -54,6 +55,7 @@ function createWindow(): void {
     height: 800,
     minWidth: 800,
     minHeight: 600,
+    show: !isHiddenStart,
     icon: nativeImage.createFromPath(iconPath),
     webPreferences: {
       preload: path.join(__dirname, "../preload/index.js"),
