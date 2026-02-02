@@ -25,7 +25,7 @@ jobs:
             cli-arch: arm64
             cli-platform: darwin
             electron-args: --mac --arm64
-          - os: macos-13
+          - os: macos-latest
             platform: darwin
             arch: x64
             cli-arch: amd64
