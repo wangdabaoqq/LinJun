@@ -45,6 +45,18 @@ export const CodexProtocolForm = memo(function CodexProtocolForm({
     <div className="space-y-6">
       <div className="space-y-2">
         <label className="flex items-center gap-2 text-xs font-bold text-[var(--text-primary)] uppercase tracking-widest px-1">
+          {t.providers.customProviderName}
+        </label>
+        <input
+          type="text"
+          value={entry.name || ""}
+          onChange={(e) => onUpdate("name", e.target.value)}
+          placeholder={t.providers.customProviderNamePlaceholder}
+          className="glass-input w-full bg-[var(--text-primary)]/[0.03] border border-[var(--glass-border)] text-[var(--text-primary)] placeholder:text-[var(--text-dim)]"
+        />
+      </div>
+      <div className="space-y-2">
+        <label className="flex items-center gap-2 text-xs font-bold text-[var(--text-primary)] uppercase tracking-widest px-1">
           <Key className="w-3.5 h-3.5" />
           API Key *
         </label>
@@ -53,7 +65,7 @@ export const CodexProtocolForm = memo(function CodexProtocolForm({
           value={entry["api-key"]}
           onChange={(e) => onUpdate("api-key", e.target.value)}
           placeholder={t.providers.customApiKeyPlaceholder}
-          className="glass-input w-full font-mono text-sm bg-[var(--bg-deep)] border border-white/10 text-[var(--text-primary)] placeholder:text-[var(--text-muted)]"
+          className="glass-input w-full font-mono text-sm bg-[var(--text-primary)]/[0.03] border border-[var(--glass-border)] text-[var(--text-primary)] placeholder:text-[var(--text-dim)]"
         />
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -67,7 +79,7 @@ export const CodexProtocolForm = memo(function CodexProtocolForm({
             value={entry["base-url"] || ""}
             onChange={(e) => onUpdate("base-url", e.target.value)}
             placeholder="https://api.example.com"
-            className="glass-input w-full font-mono text-xs bg-[var(--bg-deep)] border border-white/10 text-[var(--text-primary)] placeholder:text-[var(--text-muted)]"
+            className="glass-input w-full font-mono text-xs bg-[var(--text-primary)]/[0.03] border border-[var(--glass-border)] text-[var(--text-primary)] placeholder:text-[var(--text-dim)]"
           />
         </div>
         <div className="space-y-2">
@@ -79,7 +91,7 @@ export const CodexProtocolForm = memo(function CodexProtocolForm({
             value={entry["proxy-url"] || ""}
             onChange={(e) => onUpdate("proxy-url", e.target.value)}
             placeholder={t.providers.customProxyUrlPlaceholder}
-            className="glass-input w-full font-mono text-xs bg-[var(--bg-deep)] border border-white/10 text-[var(--text-primary)] placeholder:text-[var(--text-muted)]"
+            className="glass-input w-full font-mono text-xs bg-[var(--text-primary)]/[0.03] border border-[var(--glass-border)] text-[var(--text-primary)] placeholder:text-[var(--text-dim)]"
           />
         </div>
       </div>
@@ -94,7 +106,7 @@ export const CodexProtocolForm = memo(function CodexProtocolForm({
             value={entry.prefix || ""}
             onChange={(e) => onUpdate("prefix", e.target.value)}
             placeholder={t.providers.customPrefixPlaceholder}
-            className="glass-input w-full font-mono text-sm bg-[var(--bg-deep)] border border-white/10 text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent-primary)]/50 transition-all"
+            className="glass-input w-full font-mono text-sm bg-[var(--text-primary)]/[0.03] border border-[var(--glass-border)] text-[var(--text-primary)] placeholder:text-[var(--text-dim)] focus:border-[var(--accent-primary)]/50 transition-all"
           />
           <p className="text-[10px] text-[var(--text-muted)] mt-1 px-1">
             {t.providers.customPrefixHint}

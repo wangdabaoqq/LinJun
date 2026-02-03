@@ -26,7 +26,7 @@ export function ApiKeyEntryList({
       {apiKeys.map((key, index) => (
         <div
           key={index}
-          className="group p-4 rounded-2xl bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] hover:border-[var(--accent-primary)]/30 transition-all space-y-3 relative overflow-hidden"
+          className="group p-4 rounded-2xl bg-[var(--text-primary)]/[0.02] border border-[var(--glass-border)] hover:border-[var(--glass-border-hover)] transition-all space-y-3 relative overflow-hidden"
         >
           <div className="absolute top-0 right-0 p-1 opacity-0 group-hover:opacity-100 transition-opacity">
             <button
@@ -43,16 +43,16 @@ export function ApiKeyEntryList({
               value={key["api-key"]}
               onChange={(e) => onUpdate(index, "api-key", e.target.value)}
               placeholder={t.providers.customApiKeyPlaceholder}
-              className="glass-input w-full font-mono text-sm border border-white/10 bg-[var(--bg-deep)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)]"
+              className="glass-input w-full font-mono text-sm border border-[var(--glass-border)] bg-[var(--text-primary)]/[0.03] text-[var(--text-primary)] placeholder:text-[var(--text-dim)]"
             />
-            <div className="flex items-center gap-2 bg-[var(--bg-deep)]/60 rounded-xl px-3 py-1.5 border border-white/10">
-              <Globe className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
+            <div className="flex items-center gap-2 bg-[var(--text-primary)]/[0.05] rounded-xl px-3 py-1.5 border border-[var(--glass-border)]">
+              <Globe className="w-3.5 h-3.5 text-[var(--accent-primary)] opacity-50" />
               <input
                 type="text"
                 value={key["proxy-url"] || ""}
                 onChange={(e) => onUpdate(index, "proxy-url", e.target.value)}
                 placeholder={t.providers.customProxyUrlPlaceholder}
-                className="bg-transparent border-none outline-none flex-1 text-xs font-mono text-[var(--text-primary)] placeholder:text-[var(--text-muted)]"
+                className="bg-transparent border-none outline-none flex-1 text-xs font-mono text-[var(--text-primary)] placeholder:text-[var(--text-dim)]"
               />
             </div>
           </div>
@@ -60,7 +60,7 @@ export function ApiKeyEntryList({
       ))}
       <button
         onClick={onAdd}
-        className="w-full py-3 border-2 border-dashed border-[var(--glass-border)] rounded-2xl text-[var(--text-primary)]/60 hover:text-[var(--text-primary)] hover:border-[var(--accent-primary)]/60 hover:bg-[var(--accent-primary)]/25 hover:border-solid transition-all duration-300 flex items-center justify-center gap-2 text-sm font-bold active:scale-[0.98] group shadow-sm hover:shadow-[0_0_15px_rgba(var(--accent-primary-rgb),0.1)]"
+        className="w-full py-4 border border-dashed border-[var(--glass-border)] rounded-2xl text-[var(--text-dim)] hover:text-[var(--text-primary)] hover:border-[var(--glass-border-hover)] hover:bg-[var(--text-primary)]/5 transition-all duration-300 flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-widest active:scale-[0.98] group"
       >
         <Plus className="w-4 h-4 group-hover:scale-125 group-hover:rotate-90 transition-all duration-300" />
         {t.providers.customAddApiKey}

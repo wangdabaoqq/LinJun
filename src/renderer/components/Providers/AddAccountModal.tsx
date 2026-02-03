@@ -1,5 +1,5 @@
 import { useState, memo } from "react";
-import { X, Plus } from "lucide-react";
+import { X, Plus, Loader2 } from "lucide-react";
 
 import { useTranslations } from "../../stores/settings";
 import { AddAccountModalProps } from "./types";
@@ -115,25 +115,22 @@ export const AddAccountModal = memo(function AddAccountModal({
       <div
         className="fixed inset-0 bg-[var(--overlay-bg)] backdrop-blur-xl animate-fade-in"
         style={{ WebkitBackdropFilter: "blur(24px)" }}
+        onClick={onClose}
       />
-      <div
-        className={`relative w-full max-w-[420px] overflow-hidden animate-scale-in shadow-[0_0_60px_-15px_rgba(0,0,0,0.3)] border border-[var(--glass-border)] rounded-2xl flex flex-col`}
-      >
-        <div className="absolute inset-0 bg-gradient-to-br from-[var(--bg-primary)] via-[var(--bg-secondary)] to-[var(--bg-primary)] z-0" />
-        <div className="absolute inset-0 bg-[var(--bg-primary)]/60 backdrop-blur-2xl z-0" />
+      <div className="relative w-full max-w-[420px] overflow-hidden animate-scale-in shadow-soft-xl border border-[var(--glass-border)] rounded-3xl flex flex-col isolation-isolate">
+        <div className="absolute inset-0 glass-modal-bg z-0" />
+        <div className="absolute inset-0 bg-gradient-to-br from-[var(--accent-primary)]/5 via-transparent to-transparent z-0" />
 
-        <div className="relative z-10 flex items-center justify-between p-6 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/30">
-          <div className="flex items-center gap-3">
-            <div
-              className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl bg-[var(--accent-${provider.color})]/10 text-[var(--accent-${provider.color})] shadow-inner`}
-            >
+        <div className="relative z-10 flex items-center justify-between p-8 border-b border-[var(--glass-border)]">
+          <div className="flex items-center gap-5">
+            <div className="text-4xl transition-transform duration-300 group-hover:scale-105">
               {provider.icon}
             </div>
             <div>
-              <h2 className="text-lg font-bold text-[var(--text-primary)] tracking-tight">
+              <h2 className="text-xl font-bold text-[var(--text-primary)] tracking-tight leading-tight">
                 {t.providers.addAccountTo}
               </h2>
-              <p className="text-xs text-[var(--text-primary)]/70 font-medium">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-dim)] mt-1">
                 {provider.id === "custom"
                   ? t.providers.customProvider
                   : provider.name}
@@ -142,224 +139,183 @@ export const AddAccountModal = memo(function AddAccountModal({
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-lg text-[var(--text-primary)]/60 hover:text-[var(--text-primary)] hover:bg-white/10 transition-all"
-            aria-label={t.providers.dismiss}
+            className="w-10 h-10 flex items-center justify-center rounded-xl text-[var(--text-dim)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 transition-all active:scale-95"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="relative z-10 p-6 space-y-6">
-          <div>
-            <label className="block text-xs font-bold text-[var(--text-primary)] uppercase tracking-widest mb-2 px-1">
-              {t.providers.nickname} ({t.providers.optional})
-            </label>
-            <input
-              type="text"
-              value={nickname}
-              onChange={(e) => setNickname(e.target.value)}
-              placeholder={t.providers.nicknamePlaceholder}
-              className="glass-input w-full bg-[var(--bg-deep)] border-white/10 text-[var(--text-primary)]"
-            />
-          </div>
+        <div className="relative z-10 p-8 space-y-8">
+          <div className="space-y-6">
+            <div>
+              <label className="block text-[10px] font-bold text-[var(--text-dim)] uppercase tracking-wider mb-2.5 px-1">
+                {t.providers.nickname} ({t.providers.optional})
+              </label>
+              <input
+                type="text"
+                value={nickname}
+                onChange={(e) => setNickname(e.target.value)}
+                placeholder={t.providers.nicknamePlaceholder}
+                className="glass-input w-full"
+              />
+            </div>
 
-          {provider.authType === "oauth" ? (
-            <div className="space-y-4">
-              <div className="glass-card p-4 bg-white/5 border-white/10">
-                <p className="text-sm text-[var(--text-primary)]/90 leading-relaxed mb-4">
-                  {t.providers.oauthDescription}
-                </p>
-                <div className="flex gap-3">
-                  <button
-                    onClick={onClose}
-                    className="flex-1 py-3 rounded-xl font-bold text-sm bg-[var(--bg-primary)]/20 hover:bg-[var(--bg-primary)]/40 text-[var(--text-primary)] transition-all active:scale-95 border border-[var(--glass-border)]"
-                  >
-                    {t.common.cancel}
-                  </button>
-                  <button
-                    onClick={handleOAuthConnect}
-                    disabled={isLoading}
-                    className={`flex-[2] py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95 ${
-                      provider.color === "teal"
-                        ? "bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] text-white"
-                        : provider.color === "magenta"
-                          ? "bg-gradient-to-r from-[var(--accent-secondary)] to-[var(--accent-tertiary)] text-white"
-                          : "bg-gradient-to-r from-[var(--accent-tertiary)] to-[var(--accent-secondary)] text-white"
-                    }`}
-                  >
-                    {isLoading ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        {t.providers.connecting}
-                      </>
-                    ) : (
-                      <>
-                        <span>◎</span>
-                        {t.providers.connectOAuth}
-                      </>
-                    )}
-                  </button>
+            {provider.authType === "oauth" ? (
+              <div className="space-y-4">
+                <div className="p-5 rounded-2xl border border-[var(--glass-border)] bg-[var(--text-primary)]/[0.01]">
+                  <p className="text-xs font-medium text-[var(--text-muted)] leading-relaxed mb-6">
+                    {t.providers.oauthDescription}
+                  </p>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={onClose}
+                      className="flex-1 h-11 rounded-xl font-bold text-[10px] tracking-wider uppercase border border-[var(--glass-border)] text-[var(--text-dim)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 transition-all"
+                    >
+                      {t.common.cancel}
+                    </button>
+                    <button
+                      onClick={handleOAuthConnect}
+                      disabled={isLoading}
+                      className="flex-[2] h-11 rounded-xl font-bold text-[10px] tracking-wider uppercase glass-btn glass-btn-primary flex items-center justify-center gap-2"
+                    >
+                      {isLoading ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        t.providers.connectOAuth
+                      )}
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ) : provider.authType === "oauth-project" ? (
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-[var(--text-primary)] uppercase tracking-widest mb-2 px-1">
-                  {t.providers.projectIdLabel} ({t.providers.optional})
-                </label>
-                <input
-                  type="text"
-                  value={projectId}
-                  onChange={(e) => setProjectId(e.target.value)}
-                  placeholder={t.providers.projectIdPlaceholder}
-                  className="glass-input w-full bg-[var(--bg-deep)] border-white/10 text-[var(--text-primary)]"
-                />
-                <p className="text-xs text-[var(--text-primary)]/60 mt-2 px-1">
-                  {t.providers.projectIdDescription}
-                </p>
-              </div>
-              <div className="glass-card p-4 bg-white/5 border-white/10">
-                <p className="text-sm text-[var(--text-primary)]/90 leading-relaxed mb-4">
-                  {t.providers.oauthDescription}
-                </p>
-                <div className="flex gap-3">
-                  <button
-                    onClick={onClose}
-                    className="flex-1 py-3 rounded-xl font-bold text-sm bg-[var(--bg-primary)]/20 hover:bg-[var(--bg-primary)]/40 text-[var(--text-primary)] transition-all active:scale-95 border border-[var(--glass-border)]"
-                  >
-                    {t.common.cancel}
-                  </button>
-                  <button
-                    onClick={handleOAuthProjectConnect}
-                    disabled={isLoading}
-                    className={`flex-[2] py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95 ${
-                      provider.color === "teal"
-                        ? "bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] text-white"
-                        : provider.color === "magenta"
-                          ? "bg-gradient-to-r from-[var(--accent-secondary)] to-[var(--accent-tertiary)] text-white"
-                          : "bg-gradient-to-r from-[var(--accent-tertiary)] to-[var(--accent-secondary)] text-white"
-                    }`}
-                  >
-                    {isLoading ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        {t.providers.connecting}
-                      </>
-                    ) : (
-                      <>
-                        <span>◎</span>
-                        {t.providers.connectOAuth}
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-            </div>
-          ) : provider.authType === "import" ? (
-            <div className="space-y-4">
-              <div className="glass-card p-4 bg-white/5 border-white/10">
-                <p className="text-sm text-[var(--text-primary)]/90 leading-relaxed mb-4">
-                  {t.providers.importDescription}
-                </p>
-                <div className="flex gap-3">
-                  <button
-                    onClick={onClose}
-                    className="flex-1 py-3 rounded-xl font-bold text-sm bg-[var(--bg-primary)]/20 hover:bg-[var(--bg-primary)]/40 text-[var(--text-primary)] transition-all active:scale-95 border border-[var(--glass-border)]"
-                  >
-                    {t.common.cancel}
-                  </button>
-                  <button
-                    onClick={handleImport}
-                    disabled={isLoading}
-                    className={`flex-[2] py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95 ${
-                      provider.color === "teal"
-                        ? "bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] text-white"
-                        : provider.color === "magenta"
-                          ? "bg-gradient-to-r from-[var(--accent-secondary)] to-[var(--accent-tertiary)] text-white"
-                          : "bg-gradient-to-r from-[var(--accent-tertiary)] to-[var(--accent-secondary)] text-white"
-                    }`}
-                  >
-                    {isLoading ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        {t.providers.importing}
-                      </>
-                    ) : (
-                      <>
-                        <span>↓</span>
-                        {t.providers.importFromIDE}
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-5">
-              {isCustomProvider && (
+            ) : provider.authType === "oauth-project" ? (
+              <div className="space-y-6">
                 <div>
-                  <label className="block text-xs font-bold text-[var(--text-primary)] uppercase tracking-widest mb-2 px-1">
-                    {t.providers.endpointLabel}
+                  <label className="block text-[10px] font-bold text-[var(--text-dim)] uppercase tracking-wider mb-2.5 px-1">
+                    {t.providers.projectIdLabel} ({t.providers.optional})
                   </label>
                   <input
                     type="text"
-                    value={endpoint}
-                    onChange={(e) => setEndpoint(e.target.value)}
-                    placeholder={t.providers.endpointPlaceholder}
-                    className="glass-input w-full bg-[var(--bg-deep)] border-white/10 text-[var(--text-primary)]"
+                    value={projectId}
+                    onChange={(e) => setProjectId(e.target.value)}
+                    placeholder={t.providers.projectIdPlaceholder}
+                    className="glass-input w-full"
+                  />
+                  <p className="text-[10px] text-[var(--text-dim)] mt-2 px-1 italic opacity-60">
+                    {t.providers.projectIdDescription}
+                  </p>
+                </div>
+                <div className="p-5 rounded-2xl border border-[var(--glass-border)] bg-[var(--text-primary)]/[0.01]">
+                  <p className="text-xs font-medium text-[var(--text-muted)] leading-relaxed mb-6">
+                    {t.providers.oauthDescription}
+                  </p>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={onClose}
+                      className="flex-1 h-11 rounded-xl font-bold text-[10px] tracking-wider uppercase border border-[var(--glass-border)] text-[var(--text-dim)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 transition-all"
+                    >
+                      {t.common.cancel}
+                    </button>
+                    <button
+                      onClick={handleOAuthProjectConnect}
+                      disabled={isLoading}
+                      className="flex-[2] h-11 rounded-xl font-bold text-[10px] tracking-wider uppercase glass-btn glass-btn-primary flex items-center justify-center gap-2"
+                    >
+                      {isLoading ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        t.providers.connectOAuth
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : provider.authType === "import" ? (
+              <div className="space-y-4">
+                <div className="p-5 rounded-2xl border border-[var(--glass-border)] bg-[var(--text-primary)]/[0.01]">
+                  <p className="text-xs font-medium text-[var(--text-muted)] leading-relaxed mb-6">
+                    {t.providers.importDescription}
+                  </p>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={onClose}
+                      className="flex-1 h-11 rounded-xl font-bold text-[10px] tracking-wider uppercase border border-[var(--glass-border)] text-[var(--text-dim)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 transition-all"
+                    >
+                      {t.common.cancel}
+                    </button>
+                    <button
+                      onClick={handleImport}
+                      disabled={isLoading}
+                      className="flex-[2] h-11 rounded-xl font-bold text-[10px] tracking-wider uppercase glass-btn glass-btn-primary flex items-center justify-center gap-2"
+                    >
+                      {isLoading ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        t.providers.importFromIDE
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {isCustomProvider && (
+                  <div>
+                    <label className="block text-[10px] font-bold text-[var(--text-dim)] uppercase tracking-wider mb-2.5 px-1">
+                      {t.providers.endpointLabel}
+                    </label>
+                    <input
+                      type="text"
+                      value={endpoint}
+                      onChange={(e) => setEndpoint(e.target.value)}
+                      placeholder={t.providers.endpointPlaceholder}
+                      className="glass-input w-full"
+                    />
+                  </div>
+                )}
+                <div>
+                  <label className="block text-[10px] font-bold text-[var(--text-dim)] uppercase tracking-wider mb-2.5 px-1">
+                    {t.providers.apiKeyLabel}
+                  </label>
+                  <input
+                    type="password"
+                    value={apiKey}
+                    onChange={(e) => setApiKey(e.target.value)}
+                    placeholder={t.providers.apiKeyPlaceholder}
+                    className="glass-input w-full"
                   />
                 </div>
-              )}
-              <div>
-                <label className="block text-xs font-bold text-[var(--text-primary)] uppercase tracking-widest mb-2 px-1">
-                  {t.providers.apiKeyLabel}
-                </label>
-                <input
-                  type="password"
-                  value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
-                  placeholder={t.providers.apiKeyPlaceholder}
-                  className="glass-input w-full bg-[var(--bg-deep)] border-white/10 text-[var(--text-primary)]"
-                />
+                <div className="flex gap-3">
+                  <button
+                    onClick={onClose}
+                    className="flex-1 h-11 rounded-xl font-bold text-[10px] tracking-wider uppercase border border-[var(--glass-border)] text-[var(--text-dim)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 transition-all"
+                  >
+                    {t.common.cancel}
+                  </button>
+                  <button
+                    onClick={handleApiKeySubmit}
+                    disabled={
+                      isLoading ||
+                      !apiKey.trim() ||
+                      (isCustomProvider && !endpoint.trim())
+                    }
+                    className="flex-[2] h-11 rounded-xl font-bold text-[10px] tracking-wider uppercase glass-btn glass-btn-primary flex items-center justify-center gap-2"
+                  >
+                    {isLoading ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      t.providers.addAccount
+                    )}
+                  </button>
+                </div>
               </div>
-              <div className="flex gap-3">
-                <button
-                  onClick={onClose}
-                  className="flex-1 py-3.5 rounded-xl font-bold text-sm bg-[var(--bg-primary)]/20 hover:bg-[var(--bg-primary)]/40 text-[var(--text-primary)] transition-all active:scale-95 border border-[var(--glass-border)]"
-                >
-                  {t.common.cancel}
-                </button>
-                <button
-                  onClick={handleApiKeySubmit}
-                  disabled={
-                    isLoading ||
-                    !apiKey.trim() ||
-                    (isCustomProvider && !endpoint.trim())
-                  }
-                  className="flex-[2] py-3.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95 bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] text-white shadow-blue-500/20 group"
-                >
-                  {isLoading ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      {t.providers.validating}
-                    </>
-                  ) : (
-                    <>
-                      <Plus className="w-4 h-4 group-hover:scale-125 group-hover:rotate-90 transition-all duration-300" />
-                      {t.providers.addAccount}
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-          )}
+            )}
 
-          {error && (
-            <div className="p-3.5 rounded-xl bg-red-500/20 border border-red-500/40 text-red-100 text-xs font-bold animate-shake">
-              {error}
-            </div>
-          )}
+            {error && (
+              <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-bold animate-shake text-center">
+                {error}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

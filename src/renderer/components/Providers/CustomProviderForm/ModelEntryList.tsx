@@ -26,14 +26,14 @@ const ModelMappingRow = ({
   const t = useTranslations();
 
   return (
-    <div className="flex items-center gap-3 p-3 hover:bg-[var(--bg-primary)]/40 transition-all group">
+    <div className="flex items-center gap-3 p-3 hover:bg-[var(--text-primary)]/[0.03] transition-all group">
       <div className="flex-1 relative">
         <input
           type="text"
           value={model.name}
           onChange={(e) => onNameChange(e.target.value)}
           placeholder={t.providers.customModelNamePlaceholder}
-          className="glass-input w-full bg-[var(--bg-deep)] border-[var(--glass-border)] text-[var(--text-primary)] font-mono text-sm placeholder:text-[var(--text-muted)] focus:border-[var(--accent-primary)]/50"
+          className="glass-input w-full bg-[var(--text-primary)]/[0.03] border border-[var(--glass-border)] text-[var(--text-primary)] font-mono text-sm placeholder:text-[var(--text-dim)] focus:border-[var(--accent-primary)]/50"
         />
       </div>
       <div className="flex-none opacity-20 group-hover:opacity-100 transition-opacity">
@@ -45,7 +45,7 @@ const ModelMappingRow = ({
           value={model.alias || ""}
           onChange={(e) => onAliasChange(e.target.value)}
           placeholder={t.providers.customModelAliasPlaceholder}
-          className="glass-input w-full bg-[var(--bg-deep)] border-[var(--glass-border)] font-bold text-sm placeholder:text-[var(--text-muted)] focus:border-[var(--accent-primary)]/50"
+          className="glass-input w-full bg-[var(--text-primary)]/[0.03] border border-[var(--glass-border)] font-bold text-sm placeholder:text-[var(--text-dim)] focus:border-[var(--accent-primary)]/50"
           style={{ color: accentColor }}
         />
       </div>
@@ -69,7 +69,7 @@ export function ModelEntryList({
   const t = useTranslations();
 
   return (
-    <div className="bg-[var(--bg-secondary)]/50 rounded-2xl border border-[var(--glass-border)] overflow-hidden shadow-inner">
+    <div className="bg-[var(--text-primary)]/[0.02] rounded-2xl border border-[var(--glass-border)] overflow-hidden shadow-inner">
       <div className="divide-y divide-[var(--glass-border)]">
         {models.map((model, index) => (
           <ModelMappingRow
@@ -84,7 +84,7 @@ export function ModelEntryList({
       </div>
       <button
         onClick={onAdd}
-        className="w-full py-3 bg-[var(--bg-primary)]/20 hover:bg-[var(--accent-primary)]/25 text-[var(--text-primary)]/80 hover:text-[var(--text-primary)] transition-all duration-300 flex items-center justify-center gap-2 text-sm font-bold border-t border-[var(--glass-border)] active:scale-[0.98] group shadow-inner hover:shadow-lg"
+        className="w-full py-3 bg-[var(--text-primary)]/[0.02] hover:bg-[var(--accent-primary)]/10 text-[var(--text-primary)]/80 hover:text-[var(--text-primary)] transition-all duration-300 flex items-center justify-center gap-2 text-sm font-bold border-t border-[var(--glass-border)] active:scale-[0.98] group shadow-inner"
       >
         <Plus className="w-4 h-4 group-hover:scale-125 group-hover:rotate-90 transition-all duration-300" />
         {t.providers.customAddModel}

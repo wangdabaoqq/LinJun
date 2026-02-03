@@ -84,7 +84,7 @@ export const OpenAIProtocolForm = memo(function OpenAIProtocolForm({
             value={name}
             onChange={(e) => onNameChange(e.target.value)}
             placeholder={t.providers.customProviderNamePlaceholder}
-            className="glass-input w-full bg-[var(--bg-deep)] border border-white/10 text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent-primary)]/50 transition-all"
+            className="glass-input w-full bg-[var(--text-primary)]/[0.03] border border-[var(--glass-border)] text-[var(--text-primary)] placeholder:text-[var(--text-dim)] focus:border-[var(--accent-primary)]/50 transition-all"
             disabled={isEditing}
           />
         </div>
@@ -98,7 +98,7 @@ export const OpenAIProtocolForm = memo(function OpenAIProtocolForm({
             value={baseUrl}
             onChange={(e) => onBaseUrlChange(e.target.value)}
             placeholder={t.providers.customBaseUrlPlaceholder}
-            className="glass-input w-full font-mono text-sm bg-[var(--bg-deep)] border border-white/10 text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent-primary)]/50 transition-all"
+            className="glass-input w-full font-mono text-sm bg-[var(--text-primary)]/[0.03] border border-[var(--glass-border)] text-[var(--text-primary)] placeholder:text-[var(--text-dim)] focus:border-[var(--accent-primary)]/50 transition-all"
           />
         </div>
       </div>
@@ -114,7 +114,7 @@ export const OpenAIProtocolForm = memo(function OpenAIProtocolForm({
             value={prefix}
             onChange={(e) => onPrefixChange(e.target.value)}
             placeholder={t.providers.customPrefixPlaceholder}
-            className="glass-input w-full font-mono text-sm bg-[var(--bg-deep)] border border-white/10 text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent-primary)]/50 transition-all"
+            className="glass-input w-full font-mono text-sm bg-[var(--text-primary)]/[0.03] border border-[var(--glass-border)] text-[var(--text-primary)] placeholder:text-[var(--text-dim)] focus:border-[var(--accent-primary)]/50 transition-all"
           />
           <p className="text-[10px] text-[var(--text-muted)] mt-1 px-1">
             {t.providers.customPrefixHint}

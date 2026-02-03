@@ -67,6 +67,18 @@ export const GeminiProtocolForm = memo(function GeminiProtocolForm({
     <div className="space-y-6">
       <div className="space-y-2">
         <label className="flex items-center gap-2 text-xs font-bold text-[var(--text-primary)] uppercase tracking-widest px-1">
+          {t.providers.customProviderName}
+        </label>
+        <input
+          type="text"
+          value={entry.name || ""}
+          onChange={(e) => onUpdate("name", e.target.value)}
+          placeholder={t.providers.customProviderNamePlaceholder}
+          className="glass-input w-full bg-[var(--text-primary)]/[0.03] border border-[var(--glass-border)] text-[var(--text-primary)] placeholder:text-[var(--text-dim)]"
+        />
+      </div>
+      <div className="space-y-2">
+        <label className="flex items-center gap-2 text-xs font-bold text-[var(--text-primary)] uppercase tracking-widest px-1">
           <Key className="w-3.5 h-3.5" />
           API Key *
         </label>
@@ -75,7 +87,7 @@ export const GeminiProtocolForm = memo(function GeminiProtocolForm({
           value={entry["api-key"]}
           onChange={(e) => onUpdate("api-key", e.target.value)}
           placeholder={t.providers.customApiKeyPlaceholder}
-          className="glass-input w-full font-mono text-sm bg-[var(--bg-deep)] border border-white/10 text-[var(--text-primary)] placeholder:text-[var(--text-muted)]"
+          className="glass-input w-full font-mono text-sm bg-[var(--text-primary)]/[0.03] border border-[var(--glass-border)] text-[var(--text-primary)] placeholder:text-[var(--text-dim)]"
         />
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -89,7 +101,7 @@ export const GeminiProtocolForm = memo(function GeminiProtocolForm({
             value={entry["base-url"] || ""}
             onChange={(e) => onUpdate("base-url", e.target.value)}
             placeholder="https://generativelanguage.googleapis.com"
-            className="glass-input w-full font-mono text-xs bg-[var(--bg-deep)] border border-white/10 text-[var(--text-primary)] placeholder:text-[var(--text-muted)]"
+            className="glass-input w-full font-mono text-xs bg-[var(--text-primary)]/[0.03] border border-[var(--glass-border)] text-[var(--text-primary)] placeholder:text-[var(--text-dim)]"
           />
         </div>
         <div className="space-y-2">
@@ -101,7 +113,7 @@ export const GeminiProtocolForm = memo(function GeminiProtocolForm({
             value={entry["proxy-url"] || ""}
             onChange={(e) => onUpdate("proxy-url", e.target.value)}
             placeholder={t.providers.customProxyUrlPlaceholder}
-            className="glass-input w-full font-mono text-xs bg-[var(--bg-deep)] border border-white/10 text-[var(--text-primary)] placeholder:text-[var(--text-muted)]"
+            className="glass-input w-full font-mono text-xs bg-[var(--text-primary)]/[0.03] border border-[var(--glass-border)] text-[var(--text-primary)] placeholder:text-[var(--text-dim)]"
           />
         </div>
       </div>
@@ -116,9 +128,9 @@ export const GeminiProtocolForm = memo(function GeminiProtocolForm({
             value={entry.prefix || ""}
             onChange={(e) => onUpdate("prefix", e.target.value)}
             placeholder={t.providers.customPrefixPlaceholder}
-            className="glass-input w-full font-mono text-sm bg-[var(--bg-deep)] border border-white/10 text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent-primary)]/50 transition-all"
+            className="glass-input w-full font-mono text-sm bg-[var(--text-primary)]/[0.03] border border-[var(--glass-border)] text-[var(--text-primary)] placeholder:text-[var(--text-dim)] focus:border-[var(--accent-primary)]/50 transition-all"
           />
-          <p className="text-[10px] text-[var(--text-muted)] mt-1 px-1">
+          <p className="text-[10px] text-[var(--text-dim)] mt-1 px-1">
             {t.providers.customPrefixHint}
           </p>
         </div>
@@ -128,19 +140,19 @@ export const GeminiProtocolForm = memo(function GeminiProtocolForm({
           <Box className="w-3.5 h-3.5" />
           {t.providers.customHeaders} ({t.providers.optional})
         </label>
-        <div className="bg-[var(--bg-secondary)]/50 rounded-2xl border border-[var(--glass-border)] divide-y divide-[var(--glass-border)] overflow-hidden shadow-inner">
+        <div className="bg-[var(--text-primary)]/[0.02] rounded-2xl border border-[var(--glass-border)] divide-y divide-[var(--glass-border)] overflow-hidden shadow-inner">
           {Object.entries(entry.headers || {}).map(
             ([key, value], headerIndex) => (
               <div
                 key={headerIndex}
-                className="flex items-center gap-3 p-3 hover:bg-[var(--bg-primary)]/40 transition-all group"
+                className="flex items-center gap-3 p-3 hover:bg-[var(--text-primary)]/[0.03] transition-all group"
               >
                 <input
                   type="text"
                   value={key}
                   onChange={(e) => updateHeader(key, e.target.value, value)}
                   placeholder={t.providers.customHeaderKeyPlaceholder}
-                  className="flex-1 glass-input bg-[var(--bg-deep)] border-[var(--glass-border)] text-[var(--text-primary)] font-mono text-sm"
+                  className="flex-1 glass-input bg-[var(--text-primary)]/[0.03] border border-[var(--glass-border)] text-[var(--text-primary)] font-mono text-sm"
                 />
                 <ArrowRight className="w-4 h-4 text-[var(--text-primary)]/20 group-hover:text-[var(--text-primary)]/50" />
                 <input
@@ -148,7 +160,7 @@ export const GeminiProtocolForm = memo(function GeminiProtocolForm({
                   value={value}
                   onChange={(e) => updateHeader(key, key, e.target.value)}
                   placeholder={t.providers.customHeaderValuePlaceholder}
-                  className="flex-1 glass-input bg-[var(--bg-deep)] border-[var(--glass-border)] text-[var(--text-primary)] font-mono text-sm"
+                  className="flex-1 glass-input bg-[var(--text-primary)]/[0.03] border border-[var(--glass-border)] text-[var(--text-primary)] font-mono text-sm"
                 />
                 <button
                   onClick={() => removeHeader(key)}
@@ -161,7 +173,7 @@ export const GeminiProtocolForm = memo(function GeminiProtocolForm({
           )}
           <button
             onClick={addHeader}
-            className="w-full py-3 bg-[var(--bg-primary)]/20 hover:bg-[var(--accent-primary)]/25 text-[var(--text-primary)]/80 hover:text-[var(--text-primary)] transition-all duration-300 flex items-center justify-center gap-2 text-sm font-bold border-t border-[var(--glass-border)] active:scale-[0.98] group shadow-inner hover:shadow-lg"
+            className="w-full py-3 bg-[var(--text-primary)]/[0.02] hover:bg-[var(--accent-primary)]/10 text-[var(--text-primary)]/80 hover:text-[var(--text-primary)] transition-all duration-300 flex items-center justify-center gap-2 text-sm font-bold border-t border-[var(--glass-border)] active:scale-[0.98] group shadow-inner"
           >
             <Plus className="w-4 h-4 group-hover:scale-125 group-hover:rotate-90 transition-all duration-300" />
             {t.providers.customAddHeader}

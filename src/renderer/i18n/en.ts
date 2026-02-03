@@ -98,7 +98,8 @@ export const en = {
     copilotDeviceOpen: "Open Login Page",
     copilotDeviceError: "Failed to get GitHub Copilot login code",
     customProvider: "Custom Provider",
-    customProviderDesc: "Custom OpenAI / Claude compatible endpoint",
+    customProviderDesc:
+      "Configure OpenAI / Claude / Gemini / Codex compatible endpoints",
     customProviderName: "Provider Name",
     customProviderNamePlaceholder: "e.g. OpenRouter",
     customBaseUrl: "Base URL",
@@ -139,6 +140,9 @@ export const en = {
     customHeaderValuePlaceholder: "Header Value",
     customAddHeader: "Add Header",
     customCodexEntries: "Codex API Keys",
+    official: "Official",
+    online: "Online",
+    total: "Total",
   },
   quota: {
     title: "QUOTA",

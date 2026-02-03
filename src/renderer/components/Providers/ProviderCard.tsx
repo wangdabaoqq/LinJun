@@ -1,146 +1,124 @@
-import { useState, memo } from "react";
-import { Plus } from "lucide-react";
+import { memo } from "react";
+import { Trash2, User } from "lucide-react";
 
 import { useTranslations } from "../../stores/settings";
 import { Provider, Account } from "./types";
 
 interface ProviderCardProps {
   provider: Provider;
-  onAddAccount: (providerId: string) => void;
+  isExpanded: boolean;
   onRemoveAccount: (providerId: string, accountId: string) => void;
 }
 
 export const ProviderCard = memo(function ProviderCard({
   provider,
-  onAddAccount,
+  isExpanded,
   onRemoveAccount,
 }: ProviderCardProps) {
   const t = useTranslations();
-  const [expanded, setExpanded] = useState(true);
   const onlineCount = provider.accounts.filter(
     (a) => a.status === "online",
   ).length;
 
-  const getAccountDisplayName = (account: Account) => {
-    if (account.nickname) return account.nickname;
-    if (
-      account.email &&
-      !account.email.startsWith("oauth-") &&
-      account.email !== "unknown"
-    )
-      return account.email;
-    if (account.filePath) {
-      const filename = account.filePath.split(/[/\\]/).pop();
-      if (filename) {
-        return filename
+  const getAccountDisplay = (account: Account) => {
+    let main = account.nickname || "";
+    let sub = account.email || "";
+
+    if (!main) {
+      if (
+        account.email &&
+        !account.email.startsWith("oauth-") &&
+        account.email !== "unknown"
+      ) {
+        main = account.email.split("@")[0];
+        sub = account.email;
+      } else if (account.filePath) {
+        const filename = account.filePath.split(/[/\\]/).pop() || "";
+        main = filename
           .replace(
             /^(claude|gemini|codex|antigravity|qwen|iflow|github-copilot|kiro)-/i,
             "",
           )
           .replace(/\.json$/i, "");
+        sub = filename;
+      } else {
+        main = account.email || "Account";
+        sub = "";
       }
     }
-    return account.email || "Unknown Account";
+
+    if (main === sub) sub = "";
+
+    return { main, sub };
   };
 
   return (
-    <div className={`glass-card glass-card-${provider.color} overflow-hidden`}>
-      <div
-        className="p-5 cursor-pointer hover:bg-soft transition-colors"
-        onClick={() => setExpanded(!expanded)}
-      >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div
-              className={`text-2xl text-[var(--accent-${provider.color})] glow-${provider.color}`}
-            >
-              {provider.icon}
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="font-semibold text-[var(--text-primary)]">
-                  {provider.id === "custom"
-                    ? t.providers.customProvider
-                    : provider.name}
-                </h3>
-                <span
-                  className={`px-2 py-0.5 text-xs rounded-full bg-[var(--accent-${provider.color})]/20 text-[var(--accent-${provider.color})] border border-[var(--accent-${provider.color})]/30`}
-                >
-                  {provider.accounts.length}
-                </span>
-              </div>
-              <p className="text-xs text-[var(--text-muted)] mt-0.5">
-                {onlineCount}/{provider.accounts.length}{" "}
-                {t.providers.connected.toLowerCase()}
+    <div className="glass-card flex flex-col p-5 group/card hover:border-[var(--accent-primary)]/20 transition-all duration-300">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <div className="text-3xl transition-transform duration-300 group-hover/card:scale-105">
+            {provider.icon}
+          </div>
+          <div className="space-y-0.5">
+            <h3 className="font-bold text-base text-[var(--text-primary)] tracking-tight leading-tight">
+              {provider.id === "custom"
+                ? t.providers.customProvider
+                : provider.name}
+            </h3>
+            <div className="flex items-center gap-2">
+              <div
+                className={`w-1.5 h-1.5 rounded-full ${onlineCount > 0 ? "status-dot-online" : "bg-[var(--text-dim)]/20"}`}
+              />
+              <p className="text-[10px] font-bold text-[var(--text-dim)] uppercase tracking-wider">
+                {onlineCount} / {provider.accounts.length}
               </p>
             </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div className="status-dot status-dot-online" />
-            <span
-              className={`text-[var(--accent-${provider.color})] transform transition-transform duration-200`}
-              style={{ transform: expanded ? "rotate(180deg)" : "" }}
-            >
-              ▼
-            </span>
           </div>
         </div>
       </div>
 
-      {expanded && (
-        <div className="border-t border-subtle">
-          <div className="p-3 space-y-2">
-            {provider.accounts.map((account) => (
+      {isExpanded && provider.accounts.length > 0 && (
+        <div className="mt-5 space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-200">
+          {provider.accounts.map((account) => {
+            const { main, sub } = getAccountDisplay(account);
+            return (
               <div
                 key={account.id}
-                className="flex items-center justify-between p-3 rounded-xl bg-soft hover:bg-[var(--glass-bg-hover)] transition-colors group"
+                className="flex items-center gap-3 p-2.5 rounded-2xl hover:bg-[var(--text-primary)]/[0.04] transition-all group/item border border-transparent hover:border-[var(--glass-border-hover)]"
               >
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`status-dot ${
-                      account.status === "online"
-                        ? "status-dot-online"
-                        : "status-dot-offline"
-                    }`}
-                  />
-                  <div>
-                    <div className="text-sm text-[var(--text-primary)]">
-                      {getAccountDisplayName(account)}
-                    </div>
-                    <div className="text-xs text-[var(--text-dim)]">
-                      {account.lastUsed}
-                    </div>
+                <div className="relative flex-shrink-0">
+                  <div className="w-8 h-8 rounded-full bg-[var(--text-primary)]/[0.03] flex items-center justify-center text-[var(--text-dim)] group-hover/item:text-[var(--text-primary)] transition-colors">
+                    <User className="w-3.5 h-3.5" />
                   </div>
+                  <div
+                    className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-[var(--bg-primary)] ${account.status === "online" ? "bg-success" : "bg-[var(--text-dim)]"}`}
+                  />
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <button
-                    className="glass-btn text-xs py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onRemoveAccount(provider.id, account.id);
-                    }}
-                  >
-                    ✕
-                  </button>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[13px] font-semibold text-[var(--text-primary)] truncate tracking-tight">
+                    {main}
+                  </div>
+                  {sub && (
+                    <div className="text-[10px] text-[var(--text-dim)] truncate font-mono opacity-60 mt-0.5">
+                      {sub}
+                    </div>
+                  )}
                 </div>
+
+                <button
+                  className="p-2 rounded-xl text-[var(--text-dim)] hover:text-red-500 hover:bg-red-500/10 opacity-0 group-hover/item:opacity-100 transition-all active:scale-90"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onRemoveAccount(provider.id, account.id);
+                  }}
+                  title={t.common.delete}
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
               </div>
-            ))}
-          </div>
-
-          <div className="p-3 border-t border-subtle">
-            <button
-              className="glass-btn glass-btn-teal text-xs py-1.5 w-full transition-all duration-300 hover:brightness-110 active:scale-[0.98] shadow-sm hover:shadow-teal-500/20 flex items-center justify-center gap-2 group"
-              onClick={(e) => {
-                e.stopPropagation();
-                onAddAccount(provider.id);
-              }}
-            >
-              <Plus className="w-3.5 h-3.5 group-hover:scale-125 group-hover:rotate-90 transition-all duration-300" />
-              {t.providers.addAccount}
-            </button>
-          </div>
+            );
+          })}
         </div>
       )}
     </div>

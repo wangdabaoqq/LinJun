@@ -97,7 +97,7 @@ export const zh: Translations = {
     copilotDeviceOpen: "打开登录页面",
     copilotDeviceError: "获取 GitHub Copilot 登录码失败",
     customProvider: "自定义提供商",
-    customProviderDesc: "自定义 OpenAI / Claude 兼容接口",
+    customProviderDesc: "配置 OpenAI / Claude / Gemini / Codex 兼容接口",
     customProviderName: "提供商名称",
     customProviderNamePlaceholder: "例如：OpenRouter",
     customBaseUrl: "接口地址",
@@ -137,6 +137,9 @@ export const zh: Translations = {
     customHeaderValuePlaceholder: "请求头值",
     customAddHeader: "添加请求头",
     customCodexEntries: "Codex API 密钥",
+    official: "官方",
+    online: "在线",
+    total: "总计",
   },
   quota: {
     title: "配额",

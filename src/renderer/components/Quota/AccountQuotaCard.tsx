@@ -55,15 +55,15 @@ export function AccountQuotaCard({
   const getStatusColor = () => {
     switch (status) {
       case "active":
-        return "bg-[var(--accent-primary)]";
+        return "bg-neon-green shadow-[0_0_8px_rgba(16,185,129,0.5)]";
       case "limited":
-        return "bg-amber-500";
+        return "bg-neon-amber shadow-[0_0_8px_rgba(245,158,11,0.5)]";
       case "error":
-        return "bg-red-500";
+        return "bg-neon-red shadow-[0_0_8px_rgba(239,68,68,0.5)]";
       case "refreshing":
-        return "bg-[var(--accent-primary)] animate-pulse";
+        return "bg-neon-blue animate-pulse";
       default:
-        return "bg-gray-500";
+        return "bg-white/20";
     }
   };
 

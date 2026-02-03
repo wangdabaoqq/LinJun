@@ -14,6 +14,19 @@ export default {
           sand: "#d4b896",
           charcoal: "#3d4043",
         },
+        neon: {
+          blue: "#3b82f6",
+          purple: "#8b5cf6",
+          pink: "#ec4899",
+          teal: "#14b8a6",
+          green: "#10b981",
+          amber: "#f59e0b",
+          red: "#ef4444",
+        },
+        bg: {
+          deep: "#050505",
+          glass: "rgba(255, 255, 255, 0.03)",
+        },
         // shadcn/ui CSS variables
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
@@ -36,12 +49,15 @@ export default {
         ring: "hsl(var(--ring))",
       },
       boxShadow: {
-        "neu-raised":
-          "6px 6px 16px rgba(166, 160, 148, 0.35), -6px -6px 16px rgba(255, 255, 255, 0.9)",
-        "neu-inset":
-          "inset 4px 4px 10px rgba(166, 160, 148, 0.25), inset -4px -4px 10px rgba(255, 255, 255, 0.8)",
-        "neu-btn":
-          "4px 4px 12px rgba(166, 160, 148, 0.28), -4px -4px 12px rgba(255, 255, 255, 0.85)",
+        "soft-sm": "0 2px 4px rgba(0,0,0,0.02), 0 1px 2px rgba(0,0,0,0.03)",
+        "soft-md": "0 4px 12px rgba(0,0,0,0.04), 0 2px 4px rgba(0,0,0,0.03)",
+        "soft-lg":
+          "0 10px 25px -5px rgba(0,0,0,0.05), 0 8px 10px -6px rgba(0,0,0,0.05)",
+        "soft-xl": "0 20px 50px -12px rgba(0,0,0,0.15)",
+        "glow-blue": "0 0 15px rgba(59, 130, 246, 0.12)",
+        "glow-purple": "0 0 15px rgba(139, 92, 246, 0.12)",
+        "glow-pink": "0 0 15px rgba(236, 72, 153, 0.12)",
+        "glow-teal": "0 0 15px rgba(20, 184, 166, 0.12)",
       },
       borderRadius: {
         neu: "24px",

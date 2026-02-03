@@ -104,6 +104,27 @@ export function getProviderIcon(
   }
 }
 
+export function getCustomProviderIcon(
+  type: string,
+  className: string = "w-full h-full",
+): React.ReactNode {
+  const size = 16;
+  const protocol = type?.toLowerCase() || "";
+
+  switch (protocol) {
+    case "openai":
+      return <OpenAI size={size} />;
+    case "claude":
+      return <Claude.Color size={size} />;
+    case "gemini":
+      return <Gemini.Color size={size} />;
+    case "codex":
+      return <OpenAI size={size} />;
+    default:
+      return <CustomIcon className={className} />;
+  }
+}
+
 /**
  * Infer provider type from quota label text
  * Used to show the correct icon for each model in quota bars

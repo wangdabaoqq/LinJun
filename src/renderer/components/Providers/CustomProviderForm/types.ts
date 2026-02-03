@@ -11,6 +11,7 @@ export interface OpenAIApiKeyEntry {
 }
 
 export interface ClaudeApiKeyEntry {
+  name?: string;
   "api-key": string;
   "base-url"?: string;
   "proxy-url"?: string;
@@ -19,6 +20,7 @@ export interface ClaudeApiKeyEntry {
 }
 
 export interface GeminiApiKeyEntry {
+  name?: string;
   "api-key": string;
   "base-url"?: string;
   "proxy-url"?: string;
@@ -28,6 +30,7 @@ export interface GeminiApiKeyEntry {
 }
 
 export interface CodexApiKeyEntry {
+  name?: string;
   "api-key": string;
   "base-url"?: string;
   "proxy-url"?: string;
@@ -43,12 +46,63 @@ export interface OpenAIProviderData {
   models?: ModelEntry[];
 }
 
+export interface OpenAICompatProvider {
+  name: string;
+  "base-url": string;
+  "api-key-entries": { "api-key": string; "proxy-url"?: string }[];
+  models?: { name: string; alias?: string }[];
+  prefix?: string;
+}
+
+export interface ClaudeCompatProvider {
+  name?: string;
+  "api-key": string;
+  "base-url"?: string;
+  "proxy-url"?: string;
+  prefix?: string;
+  models?: { name: string; alias?: string }[];
+}
+
+export interface GeminiCompatProvider {
+  name?: string;
+  "api-key": string;
+  "base-url"?: string;
+  "proxy-url"?: string;
+  prefix?: string;
+  headers?: Record<string, string>;
+  models?: { name: string; alias?: string }[];
+}
+
+export interface CodexCompatProvider {
+  name?: string;
+  "api-key": string;
+  "base-url"?: string;
+  "proxy-url"?: string;
+  prefix?: string;
+  models?: { name: string; alias?: string }[];
+}
+
+export type CustomProviderType = "openai" | "claude" | "gemini" | "codex";
+
+export interface CustomProviderDisplay {
+  type: CustomProviderType;
+  name: string;
+  baseUrl: string;
+  keysCount: number;
+  modelsCount: number;
+  rawData:
+    | OpenAICompatProvider
+    | ClaudeCompatProvider
+    | GeminiCompatProvider
+    | CodexCompatProvider;
+}
+
 export interface CustomProviderFormProps {
   onClose: () => void;
   onSaved: () => void;
-  editProvider?: OpenAIProviderData;
-  editClaudeProvider?: ClaudeApiKeyEntry[];
-  editGeminiProvider?: GeminiApiKeyEntry[];
-  editCodexProvider?: CodexApiKeyEntry[];
+  editProvider?: OpenAICompatProvider;
+  editClaudeProvider?: ClaudeCompatProvider;
+  editGeminiProvider?: GeminiCompatProvider;
+  editCodexProvider?: CodexCompatProvider;
   initialProtocol?: ProtocolType;
 }

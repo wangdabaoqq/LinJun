@@ -1,14 +1,32 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import log from "@renderer/utils/logger";
-import { Trash2, Edit2, Plus, RotateCw, Loader2 } from "lucide-react";
+import {
+  Trash2,
+  Edit2,
+  Plus,
+  RotateCw,
+  Loader2,
+  Settings,
+  Users,
+  ShieldCheck,
+  ChevronDown,
+} from "lucide-react";
 
 import { useTranslations } from "../../stores/settings";
 import { useProvidersStore, TokenAccount } from "../../stores/providers";
 import { CustomProviderForm } from "./CustomProviderForm/index";
 import { ConfirmModal } from "../ui/ConfirmModal";
-import { CustomIcon } from "../icons/ProviderIcons";
+import { getCustomProviderIcon } from "../icons/ProviderIcons";
 
-import { Provider, OpenAICompatProvider, Account } from "./types";
+import {
+  Provider,
+  OpenAICompatProvider,
+  Account,
+  CustomProviderDisplay,
+  ClaudeCompatProvider,
+  GeminiCompatProvider,
+  CodexCompatProvider,
+} from "./types";
 import { allProviders } from "./providerDefinitions";
 import { useProviderAuth } from "./hooks/useProviderAuth";
 import { AddAccountModal } from "./AddAccountModal";
@@ -42,41 +60,144 @@ export function Providers() {
     "accounts"
   > | null>(null);
   const [customProviders, setCustomProviders] = useState<
-    OpenAICompatProvider[]
+    CustomProviderDisplay[]
   >([]);
   const [showCustomProviderForm, setShowCustomProviderForm] = useState(false);
   const [editingCustomProvider, setEditingCustomProvider] =
-    useState<OpenAICompatProvider | null>(null);
-  const [deleteConfirmProvider, setDeleteConfirmProvider] = useState<
-    string | null
-  >(null);
+    useState<CustomProviderDisplay | null>(null);
+  const [deleteConfirmProvider, setDeleteConfirmProvider] = useState<{
+    type: string;
+    name: string;
+  } | null>(null);
   const [removeConfirmAccount, setRemoveConfirmAccount] = useState<{
     providerId: string;
     accountId: string;
   } | null>(null);
 
-  useEffect(() => {
-    loadAccounts();
-    loadCustomProviders();
-  }, [loadAccounts]);
+  const [officialExpanded, setOfficialExpanded] = useState(false);
+  const [customExpanded, setCustomExpanded] = useState(false);
 
-  const loadCustomProviders = async () => {
+  const loadCustomProviders = useCallback(async () => {
     try {
-      const result = await window.electronAPI?.openaiCompat?.getAll();
-      if (result?.success) {
-        setCustomProviders(result.providers || []);
+      const allProviders: CustomProviderDisplay[] = [];
+
+      const openaiResult = await window.electronAPI?.openaiCompat?.getAll();
+      if (openaiResult?.success && openaiResult.providers) {
+        openaiResult.providers.forEach((p: OpenAICompatProvider) => {
+          allProviders.push({
+            type: "openai",
+            name: p.name,
+            baseUrl: p["base-url"],
+            keysCount: p["api-key-entries"]?.length || 0,
+            modelsCount: p.models?.length || 0,
+            rawData: p,
+          });
+        });
       }
+
+      const claudeResult = await window.electronAPI?.claudeCompat?.getAll();
+      if (claudeResult?.success && claudeResult.entries) {
+        claudeResult.entries.forEach((p: ClaudeCompatProvider, idx: number) => {
+          allProviders.push({
+            type: "claude",
+            name: p.name || `Claude #${idx + 1}`,
+            baseUrl: p["base-url"] || "https://api.anthropic.com",
+            keysCount: 1,
+            modelsCount: p.models?.length || 0,
+            rawData: p,
+          });
+        });
+      }
+
+      const geminiResult = await window.electronAPI?.geminiCompat?.getAll();
+      if (geminiResult?.success && geminiResult.entries) {
+        geminiResult.entries.forEach((p: GeminiCompatProvider, idx: number) => {
+          allProviders.push({
+            type: "gemini",
+            name: p.name || `Gemini #${idx + 1}`,
+            baseUrl:
+              p["base-url"] || "https://generativelanguage.googleapis.com",
+            keysCount: 1,
+            modelsCount: p.models?.length || 0,
+            rawData: p,
+          });
+        });
+      }
+
+      const codexResult = await window.electronAPI?.codexCompat?.getAll();
+      if (codexResult?.success && codexResult.entries) {
+        codexResult.entries.forEach((p: CodexCompatProvider, idx: number) => {
+          allProviders.push({
+            type: "codex",
+            name: p.name || `Codex #${idx + 1}`,
+            baseUrl: p["base-url"] || "https://api.openai.com/v1",
+            keysCount: 1,
+            modelsCount: p.models?.length || 0,
+            rawData: p,
+          });
+        });
+      }
+
+      setCustomProviders(allProviders);
     } catch (err) {
       log.error("[Providers] Failed to load custom providers:", err);
     }
-  };
+  }, []);
 
-  const handleDeleteCustomProvider = async (name: string) => {
+  useEffect(() => {
+    loadAccounts();
+    loadCustomProviders();
+  }, [loadAccounts, loadCustomProviders]);
+
+  const stats = useMemo(() => {
+    const totalProviders = new Set(providerAccounts.map((a) => a.provider))
+      .size;
+    const totalAccounts = providerAccounts.length;
+    const activeAccounts = providerAccounts.filter(
+      (a) => a.status === "online",
+    ).length;
+    const customCount = customProviders.length;
+
+    return { totalProviders, totalAccounts, activeAccounts, customCount };
+  }, [providerAccounts, customProviders]);
+
+  const handleDeleteCustomProvider = async (type: string, name: string) => {
     try {
-      const result = await window.electronAPI?.openaiCompat?.delete(name);
-      if (result?.success) {
-        setCustomProviders(result.providers || []);
+      let success = false;
+      if (type === "openai") {
+        const result = await window.electronAPI?.openaiCompat?.delete(name);
+        success = result?.success || false;
+      } else if (type === "claude") {
+        const current = await window.electronAPI?.claudeCompat?.getAll();
+        if (current?.success && current.entries) {
+          const filtered = current.entries.filter(
+            (e: ClaudeCompatProvider) => e.name !== name,
+          );
+          const result = await window.electronAPI?.claudeCompat?.save(filtered);
+          success = result?.success || false;
+        }
+      } else if (type === "gemini") {
+        const current = await window.electronAPI?.geminiCompat?.getAll();
+        if (current?.success && current.entries) {
+          const filtered = current.entries.filter(
+            (e: GeminiCompatProvider) => e.name !== name,
+          );
+          const result = await window.electronAPI?.geminiCompat?.save(filtered);
+          success = result?.success || false;
+        }
+      } else if (type === "codex") {
+        const current = await window.electronAPI?.codexCompat?.getAll();
+        if (current?.success && current.entries) {
+          const filtered = current.entries.filter(
+            (e: CodexCompatProvider) => e.name !== name,
+          );
+          const result = await window.electronAPI?.codexCompat?.save(filtered);
+          success = result?.success || false;
+        }
+      }
+      if (success) {
         setDeleteConfirmProvider(null);
+        loadCustomProviders();
       }
     } catch (err) {
       log.error("[Providers] Failed to delete custom provider:", err);
@@ -100,21 +221,6 @@ export function Providers() {
       setAddAccountProvider(providerInfo);
     } else {
       await triggerAuth(providerInfo);
-    }
-  };
-
-  const handleAddAccount = async (providerId: string) => {
-    const providerInfo = allProviders.find((p) => p.id === providerId);
-    if (providerInfo) {
-      if (
-        providerInfo.authType === "apikey" ||
-        providerInfo.authType === "import" ||
-        providerInfo.authType === "oauth-project"
-      ) {
-        setAddAccountProvider(providerInfo);
-      } else {
-        await triggerAuth(providerInfo);
-      }
     }
   };
 
@@ -206,138 +312,244 @@ export function Providers() {
   );
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-[var(--text-primary)]">
-            {t.providers.title}
-          </h2>
-          <p className="text-[var(--text-muted)] text-sm mt-1">
-            {t.providers.subtitle}
-          </p>
+    <div className="flex flex-col h-full bg-transparent overflow-hidden">
+      <div className="shrink-0 mb-8">
+        <div className="flex items-center justify-between mb-10">
+          <div className="space-y-1">
+            <h2 className="text-3xl font-bold tracking-tight text-[var(--text-primary)]">
+              {t.providers.title}
+            </h2>
+            <p className="text-[var(--text-muted)] text-sm font-medium">
+              {t.providers.subtitle}
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              className="p-2.5 text-[var(--text-dim)] hover:text-[var(--text-primary)] transition-colors group glass-card border-none bg-transparent hover:bg-[var(--text-primary)]/5"
+              onClick={() => loadAccounts({ force: true })}
+              disabled={isLoading}
+            >
+              <RotateCw
+                className={`w-4 h-4 ${isLoading ? "animate-spin" : "group-hover:rotate-180 transition-transform duration-500"}`}
+              />
+            </button>
+            <button
+              className="glass-btn glass-btn-primary h-11 px-6 rounded-xl font-bold text-sm flex items-center gap-2 transition-all hover:scale-[1.02]"
+              onClick={() => setShowAddModal(true)}
+              disabled={isAuthenticating}
+            >
+              {isAuthenticating ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Plus className="w-4 h-4 stroke-[2.5px]" />
+              )}
+              <span>
+                {isAuthenticating
+                  ? t.providers.connecting
+                  : t.providers.addProvider}
+              </span>
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          <button
-            className="glass-btn p-2.5 active:scale-90 transition-all duration-300 group hover:bg-white/10"
-            onClick={() => loadAccounts({ force: true })}
-            disabled={isLoading}
-            title={t.quota.refresh}
-          >
-            <RotateCw
-              className={`w-4 h-4 group-hover:rotate-180 transition-transform duration-500 ${isLoading ? "animate-spin" : ""}`}
-            />
-          </button>
-          <button
-            className="glass-btn glass-btn-teal flex items-center justify-center gap-2 group active:scale-95 transition-all duration-300 hover:brightness-110 shadow-lg hover:shadow-teal-500/20"
-            onClick={() => setShowAddModal(true)}
-            disabled={isAuthenticating}
-          >
-            {isAuthenticating ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                {t.providers.connecting}
-              </>
-            ) : (
-              <>
-                <Plus className="w-4 h-4 group-hover:scale-125 group-hover:rotate-90 transition-all duration-300" />
-                <span>{t.providers.addProvider}</span>
-              </>
-            )}
-          </button>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 px-1">
+          {[
+            {
+              label: t.providers.official,
+              value: stats.totalProviders,
+              icon: ShieldCheck,
+              color: "text-neon-blue",
+            },
+            {
+              label: t.providers.connected,
+              value: stats.totalAccounts,
+              icon: Users,
+              color: "text-neon-teal",
+            },
+            {
+              label: t.status.online,
+              value: stats.activeAccounts,
+              icon: RotateCw,
+              color: "text-neon-green",
+            },
+            {
+              label: t.providers.customProvider,
+              value: stats.customCount,
+              icon: Settings,
+              color: "text-neon-purple",
+            },
+          ].map((stat, i) => (
+            <div
+              key={i}
+              className="glass-card flex flex-col gap-3 p-4 border-none bg-[var(--text-primary)]/[0.02] hover:bg-[var(--text-primary)]/[0.04] transition-all hover:shadow-soft-md"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-dim)]">
+                  {stat.label}
+                </span>
+                <stat.icon className={`w-3.5 h-3.5 ${stat.color} opacity-80`} />
+              </div>
+              <div className="flex items-baseline gap-2">
+                <span className="text-2xl font-bold text-[var(--text-primary)] tracking-tight">
+                  {stat.value.toString().padStart(2, "0")}
+                </span>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
-      {authError && (
-        <div className="p-4 rounded-lg bg-[var(--accent-magenta)]/10 border border-[var(--accent-magenta)]/30">
-          <p className="text-sm text-[var(--accent-magenta)]">{authError}</p>
-          <button
-            className="text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] mt-2"
-            onClick={() => setAuthError(null)}
-          >
-            {t.providers.dismiss || "Dismiss"}
-          </button>
-        </div>
-      )}
-
-      {providersWithAccounts.length > 0 ? (
-        <div className="space-y-4">
-          {providersWithAccounts.map((provider) => (
-            <ProviderCard
-              key={provider.id}
-              provider={provider}
-              onAddAccount={handleAddAccount}
-              onRemoveAccount={handleRemoveAccount}
-            />
-          ))}
-        </div>
-      ) : (
-        <div className="glass-card p-12 text-center flex flex-col items-center">
-          <div className="text-4xl mb-4 text-[var(--text-dim)]">◈</div>
-          <p className="text-[var(--text-muted)]">{t.providers.noProviders}</p>
-          <button
-            className="glass-btn glass-btn-teal mt-6 flex items-center justify-center gap-2 group active:scale-95 transition-all px-6 py-2.5"
-            onClick={() => setShowAddModal(true)}
-          >
-            <Plus className="w-4 h-4 group-hover:scale-125 group-hover:rotate-90 transition-all duration-300" />
-            <span>{t.providers.addProvider}</span>
-          </button>
-        </div>
-      )}
-
-      {customProviders.length > 0 && (
-        <div className="mt-6">
-          <h3 className="text-sm font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-3">
-            {t.providers.customManage}
-          </h3>
-          <div className="space-y-3">
-            {customProviders.map((cp) => (
-              <div
-                key={cp.name}
-                className="glass-card p-4 flex items-center justify-between group hover:border-[var(--accent-indigo)]/30 transition-all"
+      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-2 -mr-2">
+        <div className="space-y-12 pb-12">
+          {authError && (
+            <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-sm font-bold flex items-center justify-between animate-in fade-in slide-in-from-top-2">
+              <span>{authError}</span>
+              <button
+                onClick={() => setAuthError(null)}
+                className="opacity-60 hover:opacity-100 transition-opacity"
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl bg-[var(--accent-indigo)]/10 text-[var(--accent-indigo)]">
-                    <CustomIcon />
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-[var(--text-primary)]">
-                      {cp.name}
-                    </h4>
-                    <p className="text-xs text-[var(--text-muted)] truncate max-w-[200px]">
-                      {cp["base-url"]}
-                    </p>
-                    <p className="text-xs text-[var(--text-dim)]">
-                      {cp["api-key-entries"].length} API keys
-                      {cp.models &&
-                        cp.models.length > 0 &&
-                        ` • ${cp.models.length} models`}
-                    </p>
-                  </div>
+                ✕
+              </button>
+            </div>
+          )}
+
+          <section>
+            <div
+              className="flex items-center gap-4 mb-6 cursor-pointer group/section"
+              onClick={() => setOfficialExpanded(!officialExpanded)}
+            >
+              <h3 className="text-[11px] font-bold text-[var(--text-primary)] uppercase tracking-[0.2em] opacity-30 group-hover/section:opacity-60 transition-opacity">
+                {t.providers.official}
+              </h3>
+              <div className="h-px flex-1 bg-[var(--text-primary)]/5" />
+              <div
+                className={`p-1 rounded-lg hover:bg-[var(--text-primary)]/5 transition-all text-[var(--text-dim)] ${officialExpanded ? "rotate-180" : ""}`}
+              >
+                <ChevronDown className="w-3.5 h-3.5" />
+              </div>
+            </div>
+            {providersWithAccounts.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                {providersWithAccounts.map((provider) => (
+                  <ProviderCard
+                    key={provider.id}
+                    provider={provider}
+                    isExpanded={officialExpanded}
+                    onRemoveAccount={handleRemoveAccount}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="py-20 text-center border border-dashed border-[var(--text-primary)]/10 rounded-3xl group hover:border-[var(--text-primary)]/20 transition-colors">
+                <div className="text-4xl mb-4 opacity-10 group-hover:opacity-20 transition-opacity text-[var(--text-primary)]">
+                  ◈
                 </div>
-                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button
-                    onClick={() => {
-                      setEditingCustomProvider(cp);
-                      setShowCustomProviderForm(true);
-                    }}
-                    className="glass-btn p-2 text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-                    title={t.providers.customEdit}
-                  >
-                    <Edit2 className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => setDeleteConfirmProvider(cp.name)}
-                    className="p-2 text-red-500/70 hover:text-red-500 hover:scale-110 transition-all"
-                    title={t.providers.customDelete}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                <p className="text-[var(--text-dim)] font-bold tracking-tight uppercase text-[10px] mb-8">
+                  {t.providers.noProviders}
+                </p>
+                <button
+                  className="px-8 py-2.5 rounded-xl border border-[var(--text-primary)]/10 text-[var(--text-primary)] text-xs font-bold tracking-widest hover:bg-[var(--text-primary)] hover:text-[var(--bg-primary)] transition-all"
+                  onClick={() => setShowAddModal(true)}
+                >
+                  {t.providers.addProvider}
+                </button>
+              </div>
+            )}
+          </section>
+
+          {customProviders.length > 0 && (
+            <section>
+              <div
+                className="flex items-center gap-4 mb-6 cursor-pointer group/section"
+                onClick={() => setCustomExpanded(!customExpanded)}
+              >
+                <h3 className="text-[11px] font-bold text-[var(--text-primary)] uppercase tracking-[0.2em] opacity-30 group-hover/section:opacity-60 transition-opacity">
+                  {t.providers.customManage}
+                </h3>
+                <div className="h-px flex-1 bg-[var(--text-primary)]/5" />
+                <div
+                  className={`p-1 rounded-lg hover:bg-[var(--text-primary)]/5 transition-all text-[var(--text-dim)] ${customExpanded ? "rotate-180" : ""}`}
+                >
+                  <ChevronDown className="w-3.5 h-3.5" />
                 </div>
               </div>
-            ))}
-          </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                {customProviders.map((cp) => (
+                  <div
+                    key={`${cp.type}-${cp.name}`}
+                    className="group/card relative flex flex-col p-6 rounded-3xl glass-card hover:border-[var(--accent-secondary)]/30 transition-all duration-300"
+                  >
+                    <div className="flex items-start justify-between mb-6">
+                      <div className="flex items-center gap-4">
+                        <div className="text-3xl">
+                          {getCustomProviderIcon(cp.type)}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-bold text-base text-[var(--text-primary)] leading-tight">
+                              {cp.name}
+                            </h4>
+                            <span className="px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider rounded bg-[var(--text-primary)]/5 text-[var(--text-dim)]">
+                              {cp.type}
+                            </span>
+                          </div>
+                          <p className="text-[10px] font-mono text-[var(--text-dim)] mt-1 tracking-tighter opacity-70">
+                            {cp.baseUrl}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex gap-1 opacity-0 group-hover/card:opacity-100 transition-all duration-300">
+                        <button
+                          onClick={() => {
+                            setEditingCustomProvider(cp);
+                            setShowCustomProviderForm(true);
+                          }}
+                          className="p-1.5 text-[var(--text-dim)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 rounded-lg transition-all"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() =>
+                            setDeleteConfirmProvider({
+                              type: cp.type,
+                              name: cp.name,
+                            })
+                          }
+                          className="p-1.5 text-[var(--text-dim)] hover:text-neon-red hover:bg-neon-red/5 rounded-lg transition-all"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {customExpanded && (
+                      <div className="flex items-center gap-6 mt-auto animate-in fade-in slide-in-from-top-1 duration-200">
+                        <div className="space-y-0.5">
+                          <p className="text-[9px] font-bold text-[var(--text-dim)] uppercase tracking-wider">
+                            Keys
+                          </p>
+                          <p className="text-sm font-bold text-[var(--text-primary)] font-mono">
+                            {cp.keysCount}
+                          </p>
+                        </div>
+                        <div className="w-px h-6 bg-[var(--text-primary)]/5" />
+                        <div className="space-y-0.5">
+                          <p className="text-[9px] font-bold text-[var(--text-dim)] uppercase tracking-wider">
+                            Models
+                          </p>
+                          <p className="text-sm font-bold text-[var(--text-primary)] font-mono">
+                            {cp.modelsCount}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
         </div>
-      )}
+      </div>
 
       {showAddModal && (
         <AddProviderModal
@@ -345,7 +557,6 @@ export function Providers() {
           onSelectProvider={handleSelectProvider}
         />
       )}
-
       {addAccountProvider && (
         <AddAccountModal
           provider={addAccountProvider}
@@ -353,7 +564,6 @@ export function Providers() {
           onAdd={handleAccountAdded}
         />
       )}
-
       {showCustomProviderForm && (
         <CustomProviderForm
           onClose={() => {
@@ -365,10 +575,28 @@ export function Providers() {
             setEditingCustomProvider(null);
             loadCustomProviders();
           }}
-          editProvider={editingCustomProvider || undefined}
+          editProvider={
+            editingCustomProvider?.type === "openai"
+              ? (editingCustomProvider.rawData as OpenAICompatProvider)
+              : undefined
+          }
+          editClaudeProvider={
+            editingCustomProvider?.type === "claude"
+              ? (editingCustomProvider.rawData as ClaudeCompatProvider)
+              : undefined
+          }
+          editGeminiProvider={
+            editingCustomProvider?.type === "gemini"
+              ? (editingCustomProvider.rawData as GeminiCompatProvider)
+              : undefined
+          }
+          editCodexProvider={
+            editingCustomProvider?.type === "codex"
+              ? (editingCustomProvider.rawData as CodexCompatProvider)
+              : undefined
+          }
         />
       )}
-
       {copilotAuthInfo && (
         <CopilotAuthModal
           authInfo={copilotAuthInfo}
@@ -385,12 +613,19 @@ export function Providers() {
         onClose={() => setDeleteConfirmProvider(null)}
         onConfirm={() => {
           if (deleteConfirmProvider)
-            handleDeleteCustomProvider(deleteConfirmProvider);
+            handleDeleteCustomProvider(
+              deleteConfirmProvider.type,
+              deleteConfirmProvider.name,
+            );
         }}
-        title={t.providers.customDeleteConfirm.replace(
-          "{name}",
-          deleteConfirmProvider || "",
-        )}
+        title={
+          deleteConfirmProvider
+            ? t.providers.customDeleteConfirm.replace(
+                "{name}",
+                deleteConfirmProvider.name,
+              )
+            : ""
+        }
         description={t.logs.deleteDesc}
         confirmText={t.common.delete}
         cancelText={t.common.cancel}
@@ -401,12 +636,11 @@ export function Providers() {
         isOpen={!!removeConfirmAccount}
         onClose={() => setRemoveConfirmAccount(null)}
         onConfirm={() => {
-          if (removeConfirmAccount) {
+          if (removeConfirmAccount)
             performRemoveAccount(
               removeConfirmAccount.providerId,
               removeConfirmAccount.accountId,
             );
-          }
         }}
         title={t.providers.removeAccountConfirm}
         description={t.providers.removeAccountDesc}

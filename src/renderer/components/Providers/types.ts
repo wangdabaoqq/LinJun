@@ -5,6 +5,50 @@ export interface OpenAICompatProvider {
   "base-url": string;
   "api-key-entries": { "api-key": string; "proxy-url"?: string }[];
   models?: { name: string; alias?: string }[];
+  prefix?: string;
+}
+
+export interface ClaudeCompatProvider {
+  name?: string;
+  "api-key": string;
+  "base-url"?: string;
+  "proxy-url"?: string;
+  prefix?: string;
+  models?: { name: string; alias?: string }[];
+}
+
+export interface GeminiCompatProvider {
+  name?: string;
+  "api-key": string;
+  "base-url"?: string;
+  "proxy-url"?: string;
+  prefix?: string;
+  headers?: Record<string, string>;
+  models?: { name: string; alias?: string }[];
+}
+
+export interface CodexCompatProvider {
+  name?: string;
+  "api-key": string;
+  "base-url"?: string;
+  "proxy-url"?: string;
+  prefix?: string;
+  models?: { name: string; alias?: string }[];
+}
+
+export type CustomProviderType = "openai" | "claude" | "gemini" | "codex";
+
+export interface CustomProviderDisplay {
+  type: CustomProviderType;
+  name: string;
+  baseUrl: string;
+  keysCount: number;
+  modelsCount: number;
+  rawData:
+    | OpenAICompatProvider
+    | ClaudeCompatProvider
+    | GeminiCompatProvider
+    | CodexCompatProvider;
 }
 
 export interface Account {

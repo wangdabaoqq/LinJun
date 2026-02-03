@@ -21,55 +21,45 @@ export const AddProviderModal = memo(function AddProviderModal({
       <div
         className="fixed inset-0 bg-[var(--overlay-bg)] backdrop-blur-xl animate-fade-in"
         style={{ WebkitBackdropFilter: "blur(24px)" }}
+        onClick={onClose}
       />
-      <div className="relative w-full max-w-[640px] max-h-[85vh] flex flex-col overflow-hidden animate-scale-in shadow-[0_0_60px_-15px_rgba(0,0,0,0.3)] border border-[var(--glass-border)] rounded-2xl">
-        <div className="absolute inset-0 bg-gradient-to-br from-[var(--bg-primary)] via-[var(--bg-secondary)] to-[var(--bg-primary)] z-0" />
-        <div className="absolute inset-0 bg-[var(--bg-primary)]/60 backdrop-blur-2xl z-0" />
+      <div className="relative w-full max-w-[820px] max-h-[85vh] flex flex-col overflow-hidden animate-scale-in shadow-soft-xl border border-[var(--glass-border)] rounded-3xl isolation-isolate">
+        <div className="absolute inset-0 glass-modal-bg z-0" />
+        <div className="absolute inset-0 bg-gradient-to-br from-[var(--accent-primary)]/5 via-transparent to-transparent z-0" />
 
-        <div className="relative z-10 flex items-center justify-between p-6 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/30">
-          <h2 className="text-xl font-bold text-[var(--text-primary)] tracking-tight">
+        <div className="relative z-10 flex items-center justify-between p-8 border-b border-[var(--glass-border)]">
+          <h2 className="text-2xl font-bold text-[var(--text-primary)] tracking-tight">
             {t.providers.addProvider}
           </h2>
           <button
             onClick={onClose}
-            className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-white/10 text-[var(--text-primary)]/60 hover:text-[var(--text-primary)] transition-all"
+            className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-[var(--text-primary)]/5 text-[var(--text-dim)] hover:text-[var(--text-primary)] transition-all active:scale-95"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="relative z-10 p-6 overflow-y-auto custom-scrollbar">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="relative z-10 p-8 overflow-y-auto custom-scrollbar">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             {allProviders.map((provider) => {
               return (
                 <div
                   key={provider.id}
-                  className={`group glass-card p-4 cursor-pointer transition-all duration-200 hover:scale-[1.02] bg-[var(--bg-secondary)]/40 border-[var(--glass-border)] hover:border-[var(--accent-${provider.color})]/40 shadow-sm hover:shadow-md`}
+                  className="group relative p-6 cursor-pointer transition-all duration-300 rounded-2xl glass-card border-[var(--glass-border)] bg-[var(--text-primary)]/[0.01] hover:bg-[var(--text-primary)]/[0.03] hover:border-[var(--accent-primary)]/20 hover:shadow-soft-md"
                   onClick={() => onSelectProvider(provider)}
                 >
-                  <div className="flex items-center gap-4">
-                    <div
-                      className={`w-12 h-12 rounded-2xl flex items-center justify-center text-2xl bg-[var(--accent-${provider.color})]/10 text-[var(--accent-${provider.color})] group-hover:scale-110 transition-transform shadow-inner`}
-                    >
+                  <div className="flex flex-col gap-6">
+                    <div className="text-4xl transition-transform duration-300 group-hover:scale-105">
                       {provider.icon}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-bold text-[var(--text-primary)] text-sm">
+                    <div className="space-y-2">
+                      <h3 className="font-bold text-[var(--text-primary)] text-base tracking-tight leading-tight">
                         {provider.id === "custom"
                           ? t.providers.customProvider
                           : provider.name}
                       </h3>
-                      <div className="mt-1">
-                        <span
-                          className={`px-2 py-0.5 text-[10px] rounded-full font-bold uppercase tracking-wider ${
-                            provider.authType === "oauth" ||
-                            provider.authType === "oauth-project"
-                              ? "bg-[var(--accent-primary)]/20 text-[var(--accent-primary)]"
-                              : provider.authType === "import"
-                                ? "bg-[var(--accent-secondary)]/20 text-[var(--accent-secondary)]"
-                                : "bg-[var(--accent-tertiary)]/20 text-[var(--accent-tertiary)]"
-                          }`}
-                        >
+                      <div className="flex">
+                        <span className="px-3 py-1 text-[9px] rounded-full font-bold uppercase tracking-wider border border-[var(--glass-border)] text-[var(--text-dim)] group-hover:text-[var(--text-primary)] group-hover:border-[var(--text-primary)]/20 transition-all opacity-70">
                           {provider.authType === "oauth" ||
                           provider.authType === "oauth-project"
                             ? "OAuth"

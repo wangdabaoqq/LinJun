@@ -55,32 +55,33 @@ function ProgressBar({
   const shouldShowLabel = displayLabel.length > 0;
 
   const colorClass = useMemo(() => {
-    if (percent >= 90) return "bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.3)]";
+    if (percent >= 90)
+      return "bg-neon-red shadow-[0_0_8px_rgba(239,68,68,0.4)]";
     if (percent >= 70)
-      return "bg-amber-500 shadow-[0_0_6px_rgba(245,158,11,0.3)]";
-    return "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.3)]";
+      return "bg-neon-amber shadow-[0_0_8px_rgba(245,158,11,0.4)]";
+    return "bg-neon-green shadow-[0_0_8px_rgba(16,185,129,0.4)]";
   }, [percent]);
 
   return (
     <div className="w-full min-w-0">
       {shouldShowLabel && (
-        <div className="flex justify-between items-center mb-1 px-0.5">
-          <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 truncate max-w-[55%] tracking-tighter">
+        <div className="flex justify-between items-center mb-1.5 px-0.5">
+          <span className="text-[10px] font-black text-white/40 uppercase tracking-widest truncate max-w-[55%]">
             {displayLabel}
           </span>
           <div className="flex items-center gap-1.5">
             {resetIn && (
-              <span className="text-[8px] font-medium text-gray-400/70 dark:text-gray-500/70 whitespace-nowrap">
+              <span className="text-[9px] font-bold text-white/20 whitespace-nowrap italic">
                 {resetIn}
               </span>
             )}
-            <span className="text-[9px] font-mono font-black text-gray-500/80 tabular-nums">
+            <span className="text-[10px] font-black text-white/60 font-mono tabular-nums">
               {Math.round(percent)}%
             </span>
           </div>
         </div>
       )}
-      <div className="h-1 w-full bg-black/[0.04] dark:bg-white/[0.04] rounded-full overflow-hidden">
+      <div className="h-1 w-full bg-white/[0.04] rounded-full overflow-hidden">
         <motion.div
           initial={{ width: 0 }}
           animate={{ width: `${Math.min(percent, 100)}%` }}
@@ -103,28 +104,28 @@ function AccountItem({ account }: { account: QuotaAccount }) {
   }, [account.rateLimits]);
 
   return (
-    <div className="group relative p-3 rounded-2xl bg-white/30 dark:bg-white/5 hover:bg-white/60 dark:hover:bg-white/10 transition-all duration-300 border border-black/[0.03] dark:border-white/[0.03] hover:border-black/[0.08] dark:hover:border-white/[0.08] hover:shadow-xl hover:shadow-black/5">
-      <div className="flex justify-between items-start mb-2.5">
-        <div className="flex items-center gap-1.5 min-w-0">
+    <div className="group relative p-4 rounded-[20px] bg-white/[0.02] hover:bg-white/[0.05] transition-all duration-500 border border-white/[0.03] hover:border-white/10">
+      <div className="flex justify-between items-start mb-4">
+        <div className="flex items-center gap-2 min-w-0">
           <span
-            className="text-[11px] font-bold text-gray-800 dark:text-gray-100 truncate select-none tracking-tight"
+            className="text-xs font-black text-white truncate select-none tracking-tight font-mono"
             title={account.email}
           >
             {account.email}
           </span>
           {account.badge && (
-            <span className="flex-none text-[8px] font-bold px-1.5 py-0.5 rounded-full bg-blue-500/10 text-blue-500 dark:bg-blue-400/10 dark:text-blue-400 tracking-wide">
+            <span className="flex-none text-[8px] font-black px-1.5 py-0.5 rounded-full bg-white/10 text-white/60 tracking-widest uppercase">
               {account.badge}
             </span>
           )}
         </div>
         {account.status === "limited" && (
-          <span className="flex-none text-[8px] text-red-500 font-bold uppercase tracking-wider">
+          <span className="flex-none text-[8px] text-neon-red font-black uppercase tracking-[0.2em] animate-pulse">
             Limit
           </span>
         )}
       </div>
-      <div className="grid grid-cols-2 gap-x-5 gap-y-2.5">
+      <div className="grid grid-cols-2 gap-x-6 gap-y-4">
         {windows.map((w, i) => (
           <ProgressBar
             key={i}
@@ -203,53 +204,47 @@ export function TrayView() {
   };
 
   return (
-    <div
-      className={`w-full h-[520px] flex flex-col select-none overflow-hidden font-sans tracking-tight transition-all duration-300 ${
-        theme === "dark"
-          ? "text-white selection:bg-white/20"
-          : "text-gray-900 selection:bg-black/10"
-      }`}
-    >
-      <div className="absolute inset-0 bg-white/40 dark:bg-black/40 backdrop-blur-[40px] -z-10" />
+    <div className="w-full h-[520px] flex flex-col select-none overflow-hidden font-sans tracking-tight transition-all duration-300 text-white selection:bg-white/20 bg-black">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-[40px] -z-10" />
 
-      <header className="flex-none px-5 pt-5 pb-3">
-        <div className="flex items-center justify-between mb-1">
-          <div className="flex items-center gap-2.5">
-            <h1 className="font-black text-base tracking-tighter uppercase">
+      <header className="flex-none px-6 pt-6 pb-4">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-3">
+            <h1 className="font-black text-lg tracking-tighter uppercase">
               LinJun
             </h1>
             <div
-              className={`w-2 h-2 rounded-full ring-4 ring-offset-0 ${
+              className={`w-2 h-2 rounded-full ${
                 proxyRunning
-                  ? "bg-emerald-500 shadow-[0_0_12px_#10b981] ring-emerald-500/20 animate-pulse"
-                  : "bg-gray-400 dark:bg-gray-600 ring-transparent"
+                  ? "bg-neon-green shadow-[0_0_12px_rgba(16,185,129,0.8)] animate-pulse"
+                  : "bg-white/20"
               }`}
             />
           </div>
 
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1.5">
             <button
               onClick={handleRefresh}
               disabled={isLoading || isRefreshing}
-              className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-all active:scale-90 disabled:opacity-30"
+              className="p-2 rounded-full hover:bg-white/10 transition-all active:scale-90 disabled:opacity-30"
             >
               <RotateCw
                 size={16}
-                className={`${isLoading || isRefreshing ? "animate-spin" : "opacity-60 hover:opacity-100 transition-opacity"}`}
+                className={`${isLoading || isRefreshing ? "animate-spin" : "opacity-40 hover:opacity-100 transition-opacity"}`}
               />
             </button>
             <button
               onClick={toggleProxy}
               className={`p-2 rounded-full transition-all active:scale-90 ${
                 proxyRunning
-                  ? "text-red-500 bg-red-500/10 hover:bg-red-500/20"
-                  : "text-emerald-500 bg-emerald-500/10 hover:bg-emerald-500/20"
+                  ? "text-neon-red bg-neon-red/10 hover:bg-neon-red/20"
+                  : "text-neon-green bg-neon-green/10 hover:bg-neon-green/20"
               }`}
             >
               {proxyRunning ? (
                 <Square size={14} fill="currentColor" />
               ) : (
-                <Play size={14} fill="currentColor" />
+                <Play size={14} fill="currentColor" strokeWidth={3} />
               )}
             </button>
           </div>
@@ -258,36 +253,36 @@ export function TrayView() {
         <div className="flex items-center justify-between px-0.5">
           <button
             onClick={handleCopyUrl}
-            className="flex items-center gap-1.5 py-0.5 rounded-md hover:bg-black/5 dark:hover:bg-white/10 transition-colors group"
+            className="flex items-center gap-2 py-0.5 rounded-md hover:bg-white/5 transition-colors group"
           >
-            <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 font-mono">
+            <span className="text-[10px] font-black text-white/30 font-mono tracking-tighter group-hover:text-white/60 transition-colors">
               127.0.0.1:{port}
             </span>
             {copied ? (
-              <Check size={10} className="text-emerald-500" />
+              <Check size={10} className="text-neon-green" />
             ) : (
               <Copy
                 size={10}
-                className="opacity-0 group-hover:opacity-40 transition-opacity"
+                className="opacity-0 group-hover:opacity-20 transition-opacity"
               />
             )}
           </button>
-          <span className="text-[9px] font-bold text-gray-400/60 uppercase tracking-widest">
+          <span className="text-[9px] font-black text-white/20 uppercase tracking-[0.2em]">
             {timeAgo}
           </span>
         </div>
       </header>
 
-      <div className="flex-none px-4 py-2">
-        <div className="flex items-center gap-2 p-1 bg-black/[0.03] dark:bg-white/[0.03] rounded-2xl overflow-x-auto no-scrollbar border border-black/[0.02] dark:border-white/[0.02]">
+      <div className="flex-none px-5 py-2">
+        <div className="flex items-center gap-2 p-1.5 bg-white/[0.03] rounded-[20px] overflow-x-auto no-scrollbar border border-white/5">
           {providers.map((p) => (
             <button
               key={p.id}
               onClick={() => selectProvider(p.id)}
-              className={`relative flex-shrink-0 min-w-[40px] h-10 px-3 rounded-xl flex items-center justify-center transition-all duration-300 ${
+              className={`relative flex-shrink-0 min-w-[44px] h-11 px-3 rounded-[14px] flex items-center justify-center transition-all duration-500 ${
                 selectedProvider === p.id
-                  ? "bg-white dark:bg-white/10 shadow-[0_4px_12px_rgba(0,0,0,0.08)] scale-100 ring-1 ring-black/[0.05] dark:ring-white/[0.05]"
-                  : "hover:bg-black/5 dark:hover:bg-white/5 scale-95 opacity-50 hover:opacity-100"
+                  ? "bg-white text-black shadow-[0_10px_20px_-5px_rgba(255,255,255,0.2)] scale-100"
+                  : "hover:bg-white/10 scale-95 opacity-30 hover:opacity-100"
               }`}
               title={p.name}
             >
@@ -299,7 +294,7 @@ export function TrayView() {
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 px-5 py-2 overflow-y-auto">
+      <div className="flex-1 min-h-0 px-6 py-4 overflow-y-auto custom-scrollbar">
         <AnimatePresence mode="popLayout">
           {isLoading && accounts.length === 0 ? (
             <motion.div
@@ -307,10 +302,9 @@ export function TrayView() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.15 }}
-              className="py-10 flex flex-col items-center justify-center text-gray-400 space-y-3"
+              className="py-12 flex flex-col items-center justify-center space-y-4"
             >
-              <div className="w-6 h-6 animate-spin border-2 border-current border-t-transparent rounded-full opacity-30" />
+              <div className="w-6 h-6 animate-spin border-2 border-white/20 border-t-white rounded-full" />
             </motion.div>
           ) : accounts.length === 0 ? (
             <motion.div
@@ -318,21 +312,19 @@ export function TrayView() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.15 }}
-              className="py-10 flex flex-col items-center justify-center text-gray-400/60"
+              className="py-12 flex flex-col items-center justify-center text-white/20"
             >
-              <span className="text-[10px] font-bold uppercase tracking-widest">
+              <span className="text-[10px] font-black uppercase tracking-[0.3em]">
                 {t.tray.noAccounts}
               </span>
             </motion.div>
           ) : (
             <motion.div
               key="list"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.15 }}
-              className="space-y-3 pb-4"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="space-y-4 pb-6"
             >
               {accounts.map((account) => (
                 <AccountItem key={account.id} account={account} />
@@ -342,17 +334,17 @@ export function TrayView() {
         </AnimatePresence>
       </div>
 
-      <footer className="flex-none p-5 flex items-center gap-3 bg-black/[0.02] dark:bg-white/[0.02] border-t border-black/[0.05] dark:border-white/[0.05]">
+      <footer className="flex-none p-6 flex items-center gap-4 border-t border-white/5">
         <button
           onClick={() => window.electronAPI?.tray?.openDashboard?.()}
-          className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl bg-gray-900 dark:bg-white text-white dark:text-black transition-all text-[11px] font-black uppercase tracking-tight active:scale-95 hover:shadow-lg hover:shadow-black/10 dark:hover:shadow-white/10"
+          className="flex-1 h-12 flex items-center justify-center gap-2 rounded-full bg-white text-black transition-all text-xs font-black uppercase tracking-widest active:scale-95 shadow-[0_10px_20px_-5px_rgba(255,255,255,0.2)] hover:scale-[1.02]"
         >
           <ExternalLink size={14} strokeWidth={3} />
           {t.tray.openDashboard}
         </button>
         <button
           onClick={() => window.electronAPI?.app?.quit?.()}
-          className="flex-none w-11 h-11 flex items-center justify-center rounded-2xl bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all active:scale-90"
+          className="flex-none w-12 h-12 flex items-center justify-center rounded-full bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all active:scale-90 border border-red-500/20"
           title={t.tray.quit}
         >
           <Power size={18} strokeWidth={2.5} />
@@ -362,7 +354,9 @@ export function TrayView() {
       <style>{`
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
       `}</style>
     </div>
   );
