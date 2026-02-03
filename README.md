@@ -26,7 +26,7 @@
 
 ## ✨ Features
 
-- 🔌 **Multi-Provider Support**: Connect accounts from Claude, Gemini, OpenAI Codex, Qwen, Antigravity, iFlow, Kiro, Vertex AI, GitHub Copilot via OAuth or API keys
+- 🔌 **Multi-Provider Support**: Connect accounts from Claude, Gemini, OpenAI Codex, Qwen, Antigravity, iFlow, Kiro, GitHub Copilot via OAuth or API keys
 - 📊 **Real-time Quota Tracking**: Monitor usage per account with automatic refresh
 - 🚀 **One-Click Agent Configuration**: Auto-detect and configure Claude Code, OpenCode, Gemini CLI, and more
 - 📈 **Live Dashboard**: Monitor request traffic, token usage, and success rates
@@ -49,7 +49,6 @@
 | iFlow           | OAuth          |
 | GitHub Copilot  | OAuth          |
 | Kiro            | OAuth          |
-| Vertex AI       | OAuth          |
 | Custom Provider | API Key        |
 
 ### Compatible CLI Agents

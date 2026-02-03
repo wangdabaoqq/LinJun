@@ -25,6 +25,13 @@ function isBcryptHash(value?: string): boolean {
   );
 }
 
+function formatError(error: unknown): string {
+  if (error instanceof Error) {
+    return `${error.name}: ${error.message}${error.stack ? `\n${error.stack}` : ""}`;
+  }
+  return String(error);
+}
+
 export interface OpenAICompatibilityApiKeyEntry {
   "api-key": string;
   "proxy-url"?: string;
@@ -166,7 +173,10 @@ class ProxyManager extends EventEmitter {
           secret = configSecret;
         }
       } catch (error) {
-        log.warn("[ProxyManager] Failed to read config secret:", error);
+        log.warn(
+          "[ProxyManager] Failed to read config secret:",
+          formatError(error),
+        );
       }
     }
     if (!secret) {
@@ -209,7 +219,10 @@ class ProxyManager extends EventEmitter {
       try {
         parsedConfig = yaml.load(content) as Partial<ProxyConfig>;
       } catch (error) {
-        log.warn("[ProxyManager] Failed to parse config for migration:", error);
+        log.warn(
+          "[ProxyManager] Failed to parse config for migration:",
+          formatError(error),
+        );
       }
 
       this.migrateConfigYaml({
@@ -220,7 +233,7 @@ class ProxyManager extends EventEmitter {
         configPath,
       });
     } catch (error) {
-      log.error("[ProxyManager] Config migration failed:", error);
+      log.error("[ProxyManager] Config migration failed:", formatError(error));
     }
   }
 
@@ -464,7 +477,10 @@ class ProxyManager extends EventEmitter {
         }
       })
       .catch((error) => {
-        log.error("[ProxyManager] Initial health check failed:", error);
+        log.error(
+          "[ProxyManager] Initial health check failed:",
+          formatError(error),
+        );
       });
 
     // Then check every 3 seconds
@@ -521,7 +537,7 @@ class ProxyManager extends EventEmitter {
     } catch (error) {
       log.warn(
         "[ProxyManager] Failed to parse config, attempting repair:",
-        error,
+        formatError(error),
       );
       return this.attemptConfigRepair(configPath);
     }
@@ -599,7 +615,10 @@ class ProxyManager extends EventEmitter {
       log.info("[ProxyManager] Successfully loaded repaired config");
       return config;
     } catch (repairError) {
-      log.error("[ProxyManager] Config repair failed:", repairError);
+      log.error(
+        "[ProxyManager] Config repair failed:",
+        formatError(repairError),
+      );
       return null;
     }
   }
@@ -642,20 +661,28 @@ class ProxyManager extends EventEmitter {
   }
 
   updateConfigYaml(updates: Partial<ProxyConfig>): boolean {
-    const config = this.loadConfigFromYaml();
+    const configPath = this.getConfigPath();
+    if (!fs.existsSync(configPath)) {
+      log.info("[ProxyManager] No config file exists, returning false");
+      return false;
+    }
+
+    let config: ProxyConfig | null = null;
+    try {
+      const content = fs.readFileSync(configPath, "utf-8");
+      config = yaml.load(content) as ProxyConfig;
+    } catch (error) {
+      log.error(
+        "[ProxyManager] Failed to parse config for update:",
+        formatError(error),
+      );
+      return false;
+    }
+
     if (!config) {
       log.info("[ProxyManager] No config loaded, returning false");
       return false;
     }
-
-    log.info(
-      "[ProxyManager] Original config remote-management:",
-      JSON.stringify(config["remote-management"], null, 2),
-    );
-    log.info(
-      "[ProxyManager] Updates remote-management:",
-      JSON.stringify(updates["remote-management"], null, 2),
-    );
 
     const updatedConfig = {
       ...config,
@@ -665,11 +692,6 @@ class ProxyManager extends EventEmitter {
         ...((updates["remote-management"] as Record<string, unknown>) || {}),
       },
     };
-
-    log.info(
-      "[ProxyManager] Final remote-management:",
-      JSON.stringify(updatedConfig["remote-management"], null, 2),
-    );
 
     if (updates.port !== undefined && !this.isRunning()) {
       this.setPort(updates.port);
@@ -687,7 +709,7 @@ class ProxyManager extends EventEmitter {
       log.info("[ProxyManager] Updated config.yaml with:", updates);
       return true;
     } catch (error) {
-      log.error("[ProxyManager] Failed to write config:", error);
+      log.error("[ProxyManager] Failed to write config:", formatError(error));
       return false;
     }
   }
