@@ -82,7 +82,7 @@ const CircleDollarSignIcon = forwardRef<
         controls.start("animate");
       }
     },
-    [controls, onMouseEnter]
+    [controls, onMouseEnter],
   );
 
   const handleMouseLeave = useCallback(
@@ -93,7 +93,7 @@ const CircleDollarSignIcon = forwardRef<
         controls.start("normal");
       }
     },
-    [controls, onMouseLeave]
+    [controls, onMouseLeave],
   );
 
   return (

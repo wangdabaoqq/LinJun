@@ -92,6 +92,49 @@ const electronAPI = {
     removeAccount: (filePath: string) =>
       ipcRenderer.invoke("providers:removeAccount", filePath),
   },
+  customProviders: {
+    import: (
+      data: {
+        "openai-compatibility"?: {
+          name: string;
+          "base-url": string;
+          "api-key-entries": { "api-key": string; "proxy-url"?: string }[];
+          "system-access-token"?: string;
+          models?: { name: string; alias?: string }[];
+          prefix?: string;
+        }[];
+        "claude-api-key"?: {
+          name?: string;
+          "api-key": string;
+          "base-url"?: string;
+          "proxy-url"?: string;
+          "system-access-token"?: string;
+          models?: { name: string; alias?: string }[];
+          prefix?: string;
+        }[];
+        "gemini-api-key"?: {
+          name?: string;
+          "api-key": string;
+          "base-url"?: string;
+          "proxy-url"?: string;
+          "system-access-token"?: string;
+          headers?: Record<string, string>;
+          models?: { name: string; alias?: string }[];
+          prefix?: string;
+        }[];
+        "codex-api-key"?: {
+          name?: string;
+          "api-key": string;
+          "base-url"?: string;
+          "proxy-url"?: string;
+          "system-access-token"?: string;
+          models?: { name: string; alias?: string }[];
+          prefix?: string;
+        }[];
+      },
+      strategy: "overwrite" | "skip" = "overwrite",
+    ) => ipcRenderer.invoke("customProviders:import", data, strategy),
+  },
   qwen: {
     getAuthUrl: () => ipcRenderer.invoke("qwen:getAuthUrl"),
     getAuthStatus: (state: string) =>
@@ -127,6 +170,8 @@ const electronAPI = {
       name: string;
       "base-url": string;
       "api-key-entries": { "api-key": string; "proxy-url"?: string }[];
+      "system-access-token"?: string;
+      "new-api-user"?: string;
       models?: { name: string; alias?: string }[];
     }) => ipcRenderer.invoke("openaiCompat:add", provider),
     update: (
@@ -135,6 +180,8 @@ const electronAPI = {
         name: string;
         "base-url": string;
         "api-key-entries": { "api-key": string; "proxy-url"?: string }[];
+        "system-access-token"?: string;
+        "new-api-user"?: string;
         models?: { name: string; alias?: string }[];
       },
     ) => ipcRenderer.invoke("openaiCompat:update", providerName, provider),
@@ -148,6 +195,7 @@ const electronAPI = {
         "api-key": string;
         "base-url"?: string;
         "proxy-url"?: string;
+        "system-access-token"?: string;
         models?: { name: string; alias?: string }[];
       }[],
     ) => ipcRenderer.invoke("claudeCompat:save", entries),
@@ -159,6 +207,7 @@ const electronAPI = {
         "api-key": string;
         "base-url"?: string;
         "proxy-url"?: string;
+        "system-access-token"?: string;
         headers?: Record<string, string>;
       }[],
     ) => ipcRenderer.invoke("geminiCompat:save", entries),
@@ -170,6 +219,7 @@ const electronAPI = {
         "api-key": string;
         "base-url"?: string;
         "proxy-url"?: string;
+        "system-access-token"?: string;
       }[],
     ) => ipcRenderer.invoke("codexCompat:save", entries),
   },

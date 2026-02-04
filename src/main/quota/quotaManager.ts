@@ -24,6 +24,12 @@ import {
   isKiroTokenValid,
   KiroUsageResponse,
 } from "./kiroService";
+import {
+  fetchCustomUserSelf,
+  fetchCustomPricing,
+  parseCustomPricingModels,
+} from "./customService";
+import { proxyManager } from "../proxy/manager";
 
 export interface QuotaWindow {
   label: string;
@@ -69,7 +75,77 @@ const PROVIDER_META: Record<
   copilot: { name: "Copilot", icon: "⬡", color: "indigo" },
   qwen: { name: "Qwen", icon: "◎", color: "teal" },
   iflow: { name: "iFlow", icon: "◉", color: "magenta" },
+  custom: { name: "Custom", icon: "<>", color: "indigo" },
 };
+
+function getCustomProviders() {
+  const config = proxyManager.loadConfigFromYaml();
+  return config?.["openai-compatibility"] || [];
+}
+
+function createCustomAccountError(name: string, error: string): QuotaAccount {
+  return {
+    id: `custom-${name}`,
+    provider: "custom",
+    email: name,
+    status: "error",
+    rateLimits: {
+      primary: {
+        label: "Usage",
+        usedPercent: 0,
+        resetIn: "",
+        limitReached: false,
+      },
+    },
+    lastUpdated: new Date(),
+    error,
+  };
+}
+
+function createCustomQuotaAccount(
+  name: string,
+  quota: number,
+  usedQuota: number,
+  models: QuotaWindow[] = [],
+): QuotaAccount {
+  const quotaUnit = 500000;
+  const normalizedQuota = quota / quotaUnit;
+  const normalizedUsed = usedQuota / quotaUnit;
+  const total = Math.max(normalizedQuota + normalizedUsed, 0);
+  const usedPercent = total > 0 ? (normalizedUsed / total) * 100 : 0;
+  const usedValue = `$${normalizedUsed.toFixed(2)}`;
+  const balanceValue = `$${normalizedQuota.toFixed(2)}`;
+
+  return {
+    id: `custom-${name}`,
+    provider: "custom",
+    email: name,
+    badge: `Balance ${balanceValue}`,
+    status: usedPercent >= 100 ? "limited" : "active",
+    rateLimits: {
+      primary: {
+        label: `Total Used ${usedValue}`,
+        usedPercent,
+        resetIn: "",
+        limitReached: usedPercent >= 100,
+      },
+      additional: models.length > 0 ? models : undefined,
+    },
+    lastUpdated: new Date(),
+  };
+}
+
+function buildCustomModelWindows(
+  models: { name: string; vendor?: string }[],
+): QuotaWindow[] {
+  return models.map((model) => ({
+    label: model.vendor ? `${model.vendor} · ${model.name}` : model.name,
+    modelId: model.name,
+    usedPercent: 0,
+    resetIn: "",
+    limitReached: false,
+  }));
+}
 
 function convertCodexUsageToQuotaAccount(
   token: TokenReadResult,
@@ -313,6 +389,17 @@ export async function getProviders(): Promise<ProviderInfo[]> {
     }
   }
 
+  const customProviders = getCustomProviders();
+  if (customProviders.length > 0) {
+    results.push({
+      id: "custom",
+      name: PROVIDER_META.custom.name,
+      icon: PROVIDER_META.custom.icon,
+      accountCount: customProviders.length,
+      color: PROVIDER_META.custom.color,
+    });
+  }
+
   return results;
 }
 
@@ -322,6 +409,57 @@ export async function getQuotaByProvider(
   const tokens = getTokensByProvider(provider);
   const results: QuotaAccount[] = [];
   const providerCounts = new Map<string, number>();
+
+  if (provider === "custom") {
+    const customProviders = getCustomProviders();
+    for (const customProvider of customProviders) {
+      const name = customProvider.name || "Custom";
+      const accessToken = customProvider["system-access-token"] || "";
+      const baseUrl = customProvider["base-url"] || "";
+      const newApiUser = customProvider["new-api-user"] || "";
+      if (!accessToken || !baseUrl) {
+        results.push(
+          createCustomAccountError(name, "Missing system access token"),
+        );
+        continue;
+      }
+
+      try {
+        const response = await fetchCustomUserSelf(
+          baseUrl,
+          accessToken,
+          newApiUser,
+        );
+        const data = response.data || {};
+        const quota = Number(data.quota || 0);
+        const usedQuota = Number(data.used_quota || 0);
+        let modelWindows: QuotaWindow[] = [];
+        try {
+          const pricing = await fetchCustomPricing(
+            baseUrl,
+            accessToken,
+            newApiUser,
+          );
+          const pricingModels = parseCustomPricingModels(pricing);
+          modelWindows = buildCustomModelWindows(pricingModels);
+        } catch (pricingError) {
+          log.warn(
+            `[QuotaManager] Failed to fetch custom pricing for ${name}:`,
+            pricingError,
+          );
+        }
+        results.push(
+          createCustomQuotaAccount(name, quota, usedQuota, modelWindows),
+        );
+      } catch (error) {
+        const err = error as unknown;
+        const message = err instanceof Error ? err.message : "Unknown error";
+        results.push(createCustomAccountError(name, message));
+      }
+    }
+
+    return results;
+  }
 
   for (const token of tokens) {
     if (provider === "codex") {
@@ -406,6 +544,50 @@ export async function refreshQuota(
 ): Promise<QuotaAccount | null> {
   const [provider, ...emailParts] = accountId.split("-");
   const email = emailParts.join("-");
+
+  if (provider === "custom") {
+    const customProviders = getCustomProviders();
+    const customProvider = customProviders.find((p) => p.name === email);
+    if (!customProvider) {
+      return createCustomAccountError(email, "Custom provider not found");
+    }
+    const accessToken = customProvider["system-access-token"] || "";
+    const baseUrl = customProvider["base-url"] || "";
+    const newApiUser = customProvider["new-api-user"] || "";
+    if (!accessToken || !baseUrl) {
+      return createCustomAccountError(email, "Missing system access token");
+    }
+    try {
+      const response = await fetchCustomUserSelf(
+        baseUrl,
+        accessToken,
+        newApiUser,
+      );
+      const data = response.data || {};
+      const quota = Number(data.quota || 0);
+      const usedQuota = Number(data.used_quota || 0);
+      let modelWindows: QuotaWindow[] = [];
+      try {
+        const pricing = await fetchCustomPricing(
+          baseUrl,
+          accessToken,
+          newApiUser,
+        );
+        const pricingModels = parseCustomPricingModels(pricing);
+        modelWindows = buildCustomModelWindows(pricingModels);
+      } catch (pricingError) {
+        log.warn(
+          `[QuotaManager] Failed to fetch custom pricing for ${email}:`,
+          pricingError,
+        );
+      }
+      return createCustomQuotaAccount(email, quota, usedQuota, modelWindows);
+    } catch (error) {
+      const err = error as unknown;
+      const message = err instanceof Error ? err.message : "Unknown error";
+      return createCustomAccountError(email, message);
+    }
+  }
   const tokens = scanTokenFiles();
   const token = tokens.find(
     (t) => t.provider === provider && t.email === email,

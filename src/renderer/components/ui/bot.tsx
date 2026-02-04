@@ -37,7 +37,7 @@ const BotIcon = forwardRef<BotIconHandle, BotIconProps>(
           controls.start("animate");
         }
       },
-      [controls, onMouseEnter]
+      [controls, onMouseEnter],
     );
 
     const handleMouseLeave = useCallback(
@@ -48,7 +48,7 @@ const BotIcon = forwardRef<BotIconHandle, BotIconProps>(
           controls.start("normal");
         }
       },
-      [controls, onMouseLeave]
+      [controls, onMouseLeave],
     );
 
     return (
@@ -114,7 +114,7 @@ const BotIcon = forwardRef<BotIconHandle, BotIconProps>(
         </svg>
       </div>
     );
-  }
+  },
 );
 
 BotIcon.displayName = "Bot";

@@ -7,7 +7,6 @@ import { forwardRef, useCallback, useImperativeHandle, useRef } from "react";
 
 import { cn } from "@renderer/lib/utils";
 
-
 export interface MoonIconHandle {
   startAnimation: () => void;
   stopAnimation: () => void;
@@ -53,7 +52,7 @@ const MoonIcon = forwardRef<MoonIconHandle, MoonIconProps>(
           controls.start("animate");
         }
       },
-      [controls, onMouseEnter]
+      [controls, onMouseEnter],
     );
 
     const handleMouseLeave = useCallback(
@@ -64,7 +63,7 @@ const MoonIcon = forwardRef<MoonIconHandle, MoonIconProps>(
           controls.start("normal");
         }
       },
-      [controls, onMouseLeave]
+      [controls, onMouseLeave],
     );
     return (
       <div
@@ -91,7 +90,7 @@ const MoonIcon = forwardRef<MoonIconHandle, MoonIconProps>(
         </motion.svg>
       </div>
     );
-  }
+  },
 );
 
 MoonIcon.displayName = "MoonIcon";

@@ -1,5 +1,5 @@
-import { memo } from "react";
-import { Globe, Box, Key } from "lucide-react";
+import { memo, useState } from "react";
+import { Globe, Box, Key, Eye, EyeOff } from "lucide-react";
 import { useTranslations } from "../../../stores/settings";
 import { CodexApiKeyEntry, ModelEntry } from "./types";
 import { ModelEntryList } from "./ModelEntryList";
@@ -17,6 +17,8 @@ export const CodexProtocolForm = memo(function CodexProtocolForm({
   onUpdate,
 }: CodexProtocolFormProps) {
   const t = useTranslations();
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [showSystemToken, setShowSystemToken] = useState(false);
 
   const updateModel = (
     modelIndex: number,
@@ -60,13 +62,55 @@ export const CodexProtocolForm = memo(function CodexProtocolForm({
           <Key className="w-3.5 h-3.5" />
           API Key *
         </label>
-        <input
-          type="password"
-          value={entry["api-key"]}
-          onChange={(e) => onUpdate("api-key", e.target.value)}
-          placeholder={t.providers.customApiKeyPlaceholder}
-          className="glass-input w-full font-mono text-sm bg-[var(--text-primary)]/[0.03] border border-[var(--glass-border)] text-[var(--text-primary)] placeholder:text-[var(--text-dim)]"
-        />
+        <div className="relative">
+          <input
+            type={showApiKey ? "text" : "password"}
+            value={entry["api-key"]}
+            onChange={(e) => onUpdate("api-key", e.target.value)}
+            placeholder={t.providers.customApiKeyPlaceholder}
+            className="glass-input w-full font-mono text-sm bg-[var(--text-primary)]/[0.03] border border-[var(--glass-border)] text-[var(--text-primary)] placeholder:text-[var(--text-dim)] pr-10"
+          />
+          <button
+            type="button"
+            onClick={() => setShowApiKey(!showApiKey)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-dim)] hover:text-[var(--text-primary)] transition-colors"
+          >
+            {showApiKey ? (
+              <EyeOff className="w-4 h-4" />
+            ) : (
+              <Eye className="w-4 h-4" />
+            )}
+          </button>
+        </div>
+      </div>
+      <div className="space-y-2">
+        <label className="flex items-center gap-2 text-xs font-bold text-[var(--text-primary)] uppercase tracking-widest px-1">
+          <Key className="w-3.5 h-3.5" />
+          {t.providers.customSystemToken} ({t.providers.optional})
+        </label>
+        <div className="relative">
+          <input
+            type={showSystemToken ? "text" : "password"}
+            value={entry["system-access-token"] || ""}
+            onChange={(e) => onUpdate("system-access-token", e.target.value)}
+            placeholder={t.providers.customSystemTokenPlaceholder}
+            className="glass-input w-full font-mono text-sm bg-[var(--text-primary)]/[0.03] border border-[var(--glass-border)] text-[var(--text-primary)] placeholder:text-[var(--text-dim)] pr-10"
+          />
+          <button
+            type="button"
+            onClick={() => setShowSystemToken(!showSystemToken)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-dim)] hover:text-[var(--text-primary)] transition-colors"
+          >
+            {showSystemToken ? (
+              <EyeOff className="w-4 h-4" />
+            ) : (
+              <Eye className="w-4 h-4" />
+            )}
+          </button>
+        </div>
+        <p className="text-[10px] text-[var(--text-muted)] mt-1 px-1">
+          {t.providers.customSystemTokenTip}
+        </p>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">

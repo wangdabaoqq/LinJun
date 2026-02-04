@@ -160,7 +160,6 @@ export default function App() {
     window.location.hash === "#tray",
   );
   const [currentPage, setCurrentPage] = useState<Page>("dashboard");
-  const theme = useSettingsStore((s) => s.theme);
   const refreshAll = useDashboardStore((s) => s.refreshAll);
 
   useEffect(() => {
@@ -172,10 +171,6 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    document.documentElement.setAttribute("data-theme", theme);
-  }, [theme]);
-
-  useEffect(() => {
     if (!isTrayMode) {
       refreshAll();
     }
@@ -184,7 +179,7 @@ export default function App() {
   const renderPage = () => {
     switch (currentPage) {
       case "dashboard":
-        return <Dashboard />;
+        return <Dashboard onNavigate={setCurrentPage} />;
       case "quota":
         return <Quota />;
       case "providers":
@@ -214,7 +209,7 @@ export default function App() {
       <TopBar />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar currentPage={currentPage} onNavigate={setCurrentPage} />
-        <main className="flex-1 overflow-hidden p-6 flex flex-col">
+        <main className="flex-1 overflow-hidden flex flex-col">
           <AnimatePresence mode="wait">
             <motion.div
               key={currentPage}

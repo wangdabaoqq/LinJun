@@ -66,6 +66,12 @@ export function CustomProviderForm({
       editCodexProvider?.prefix ||
       "",
   );
+  const [systemAccessToken, setSystemAccessToken] = useState(
+    editProvider?.["system-access-token"] || "",
+  );
+  const [newApiUser, setNewApiUser] = useState(
+    editProvider?.["new-api-user"] || "",
+  );
   const [openaiApiKeys, setOpenaiApiKeys] = useState<OpenAIApiKeyEntry[]>(
     editProvider?.["api-key-entries"] || [{ "api-key": "" }],
   );
@@ -170,6 +176,10 @@ export function CustomProviderForm({
         name: name.trim(),
         "base-url": baseUrl.trim(),
         ...(openaiPrefix.trim() ? { prefix: openaiPrefix.trim() } : {}),
+        ...(systemAccessToken.trim()
+          ? { "system-access-token": systemAccessToken.trim() }
+          : {}),
+        ...(newApiUser.trim() ? { "new-api-user": newApiUser.trim() } : {}),
         "api-key-entries": validKeys.map((k) => ({
           "api-key": k["api-key"].trim(),
           ...(k["proxy-url"]?.trim()
@@ -225,6 +235,9 @@ export function CustomProviderForm({
         ...(claudeEntry["proxy-url"]?.trim()
           ? { "proxy-url": claudeEntry["proxy-url"].trim() }
           : {}),
+        ...(claudeEntry["system-access-token"]?.trim()
+          ? { "system-access-token": claudeEntry["system-access-token"].trim() }
+          : {}),
         ...(claudeEntry.prefix?.trim()
           ? { prefix: claudeEntry.prefix.trim() }
           : {}),
@@ -269,6 +282,9 @@ export function CustomProviderForm({
           : {}),
         ...(geminiEntry["proxy-url"]?.trim()
           ? { "proxy-url": geminiEntry["proxy-url"].trim() }
+          : {}),
+        ...(geminiEntry["system-access-token"]?.trim()
+          ? { "system-access-token": geminiEntry["system-access-token"].trim() }
           : {}),
         ...(geminiEntry.prefix?.trim()
           ? { prefix: geminiEntry.prefix.trim() }
@@ -322,6 +338,9 @@ export function CustomProviderForm({
           : {}),
         ...(codexEntry["proxy-url"]?.trim()
           ? { "proxy-url": codexEntry["proxy-url"].trim() }
+          : {}),
+        ...(codexEntry["system-access-token"]?.trim()
+          ? { "system-access-token": codexEntry["system-access-token"].trim() }
           : {}),
         ...(codexEntry.prefix?.trim()
           ? { prefix: codexEntry.prefix.trim() }
@@ -440,12 +459,16 @@ export function CustomProviderForm({
                 prefix={openaiPrefix}
                 apiKeys={openaiApiKeys}
                 models={openaiModels}
+                systemAccessToken={systemAccessToken}
+                newApiUser={newApiUser}
                 isEditing={isEditingOpenai}
                 onNameChange={setName}
                 onBaseUrlChange={setBaseUrl}
                 onPrefixChange={setOpenaiPrefix}
                 onApiKeysChange={setOpenaiApiKeys}
                 onModelsChange={setOpenaiModels}
+                onSystemAccessTokenChange={setSystemAccessToken}
+                onNewApiUserChange={setNewApiUser}
               />
             ) : protocol === "claude" ? (
               <ClaudeProtocolForm

@@ -20,14 +20,14 @@ export function StrategyCards({
           whileHover={{ scale: 1.01 }}
           whileTap={{ scale: 0.99 }}
           onClick={() => onChange(option.value)}
-          className={`flex items-center gap-3 p-3 rounded-xl text-left transition-all duration-200 ${
+          className={`flex items-center gap-3 p-3 rounded-xl text-left transition-all duration-200 border border-[var(--glass-border)] ${
             value === option.value
-              ? "bg-teal-500/10 border border-teal-500/30 text-teal-500"
-              : "bg-black/5 dark:bg-white/5 border border-transparent hover:bg-black/10 dark:hover:bg-white/10 hover:border-[var(--glass-border)] text-[var(--text-primary)]"
+              ? "bg-[var(--accent-primary)]/10 text-[var(--accent-primary)]"
+              : "bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 hover:border-[var(--glass-border-hover)] text-[var(--text-primary)]"
           }`}
         >
           <option.icon
-            className={`w-4 h-4 ${value === option.value ? "text-teal-500" : "text-[var(--text-muted)]"}`}
+            className={`w-4 h-4 ${value === option.value ? "text-[var(--accent-primary)]" : "text-[var(--text-muted)]"}`}
           />
           <div className="flex-1 min-w-0">
             <div className="text-sm font-medium">{option.label}</div>
@@ -39,7 +39,7 @@ export function StrategyCards({
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
-              className="w-2 h-2 rounded-full bg-teal-500"
+              className="w-2 h-2 rounded-full bg-[var(--accent-primary)] shadow-[0_0_8px_var(--accent-primary)]"
             />
           )}
         </motion.button>

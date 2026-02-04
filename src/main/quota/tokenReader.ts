@@ -20,7 +20,8 @@ export type ProviderType =
   | "kiro"
   | "copilot"
   | "qwen"
-  | "iflow";
+  | "iflow"
+  | "custom";
 
 export interface TokenFile {
   // Common fields

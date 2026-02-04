@@ -46,6 +46,7 @@ export interface ClaudeApiKeyEntry {
   "api-key": string;
   "base-url"?: string;
   "proxy-url"?: string;
+  "system-access-token"?: string;
   prefix?: string;
   models?: OpenAICompatibilityModel[];
 }
@@ -54,6 +55,7 @@ export interface GeminiApiKeyEntry {
   "api-key": string;
   "base-url"?: string;
   "proxy-url"?: string;
+  "system-access-token"?: string;
   prefix?: string;
   headers?: Record<string, string>;
   models?: OpenAICompatibilityModel[];
@@ -63,6 +65,7 @@ export interface CodexApiKeyEntry {
   "api-key": string;
   "base-url"?: string;
   "proxy-url"?: string;
+  "system-access-token"?: string;
   prefix?: string;
   models?: OpenAICompatibilityModel[];
 }
@@ -72,6 +75,8 @@ export interface OpenAICompatibilityProvider {
   "base-url": string;
   prefix?: string;
   "api-key-entries": OpenAICompatibilityApiKeyEntry[];
+  "system-access-token"?: string;
+  "new-api-user"?: string;
   models?: OpenAICompatibilityModel[];
 }
 
@@ -200,7 +205,7 @@ class ProxyManager extends EventEmitter {
 
   private migrateConfig(configPath: string, secret: string): void {
     try {
-      let content = fs.readFileSync(configPath, "utf-8");
+      const content = fs.readFileSync(configPath, "utf-8");
       const missing: string[] = [];
 
       if (!content.includes("logging-to-file")) {

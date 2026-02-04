@@ -11,6 +11,8 @@ interface ModalProps {
   footer?: ReactNode;
   maxWidth?: string;
   className?: string;
+  onScroll?: React.UIEventHandler<HTMLDivElement>;
+  bodyClassName?: string;
 }
 
 export function Modal({
@@ -21,6 +23,8 @@ export function Modal({
   footer,
   maxWidth = "max-w-lg",
   className = "",
+  onScroll,
+  bodyClassName,
 }: ModalProps) {
   // Lock body scroll when modal is open
   useEffect(() => {
@@ -79,7 +83,10 @@ export function Modal({
               </div>
 
               {/* 内容区域 - 可滚动 */}
-              <div className="p-6 overflow-y-auto custom-scrollbar">
+              <div
+                className={`flex-1 min-h-0 ${bodyClassName ?? "p-6 overflow-y-auto custom-scrollbar"}`}
+                onScroll={onScroll}
+              >
                 {children}
               </div>
 

@@ -15,6 +15,7 @@ export interface ClaudeApiKeyEntry {
   "api-key": string;
   "base-url"?: string;
   "proxy-url"?: string;
+  "system-access-token"?: string;
   prefix?: string;
   models?: ModelEntry[];
 }
@@ -24,6 +25,7 @@ export interface GeminiApiKeyEntry {
   "api-key": string;
   "base-url"?: string;
   "proxy-url"?: string;
+  "system-access-token"?: string;
   prefix?: string;
   headers?: Record<string, string>;
   models?: ModelEntry[];
@@ -34,6 +36,7 @@ export interface CodexApiKeyEntry {
   "api-key": string;
   "base-url"?: string;
   "proxy-url"?: string;
+  "system-access-token"?: string;
   prefix?: string;
   models?: ModelEntry[];
 }
@@ -43,6 +46,8 @@ export interface OpenAIProviderData {
   "base-url": string;
   prefix?: string;
   "api-key-entries": OpenAIApiKeyEntry[];
+  "system-access-token"?: string;
+  "new-api-user"?: string;
   models?: ModelEntry[];
 }
 
@@ -51,6 +56,8 @@ export interface OpenAICompatProvider {
   "base-url": string;
   "api-key-entries": { "api-key": string; "proxy-url"?: string }[];
   models?: { name: string; alias?: string }[];
+  "system-access-token"?: string;
+  "new-api-user"?: string;
   prefix?: string;
 }
 
@@ -59,6 +66,7 @@ export interface ClaudeCompatProvider {
   "api-key": string;
   "base-url"?: string;
   "proxy-url"?: string;
+  "system-access-token"?: string;
   prefix?: string;
   models?: { name: string; alias?: string }[];
 }
@@ -68,6 +76,7 @@ export interface GeminiCompatProvider {
   "api-key": string;
   "base-url"?: string;
   "proxy-url"?: string;
+  "system-access-token"?: string;
   prefix?: string;
   headers?: Record<string, string>;
   models?: { name: string; alias?: string }[];
@@ -78,6 +87,7 @@ export interface CodexCompatProvider {
   "api-key": string;
   "base-url"?: string;
   "proxy-url"?: string;
+  "system-access-token"?: string;
   prefix?: string;
   models?: { name: string; alias?: string }[];
 }

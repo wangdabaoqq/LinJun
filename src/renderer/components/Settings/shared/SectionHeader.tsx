@@ -15,29 +15,29 @@ export function SectionHeader({
 }: SectionHeaderProps) {
   const colorStyles = {
     primary: {
-      iconBg: "bg-[var(--accent-primary)]/10",
+      iconBg: "bg-[var(--accent-primary)]/5",
       iconColor: "text-[var(--accent-primary)]",
-      border: "border-[var(--accent-primary)]/20",
+      border: "border-[var(--glass-border)]",
     },
     teal: {
-      iconBg: "bg-teal-500/10",
+      iconBg: "bg-teal-500/5",
       iconColor: "text-teal-500",
-      border: "border-teal-500/20",
+      border: "border-[var(--glass-border)]",
     },
     indigo: {
-      iconBg: "bg-indigo-500/10",
+      iconBg: "bg-indigo-500/5",
       iconColor: "text-indigo-500",
-      border: "border-indigo-500/20",
+      border: "border-[var(--glass-border)]",
     },
     magenta: {
-      iconBg: "bg-pink-500/10",
+      iconBg: "bg-pink-500/5",
       iconColor: "text-pink-500",
-      border: "border-pink-500/20",
+      border: "border-[var(--glass-border)]",
     },
     amber: {
-      iconBg: "bg-amber-500/10",
+      iconBg: "bg-amber-500/5",
       iconColor: "text-amber-500",
-      border: "border-amber-500/20",
+      border: "border-[var(--glass-border)]",
     },
   };
 

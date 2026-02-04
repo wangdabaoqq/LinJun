@@ -10,11 +10,13 @@ import {
   Users,
   ShieldCheck,
   ChevronDown,
+  Upload,
 } from "lucide-react";
 
 import { useTranslations } from "../../stores/settings";
 import { useProvidersStore, TokenAccount } from "../../stores/providers";
 import { CustomProviderForm } from "./CustomProviderForm/index";
+import { CustomProviderImportModal } from "./CustomProviderImportModal";
 import { ConfirmModal } from "../ui/ConfirmModal";
 import { getCustomProviderIcon } from "../icons/ProviderIcons";
 
@@ -76,6 +78,24 @@ export function Providers() {
 
   const [officialExpanded, setOfficialExpanded] = useState(false);
   const [customExpanded, setCustomExpanded] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importStatus, setImportStatus] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
+  const [openaiProviders, setOpenaiProviders] = useState<
+    OpenAICompatProvider[]
+  >([]);
+  const [claudeProviders, setClaudeProviders] = useState<
+    ClaudeCompatProvider[]
+  >([]);
+  const [geminiProviders, setGeminiProviders] = useState<
+    GeminiCompatProvider[]
+  >([]);
+  const [codexProviders, setCodexProviders] = useState<CodexCompatProvider[]>(
+    [],
+  );
 
   const loadCustomProviders = useCallback(async () => {
     try {
@@ -83,6 +103,7 @@ export function Providers() {
 
       const openaiResult = await window.electronAPI?.openaiCompat?.getAll();
       if (openaiResult?.success && openaiResult.providers) {
+        setOpenaiProviders(openaiResult.providers);
         openaiResult.providers.forEach((p: OpenAICompatProvider) => {
           allProviders.push({
             type: "openai",
@@ -97,6 +118,7 @@ export function Providers() {
 
       const claudeResult = await window.electronAPI?.claudeCompat?.getAll();
       if (claudeResult?.success && claudeResult.entries) {
+        setClaudeProviders(claudeResult.entries);
         claudeResult.entries.forEach((p: ClaudeCompatProvider, idx: number) => {
           allProviders.push({
             type: "claude",
@@ -111,6 +133,7 @@ export function Providers() {
 
       const geminiResult = await window.electronAPI?.geminiCompat?.getAll();
       if (geminiResult?.success && geminiResult.entries) {
+        setGeminiProviders(geminiResult.entries);
         geminiResult.entries.forEach((p: GeminiCompatProvider, idx: number) => {
           allProviders.push({
             type: "gemini",
@@ -126,6 +149,7 @@ export function Providers() {
 
       const codexResult = await window.electronAPI?.codexCompat?.getAll();
       if (codexResult?.success && codexResult.entries) {
+        setCodexProviders(codexResult.entries);
         codexResult.entries.forEach((p: CodexCompatProvider, idx: number) => {
           allProviders.push({
             type: "codex",
@@ -224,6 +248,57 @@ export function Providers() {
     }
   };
 
+  const handleImportClick = () => {
+    setImportStatus(null);
+    setShowImportModal(true);
+  };
+
+  const handleImportConfirm = async (
+    data: {
+      "openai-compatibility"?: OpenAICompatProvider[];
+      "claude-api-key"?: ClaudeCompatProvider[];
+      "gemini-api-key"?: GeminiCompatProvider[];
+      "codex-api-key"?: CodexCompatProvider[];
+    },
+    strategy: "overwrite" | "skip",
+  ) => {
+    setIsImporting(true);
+    setImportStatus(null);
+    try {
+      const result = await window.electronAPI?.customProviders?.import(
+        data,
+        strategy,
+      );
+
+      if (result?.success) {
+        const summary = result.summary || { added: 0, updated: 0, skipped: 0 };
+        const summaryText = t.providers.customImportSummary
+          .replace("{added}", summary.added.toString())
+          .replace("{updated}", summary.updated.toString())
+          .replace("{skipped}", summary.skipped.toString());
+        setImportStatus({
+          type: "success",
+          message: `${t.providers.customImportSuccess} ${summaryText}`,
+        });
+        setShowImportModal(false);
+        loadCustomProviders();
+      } else {
+        setImportStatus({
+          type: "error",
+          message: result?.error || t.providers.customImportFailed,
+        });
+      }
+    } catch (err) {
+      setImportStatus({
+        type: "error",
+        message:
+          err instanceof Error ? err.message : t.providers.customImportFailed,
+      });
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
   const handleAccountAdded = async () => {
     if (!addAccountProvider) return;
 
@@ -312,7 +387,7 @@ export function Providers() {
   );
 
   return (
-    <div className="flex flex-col h-full bg-transparent overflow-hidden">
+    <div className="flex flex-col h-full bg-transparent overflow-hidden p-6">
       <div className="shrink-0 mb-8">
         <div className="flex items-center justify-between mb-10">
           <div className="space-y-1">
@@ -401,6 +476,23 @@ export function Providers() {
 
       <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-2 -mr-2">
         <div className="space-y-12 pb-12">
+          {importStatus && (
+            <div
+              className={`p-4 rounded-xl border text-sm font-bold flex items-center justify-between animate-in fade-in slide-in-from-top-2 ${
+                importStatus.type === "success"
+                  ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-500"
+                  : "bg-red-500/10 border-red-500/20 text-red-500"
+              }`}
+            >
+              <span>{importStatus.message}</span>
+              <button
+                onClick={() => setImportStatus(null)}
+                className="opacity-60 hover:opacity-100 transition-opacity"
+              >
+                ✕
+              </button>
+            </div>
+          )}
           {authError && (
             <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-sm font-bold flex items-center justify-between animate-in fade-in slide-in-from-top-2">
               <span>{authError}</span>
@@ -440,7 +532,7 @@ export function Providers() {
                 ))}
               </div>
             ) : (
-              <div className="py-20 text-center border border-dashed border-[var(--text-primary)]/10 rounded-3xl group hover:border-[var(--text-primary)]/20 transition-colors">
+              <div className="py-20 text-center border border-dashed border-[var(--glass-border)] rounded-3xl group hover:border-[var(--glass-border-hover)] transition-colors bg-[var(--text-primary)]/[0.01]">
                 <div className="text-4xl mb-4 opacity-10 group-hover:opacity-20 transition-opacity text-[var(--text-primary)]">
                   ◈
                 </div>
@@ -448,7 +540,7 @@ export function Providers() {
                   {t.providers.noProviders}
                 </p>
                 <button
-                  className="px-8 py-2.5 rounded-xl border border-[var(--text-primary)]/10 text-[var(--text-primary)] text-xs font-bold tracking-widest hover:bg-[var(--text-primary)] hover:text-[var(--bg-primary)] transition-all"
+                  className="px-8 py-2.5 rounded-xl border border-[var(--glass-border)] text-[var(--text-primary)] text-xs font-bold tracking-widest hover:bg-[var(--text-primary)]/5 transition-all"
                   onClick={() => setShowAddModal(true)}
                 >
                   {t.providers.addProvider}
@@ -457,27 +549,44 @@ export function Providers() {
             )}
           </section>
 
-          {customProviders.length > 0 && (
-            <section>
-              <div
-                className="flex items-center gap-4 mb-6 cursor-pointer group/section"
-                onClick={() => setCustomExpanded(!customExpanded)}
+          <section>
+            <div
+              className="flex items-center gap-4 mb-6 cursor-pointer group/section"
+              onClick={() => setCustomExpanded(!customExpanded)}
+            >
+              <h3 className="text-[11px] font-bold text-[var(--text-primary)] uppercase tracking-[0.2em] opacity-30 group-hover/section:opacity-60 transition-opacity">
+                {t.providers.customManage}
+              </h3>
+              <div className="h-px flex-1 bg-[var(--text-primary)]/5" />
+              <button
+                onClick={(event) => {
+                  event.stopPropagation();
+                  handleImportClick();
+                }}
+                disabled={isImporting}
+                className="glass-btn h-8 px-3 rounded-lg text-[10px] font-bold uppercase tracking-wider flex items-center gap-2"
               >
-                <h3 className="text-[11px] font-bold text-[var(--text-primary)] uppercase tracking-[0.2em] opacity-30 group-hover/section:opacity-60 transition-opacity">
-                  {t.providers.customManage}
-                </h3>
-                <div className="h-px flex-1 bg-[var(--text-primary)]/5" />
-                <div
-                  className={`p-1 rounded-lg hover:bg-[var(--text-primary)]/5 transition-all text-[var(--text-dim)] ${customExpanded ? "rotate-180" : ""}`}
-                >
-                  <ChevronDown className="w-3.5 h-3.5" />
-                </div>
+                {isImporting ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  <Upload className="w-3 h-3 stroke-[2.5px]" />
+                )}
+                {isImporting
+                  ? t.providers.customImporting
+                  : t.providers.customImport}
+              </button>
+              <div
+                className={`p-1 rounded-lg hover:bg-[var(--text-primary)]/5 transition-all text-[var(--text-dim)] ${customExpanded ? "rotate-180" : ""}`}
+              >
+                <ChevronDown className="w-3.5 h-3.5" />
               </div>
+            </div>
+            {customProviders.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                 {customProviders.map((cp) => (
                   <div
                     key={`${cp.type}-${cp.name}`}
-                    className="group/card relative flex flex-col p-6 rounded-3xl glass-card hover:border-[var(--accent-secondary)]/30 transition-all duration-300"
+                    className="group/card relative flex flex-col p-6 rounded-3xl glass-card transition-all duration-300 border border-[rgba(255,255,255,0.04)]"
                   >
                     <div className="flex items-start justify-between mb-6">
                       <div className="flex items-center gap-4">
@@ -546,10 +655,40 @@ export function Providers() {
                   </div>
                 ))}
               </div>
-            </section>
-          )}
+            ) : (
+              <div className="py-14 text-center border border-dashed border-[var(--glass-border)] rounded-3xl group hover:border-[var(--glass-border-hover)] transition-colors bg-[var(--text-primary)]/[0.01]">
+                <div className="text-4xl mb-4 opacity-10 group-hover:opacity-20 transition-opacity text-[var(--text-primary)]">
+                  ◈
+                </div>
+                <p className="text-[var(--text-dim)] font-bold tracking-tight uppercase text-[10px] mb-6">
+                  {t.providers.customNoProviders}
+                </p>
+                <button
+                  className="px-8 py-2.5 rounded-xl border border-[var(--glass-border)] text-[var(--text-primary)] text-xs font-bold tracking-widest hover:bg-[var(--text-primary)]/5 transition-all"
+                  onClick={handleImportClick}
+                >
+                  {t.providers.customImport}
+                </button>
+              </div>
+            )}
+          </section>
         </div>
       </div>
+
+      {showImportModal && (
+        <CustomProviderImportModal
+          isOpen={showImportModal}
+          isImporting={isImporting}
+          existingProviders={{
+            openai: openaiProviders,
+            claude: claudeProviders,
+            gemini: geminiProviders,
+            codex: codexProviders,
+          }}
+          onClose={() => setShowImportModal(false)}
+          onConfirm={handleImportConfirm}
+        />
+      )}
 
       {showAddModal && (
         <AddProviderModal

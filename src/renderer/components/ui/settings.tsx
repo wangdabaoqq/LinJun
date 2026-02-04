@@ -37,7 +37,7 @@ const SettingsIcon = forwardRef<SettingsIconHandle, SettingsIconProps>(
           controls.start("animate");
         }
       },
-      [controls, onMouseEnter]
+      [controls, onMouseEnter],
     );
 
     const handleMouseLeave = useCallback(
@@ -48,7 +48,7 @@ const SettingsIcon = forwardRef<SettingsIconHandle, SettingsIconProps>(
           controls.start("normal");
         }
       },
-      [controls, onMouseLeave]
+      [controls, onMouseLeave],
     );
 
     return (
@@ -84,7 +84,7 @@ const SettingsIcon = forwardRef<SettingsIconHandle, SettingsIconProps>(
         </motion.svg>
       </div>
     );
-  }
+  },
 );
 
 SettingsIcon.displayName = "SettingsIcon";

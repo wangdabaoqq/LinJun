@@ -60,7 +60,7 @@ const ActivityIcon = forwardRef<ActivityIconHandle, ActivityIconProps>(
           controls.start("animate");
         }
       },
-      [controls, onMouseEnter]
+      [controls, onMouseEnter],
     );
 
     const handleMouseLeave = useCallback(
@@ -71,7 +71,7 @@ const ActivityIcon = forwardRef<ActivityIconHandle, ActivityIconProps>(
           controls.start("normal");
         }
       },
-      [controls, onMouseLeave]
+      [controls, onMouseLeave],
     );
 
     return (
@@ -101,7 +101,7 @@ const ActivityIcon = forwardRef<ActivityIconHandle, ActivityIconProps>(
         </svg>
       </div>
     );
-  }
+  },
 );
 
 ActivityIcon.displayName = "ActivityIcon";

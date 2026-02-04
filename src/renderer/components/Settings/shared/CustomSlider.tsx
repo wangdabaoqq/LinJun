@@ -29,22 +29,22 @@ export function CustomSlider({
 
   const colorStyles = {
     indigo: {
-      gradient: "from-indigo-500 to-violet-500",
+      gradient: "from-indigo-500 to-indigo-500",
       text: "text-indigo-500",
       bg: "bg-indigo-500",
-      shadow: "shadow-indigo-500/30",
+      glow: "rgba(99,102,241,0.3)",
     },
     teal: {
-      gradient: "from-teal-500 to-cyan-500",
+      gradient: "from-teal-500 to-teal-500",
       text: "text-teal-500",
       bg: "bg-teal-500",
-      shadow: "shadow-teal-500/30",
+      glow: "rgba(20,184,166,0.3)",
     },
     primary: {
-      gradient: "from-[var(--accent-primary)] to-[var(--accent-secondary)]",
+      gradient: "from-[var(--accent-primary)] to-[var(--accent-primary)]",
       text: "text-[var(--accent-primary)]",
       bg: "bg-[var(--accent-primary)]",
-      shadow: "shadow-[var(--accent-primary)]/30",
+      glow: "rgba(var(--accent-primary-rgb),0.3)",
     },
   };
 
@@ -77,9 +77,10 @@ export function CustomSlider({
 
       <div className="relative h-8 flex items-center select-none">
         {/* Custom slider track */}
-        <div className="relative flex-1 h-2 bg-black/5 dark:bg-black/20 rounded-full overflow-hidden">
+        <div className="relative flex-1 h-1.5 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-full overflow-hidden shadow-inner">
           <motion.div
             className={`absolute inset-y-0 left-0 bg-gradient-to-r ${styles.gradient} rounded-full`}
+            style={{ boxShadow: `0 0 8px ${styles.glow}` }}
             initial={false}
             animate={{ width: `${percentage}%` }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}

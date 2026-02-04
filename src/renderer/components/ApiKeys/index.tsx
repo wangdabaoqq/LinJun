@@ -184,7 +184,7 @@ export function ApiKeys() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="flex-1 min-h-0 overflow-y-auto p-6 custom-scrollbar space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-[var(--text-primary)]">
@@ -198,7 +198,7 @@ export function ApiKeys() {
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           onClick={openCreateModal}
-          className="glass-btn glass-btn-teal flex items-center gap-2 group transition-all duration-300 hover:shadow-teal-500/20 shadow-lg"
+          className="glass-btn glass-btn-primary flex items-center gap-2 group transition-all duration-300 hover:shadow-blue-500/20 shadow-lg"
         >
           <Plus className="w-4 h-4 group-hover:scale-125 group-hover:rotate-90 transition-all duration-300" />
           {t.apiKeys.createKey}
@@ -225,7 +225,7 @@ export function ApiKeys() {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={openCreateModal}
-            className="glass-btn glass-btn-teal mt-6"
+            className="glass-btn glass-btn-primary mt-6"
           >
             {t.apiKeys.createKey}
           </motion.button>
@@ -242,12 +242,12 @@ export function ApiKeys() {
                 key={key}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="flex items-center justify-between p-4 rounded-xl border border-[var(--accent-teal)]/20 bg-[var(--accent-teal)]/5"
+                className="flex items-center justify-between p-4 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/30"
               >
                 <div className="flex items-center gap-4 min-w-0">
-                  <div className="status-dot status-dot-online" />
+                  <div className="status-dot bg-[var(--accent-primary)] shadow-[0_0_8px_var(--accent-primary)]" />
                   <div className="min-w-0">
-                    <div className="font-mono text-sm text-[var(--accent-teal)] truncate">
+                    <div className="font-mono text-sm text-[var(--accent-primary)] truncate">
                       {key}
                     </div>
                     <div className="text-xs text-[var(--text-muted)] mt-1">

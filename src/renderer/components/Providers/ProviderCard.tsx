@@ -53,7 +53,7 @@ export const ProviderCard = memo(function ProviderCard({
   };
 
   return (
-    <div className="glass-card flex flex-col p-5 group/card hover:border-[var(--accent-primary)]/20 transition-all duration-300">
+    <div className="glass-card flex flex-col p-5 group/card transition-all duration-300 border border-[var(--glass-border)]">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <div className="text-3xl transition-transform duration-300 group-hover/card:scale-105">
@@ -67,7 +67,7 @@ export const ProviderCard = memo(function ProviderCard({
             </h3>
             <div className="flex items-center gap-2">
               <div
-                className={`w-1.5 h-1.5 rounded-full ${onlineCount > 0 ? "status-dot-online" : "bg-[var(--text-dim)]/20"}`}
+                className={`w-1.5 h-1.5 rounded-full ${onlineCount > 0 ? "bg-[var(--accent-primary)] shadow-[0_0_8px_var(--accent-primary)]" : "bg-[var(--text-dim)]/20"}`}
               />
               <p className="text-[10px] font-bold text-[var(--text-dim)] uppercase tracking-wider">
                 {onlineCount} / {provider.accounts.length}
@@ -91,7 +91,7 @@ export const ProviderCard = memo(function ProviderCard({
                     <User className="w-3.5 h-3.5" />
                   </div>
                   <div
-                    className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-[var(--bg-primary)] ${account.status === "online" ? "bg-success" : "bg-[var(--text-dim)]"}`}
+                    className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-[var(--bg-primary)] ${account.status === "online" ? "bg-[var(--accent-primary)]" : "bg-[var(--text-dim)]"}`}
                   />
                 </div>
 

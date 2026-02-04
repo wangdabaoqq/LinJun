@@ -12,6 +12,8 @@ interface QuotaWindowBarProps {
   resetIn: string;
   limitReached?: boolean;
   providerId?: string;
+  hideSlider?: boolean;
+  hideIcon?: boolean;
 }
 
 export function QuotaWindowBar({
@@ -20,7 +22,9 @@ export function QuotaWindowBar({
   usedPercent,
   resetIn,
   limitReached = false,
-  providerId: _providerId,
+  providerId,
+  hideSlider = false,
+  hideIcon = false,
 }: QuotaWindowBarProps) {
   const t = useTranslations();
   const { language } = useLanguage();
@@ -48,9 +52,12 @@ export function QuotaWindowBar({
     return label;
   };
 
-  const displayLabel = getTranslatedLabel(label);
+  const displayLabel =
+    providerId === "custom" && label.startsWith("Total Used ")
+      ? `${t.quota.totalUsedLabel} ${label.replace(/^Total Used\s+/, "")}`
+      : getTranslatedLabel(label);
   const inferredProvider = inferProviderFromLabel(label);
-  const shouldShowIcon = inferredProvider !== "custom";
+  const shouldShowIcon = !hideIcon && inferredProvider !== "custom";
   const normalizeResetLabel = (value: string) => {
     if (language === "en") {
       return value
@@ -87,38 +94,42 @@ export function QuotaWindowBar({
           </span>
           {extraLabel}
           {limitReached && (
-            <span className="flex-shrink-0 px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-500/10 text-red-500 border border-red-500/20 uppercase tracking-wider">
+            <span className="flex-shrink-0 px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-500/10 text-red-500 border border-red-500/10 uppercase tracking-wider">
               {t.quota.limitReached}
             </span>
           )}
         </div>
-        <span
-          className={`flex-shrink-0 ml-4 text-xs font-mono font-medium ${
-            isDanger
-              ? "text-red-500"
-              : isWarning
-                ? "text-amber-500"
-                : "text-[var(--text-primary)]"
-          }`}
-        >
-          {percentage.toFixed(0)}%
-        </span>
+        {!hideSlider && (
+          <span
+            className={`flex-shrink-0 ml-4 text-xs font-mono font-medium ${
+              isDanger
+                ? "text-red-500"
+                : isWarning
+                  ? "text-amber-500"
+                  : "text-[var(--text-primary)]"
+            }`}
+          >
+            {percentage.toFixed(0)}%
+          </span>
+        )}
       </div>
 
-      <div className="h-2 bg-soft rounded-full overflow-hidden">
-        <div
-          className={`h-full rounded-full transition-all duration-500 ease-out ${
-            isDanger
-              ? "bg-red-500"
-              : isWarning
-                ? "bg-amber-500"
-                : "bg-[var(--accent-primary)]"
-          }`}
-          style={{ width: `${percentage}%` }}
-        />
-      </div>
+      {!hideSlider && (
+        <div className="h-2 bg-soft rounded-full overflow-hidden">
+          <div
+            className={`h-full rounded-full transition-all duration-500 ease-out ${
+              isDanger
+                ? "bg-red-500"
+                : isWarning
+                  ? "bg-amber-500"
+                  : "bg-[var(--accent-primary)]"
+            }`}
+            style={{ width: `${percentage}%` }}
+          />
+        </div>
+      )}
 
-      {displayResetIn && (
+      {displayResetIn && !hideSlider && (
         <div className="mt-1.5 text-right">
           <span className="text-[10px] text-[var(--text-muted)] bg-soft px-1.5 py-0.5 rounded inline-block">
             {t.quota.resetIn.replace("{time}", displayResetIn)}

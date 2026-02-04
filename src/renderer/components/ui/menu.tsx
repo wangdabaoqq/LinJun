@@ -56,7 +56,7 @@ const MenuIcon = forwardRef<MenuIconHandle, MenuIconProps>(
           controls.start("animate");
         }
       },
-      [controls, onMouseEnter]
+      [controls, onMouseEnter],
     );
 
     const handleMouseLeave = useCallback(
@@ -67,7 +67,7 @@ const MenuIcon = forwardRef<MenuIconHandle, MenuIconProps>(
           controls.start("normal");
         }
       },
-      [controls, onMouseLeave]
+      [controls, onMouseLeave],
     );
     return (
       <div
@@ -117,7 +117,7 @@ const MenuIcon = forwardRef<MenuIconHandle, MenuIconProps>(
         </svg>
       </div>
     );
-  }
+  },
 );
 
 MenuIcon.displayName = "MenuIcon";

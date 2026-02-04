@@ -20,7 +20,7 @@ export function Settings() {
   ];
 
   return (
-    <div className="mx-[80px] space-y-8 pb-20">
+    <div className="flex-1 min-h-0 overflow-y-auto p-6 custom-scrollbar space-y-8">
       {/* Header */}
       <header className="flex flex-col gap-4">
         <div className="flex items-center gap-4">
@@ -28,7 +28,7 @@ export function Settings() {
             initial={{ rotate: -15, scale: 0.8, opacity: 0 }}
             animate={{ rotate: 0, scale: 1, opacity: 1 }}
             transition={{ type: "spring", stiffness: 200, damping: 15 }}
-            className="p-3.5 bg-gradient-to-br from-[var(--accent-primary)]/15 to-[var(--accent-primary)]/5 rounded-2xl border border-[var(--accent-primary)]/20 shadow-lg shadow-[var(--accent-primary)]/10"
+            className="p-3.5 bg-[var(--accent-primary)]/5 rounded-2xl border border-[var(--glass-border)] shadow-lg shadow-[var(--accent-primary)]/5"
           >
             <Settings2 className="w-7 h-7 text-[var(--accent-primary)]" />
           </motion.div>
@@ -67,7 +67,7 @@ export function Settings() {
               onClick={() => setActiveTab(item.id as SettingsTab)}
               className={`relative flex items-center gap-2.5 px-6 py-3 rounded-xl text-sm font-semibold transition-all duration-300 z-10 ${
                 activeTab === item.id
-                  ? "text-white"
+                  ? "text-white shadow-sm"
                   : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
               }`}
             >
@@ -80,7 +80,7 @@ export function Settings() {
               {activeTab === item.id && (
                 <motion.div
                   layoutId="active-tab-bg"
-                  className="absolute inset-0 bg-gradient-to-br from-[var(--accent-primary)] to-[var(--accent-secondary,var(--accent-primary))] rounded-xl -z-10 shadow-lg shadow-[var(--accent-primary)]/25"
+                  className="absolute inset-0 bg-gradient-to-br from-[var(--accent-primary)] to-[var(--accent-secondary)] rounded-xl -z-10 shadow-lg shadow-[var(--accent-primary)]/25"
                   transition={{ type: "spring", bounce: 0.15, duration: 0.5 }}
                 />
               )}

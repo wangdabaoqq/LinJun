@@ -50,7 +50,7 @@ const TerminalIcon = forwardRef<TerminalIconHandle, TerminalIconProps>(
           controls.start("animate");
         }
       },
-      [controls, onMouseEnter]
+      [controls, onMouseEnter],
     );
 
     const handleMouseLeave = useCallback(
@@ -61,7 +61,7 @@ const TerminalIcon = forwardRef<TerminalIconHandle, TerminalIconProps>(
           controls.start("normal");
         }
       },
-      [controls, onMouseLeave]
+      [controls, onMouseLeave],
     );
 
     return (
@@ -95,7 +95,7 @@ const TerminalIcon = forwardRef<TerminalIconHandle, TerminalIconProps>(
         </svg>
       </div>
     );
-  }
+  },
 );
 
 TerminalIcon.displayName = "TerminalIcon";

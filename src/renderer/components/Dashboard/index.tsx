@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Activity,
   AlertTriangle,
@@ -8,6 +8,8 @@ import {
   Clock,
   Database,
   Users,
+  ChevronRight,
+  Info,
 } from "lucide-react";
 import {
   useDashboardStore,
@@ -15,7 +17,9 @@ import {
   useProviderStats,
   useRequestStats,
 } from "../../stores/dashboard";
+import { useTranslations } from "../../stores/settings";
 import { getProviderIcon } from "../icons/ProviderIcons";
+import { Modal } from "../ui/Modal";
 
 function StatusBadge({ running }: { running: boolean }) {
   return (
@@ -131,37 +135,42 @@ function MetricCard({
   );
 }
 
-function QuotaBar({
+export function QuotaBar({
   provider,
   used,
   limit,
+  action,
 }: {
   provider: string;
   used: number;
   limit: number;
+  action?: React.ReactNode;
 }) {
   const percentage = limit > 0 ? Math.min((used / limit) * 100, 100) : 0;
   const isWarning = percentage > 80;
   const isCritical = percentage > 95;
 
   return (
-    <div className="py-2">
-      <div className="flex items-center justify-between mb-1">
-        <span className="text-sm font-medium text-[var(--text-primary)] capitalize">
-          {provider}
-        </span>
-        <span className="text-xs text-[var(--text-muted)]">
+    <div className="py-2 group/quota">
+      <div className="flex items-center justify-between mb-1.5">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-[var(--text-primary)] capitalize">
+            {provider}
+          </span>
+          {action}
+        </div>
+        <span className="text-xs text-[var(--text-muted)] font-mono">
           {Math.round(percentage)}%
         </span>
       </div>
       <div className="h-2 bg-soft rounded-full overflow-hidden">
         <div
-          className={`h-full rounded-full transition-all duration-300 ${
+          className={`h-full rounded-full transition-all duration-500 ease-out ${
             isCritical
-              ? "bg-red-500"
+              ? "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]"
               : isWarning
-                ? "bg-amber-500"
-                : "bg-[var(--accent-primary)]"
+                ? "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.4)]"
+                : "bg-[var(--accent-primary)] shadow-[0_0_8px_rgba(var(--accent-primary-rgb),0.4)]"
           }`}
           style={{ width: `${percentage}%` }}
         />
@@ -428,7 +437,14 @@ function TokenBreakdownCard({
   );
 }
 
-export function Dashboard() {
+import { Page } from "../Sidebar";
+
+interface DashboardProps {
+  onNavigate?: (page: Page) => void;
+}
+
+export function Dashboard({ onNavigate }: DashboardProps) {
+  const t = useTranslations();
   const {
     proxyStatus,
     accounts,
@@ -449,6 +465,10 @@ export function Dashboard() {
   const stats = useRequestStats();
   const providerStats = useProviderStats();
   const healthScore = useHealthScore();
+  const [selectedCustomProvider, setSelectedCustomProvider] = useState<
+    string | null
+  >(null);
+  const [isCustomModalOpen, setIsCustomModalOpen] = useState(false);
   const trendData = useMemo(() => getRequestTrend(12), [getRequestTrend]);
   const tokenBreakdown = useMemo(
     () => getTokenBreakdown(),
@@ -469,29 +489,78 @@ export function Dashboard() {
     ];
   }, [accounts]);
 
+  const customQuotaOptions = useMemo(() => {
+    const options = quotas
+      .filter((q) => q.provider === "custom")
+      .map((q) => {
+        const account = accounts.find((a) => a.id === q.accountId);
+        const name = q.accountId.startsWith("custom-")
+          ? q.accountId.slice("custom-".length)
+          : q.accountId;
+        return {
+          id: q.accountId,
+          name: name || "Custom",
+          protocol: account?.provider || "custom",
+          used: q.used,
+          limit: q.limit,
+          resetAt: q.resetAt,
+        };
+      });
+    return options;
+  }, [quotas, accounts]);
+
+  useEffect(() => {
+    if (customQuotaOptions.length === 0) {
+      setSelectedCustomProvider(null);
+      return;
+    }
+    if (
+      !selectedCustomProvider ||
+      !customQuotaOptions.some((opt) => opt.id === selectedCustomProvider)
+    ) {
+      setSelectedCustomProvider(customQuotaOptions[0].id);
+    }
+  }, [customQuotaOptions, selectedCustomProvider]);
+
   const quotaByProvider = useMemo(() => {
     const map = new Map<
       string,
       { used: number; limit: number; resetAt: string }
     >();
-    quotas.forEach((q) => {
-      const existing = map.get(q.provider);
-      if (existing) {
-        existing.used += q.used;
-        existing.limit += q.limit;
-      } else {
-        map.set(q.provider, {
-          used: q.used,
-          limit: q.limit,
-          resetAt: q.resetAt,
-        });
-      }
-    });
-    return Array.from(map.entries()).map(([provider, data]) => ({
+    quotas
+      .filter((q) => q.provider !== "custom")
+      .forEach((q) => {
+        if (!map.has(q.provider)) {
+          map.set(q.provider, {
+            used: q.used,
+            limit: q.limit,
+            resetAt: q.resetAt,
+          });
+        }
+      });
+
+    const selectedCustom = selectedCustomProvider
+      ? customQuotaOptions.find((opt) => opt.id === selectedCustomProvider)
+      : customQuotaOptions[0];
+
+    const entries = Array.from(map.entries()).map(([provider, data]) => ({
       provider,
       ...data,
     }));
-  }, [quotas]);
+
+    if (selectedCustom) {
+      entries.push({
+        provider: `自定义 · ${selectedCustom.name}`,
+        used: selectedCustom.used,
+        limit: selectedCustom.limit,
+        resetAt: selectedCustom.resetAt,
+      });
+    }
+
+    return entries;
+  }, [customQuotaOptions, quotas, selectedCustomProvider]);
+
+  const customProviderCount = customQuotaOptions.length;
 
   const formatLatency = (seconds: number) => `${(seconds * 1000).toFixed(0)}`;
   const formatTokens = (tokens: number) => {
@@ -501,7 +570,7 @@ export function Dashboard() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="flex-1 min-h-0 overflow-y-auto p-6 custom-scrollbar space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-[var(--text-primary)]">
@@ -543,7 +612,7 @@ export function Dashboard() {
                   />
                 </div>
                 <span className="text-xs text-[var(--text-muted)]">
-                  可用性 {healthScore.availability}%
+                  可用性 {Math.round(healthScore.availability)}%
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -554,7 +623,7 @@ export function Dashboard() {
                   />
                 </div>
                 <span className="text-xs text-[var(--text-muted)]">
-                  性能 {healthScore.performance}%
+                  性能 {Math.round(healthScore.performance)}%
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -565,7 +634,7 @@ export function Dashboard() {
                   />
                 </div>
                 <span className="text-xs text-[var(--text-muted)]">
-                  配额 {healthScore.quota}%
+                  配额 {Math.round(healthScore.quota)}%
                 </span>
               </div>
             </div>
@@ -650,18 +719,47 @@ export function Dashboard() {
               <div className="text-xs tracking-wider text-[var(--text-dim)] uppercase">
                 配额使用
               </div>
-              <h3 className="text-lg font-semibold text-[var(--text-primary)] mt-1">
-                Provider 配额
-              </h3>
+              <div className="flex items-center gap-2 mt-1">
+                <h3 className="text-lg font-semibold text-[var(--text-primary)]">
+                  Provider 配额
+                </h3>
+                <div className="group relative flex items-center justify-center cursor-help">
+                  <Info className="w-3.5 h-3.5 text-[var(--text-dim)] hover:text-[var(--accent-primary)] transition-colors" />
+                  <div className="absolute left-1/2 bottom-full -translate-x-1/2 mb-2 px-3 py-1.5 bg-[var(--bg-secondary)] backdrop-blur-xl border border-[var(--glass-border)] rounded-lg text-xs text-[var(--text-primary)] whitespace-nowrap shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
+                    {t.dashboard.providerQuotaTip}
+                    <div className="absolute left-1/2 bottom-0 -translate-x-1/2 translate-y-[calc(50%-1px)] w-2 h-2 bg-[var(--bg-secondary)] border-r border-b border-[var(--glass-border)] rotate-45" />
+                  </div>
+                </div>
+              </div>
             </div>
-            <span className="text-xs text-[var(--text-muted)]">
-              {quotaByProvider.length} 个 Provider
-            </span>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => onNavigate?.("quota")}
+                className="text-xs flex items-center gap-1 px-2 py-1 rounded-lg bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/20 transition-all font-medium"
+              >
+                {t.dashboard.viewAll}
+                <ChevronRight className="w-3 h-3" />
+              </button>
+            </div>
           </div>
           {quotaByProvider.length > 0 ? (
             <div className="space-y-1">
               {quotaByProvider.map((q) => (
-                <QuotaBar key={q.provider} {...q} />
+                <QuotaBar
+                  key={q.provider}
+                  {...q}
+                  action={
+                    q.provider.includes("自定义") && customProviderCount > 1 ? (
+                      <button
+                        onClick={() => setIsCustomModalOpen(true)}
+                        className="p-1 rounded-md bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] opacity-0 group-hover/quota:opacity-100 transition-all hover:bg-[var(--accent-primary)]/20 active:scale-90"
+                        title="切换自定义提供商"
+                      >
+                        <RefreshCw className="w-3 h-3" />
+                      </button>
+                    ) : undefined
+                  }
+                />
               ))}
             </div>
           ) : (
@@ -723,6 +821,87 @@ export function Dashboard() {
           </div>
         </div>
       )}
+
+      <Modal
+        isOpen={isCustomModalOpen}
+        onClose={() => setIsCustomModalOpen(false)}
+        title={
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-[var(--accent-primary)]/10 text-[var(--accent-primary)]">
+              <Database className="w-5 h-5" />
+            </div>
+            <span>自定义提供商配额</span>
+          </div>
+        }
+        maxWidth="max-w-2xl"
+      >
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {customQuotaOptions.map((option) => (
+            <div
+              key={option.id}
+              className={`group relative p-4 rounded-2xl border transition-all duration-300 ${
+                selectedCustomProvider === option.id
+                  ? "bg-[var(--accent-primary)]/5 border-[var(--accent-primary)]/30 shadow-lg shadow-[var(--accent-primary)]/5"
+                  : "bg-[var(--bg-secondary)]/20 border-[var(--glass-border)] hover:border-[var(--glass-border-hover)] hover:bg-[var(--bg-secondary)]/40"
+              }`}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--bg-secondary)] to-[var(--bg-primary)] border border-[var(--glass-border)] flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform">
+                    {getProviderIcon(option.protocol, undefined, 24)}
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-[var(--text-primary)] leading-tight">
+                      {option.name}
+                    </h4>
+                    <p className="text-[10px] text-[var(--text-dim)] font-mono mt-0.5">
+                      {option.id}
+                    </p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-sm font-bold text-[var(--accent-primary)]">
+                    {option.limit > 0
+                      ? `${Math.round((option.used / option.limit) * 100)}%`
+                      : "0%"}
+                  </div>
+                  <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">
+                    已使用
+                  </div>
+                </div>
+              </div>
+
+              <QuotaBar
+                provider={option.name}
+                used={option.used}
+                limit={option.limit}
+              />
+
+              <div className="mt-4 pt-4 border-t border-[var(--glass-border)] flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <Clock className="w-3 h-3 text-[var(--text-dim)]" />
+                  <span className="text-[10px] text-[var(--text-dim)] font-medium">
+                    更新于 {option.resetAt || "刚刚"}
+                  </span>
+                </div>
+                <button
+                  onClick={() => {
+                    setSelectedCustomProvider(option.id);
+                    setIsCustomModalOpen(false);
+                  }}
+                  className={`text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-lg transition-all ${
+                    selectedCustomProvider === option.id
+                      ? "bg-[var(--accent-primary)] text-white"
+                      : "bg-[var(--text-primary)]/5 text-[var(--text-muted)] hover:bg-[var(--text-primary)]/10 hover:text-[var(--text-primary)]"
+                  }`}
+                >
+                  {selectedCustomProvider === option.id ? "展示中" : "设为首选"}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </Modal>
     </div>
   );
 }

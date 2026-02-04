@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import log from "@renderer/utils/logger";
 import { useTranslations, useSettingsStore } from "../../stores/settings";
-import { X, Zap, Box, Globe, RefreshCw } from "lucide-react";
+import { X, Zap, Box, Globe, RefreshCw, Loader2 } from "lucide-react";
 import { DEFAULT_PORT } from "../../../shared/constants";
 
 interface CLIToolInfo {
@@ -857,7 +857,7 @@ export function Agents() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "installed":
-        return "status-dot-online";
+        return "bg-[var(--accent-primary)] shadow-[0_0_8px_var(--accent-primary)]";
       default:
         return "bg-[var(--text-dim)]";
     }
@@ -873,7 +873,7 @@ export function Agents() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="flex-1 min-h-0 overflow-y-auto p-6 custom-scrollbar space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-[var(--text-primary)]">
           {t.agents.title}
@@ -889,13 +889,13 @@ export function Agents() {
             {t.agents.detectedAgents}
           </h3>
           <button
-            className="glass-btn glass-btn-teal text-xs py-1.5 flex items-center gap-2 group active:scale-95 transition-all"
+            className="glass-btn glass-btn-primary text-xs py-1.5 flex items-center gap-2 group active:scale-95 transition-all"
             onClick={() => detectTools(true)}
             disabled={scanning}
           >
             {scanning ? (
               <>
-                <span className="animate-spin inline-block mr-1">◌</span>
+                <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" />
                 扫描中...
               </>
             ) : (
@@ -908,18 +908,21 @@ export function Agents() {
         </div>
 
         {loading ? (
-          <div className="text-center py-8 text-[var(--text-muted)]">
-            <span className="animate-spin inline-block">◌</span> 检测中...
+          <div className="flex flex-col items-center justify-center py-12 text-[var(--text-muted)] gap-3">
+            <Loader2 className="w-8 h-8 animate-spin text-[var(--accent-primary)]" />
+            <p className="text-sm font-medium tracking-wide opacity-70">
+              检测中...
+            </p>
           </div>
         ) : (
           <div className="space-y-3">
             {agents.map((agent) => (
               <div
                 key={agent.name}
-                className={`flex items-center justify-between p-4 rounded-xl border backdrop-blur-sm ${
+                className={`flex items-center justify-between p-4 rounded-xl border border-[var(--glass-border)] backdrop-blur-sm ${
                   agent.status === "installed"
-                    ? "bg-[var(--accent-teal)]/5 border-[var(--accent-teal)]/20"
-                    : "bg-soft border-subtle"
+                    ? "bg-[var(--accent-primary)]/5"
+                    : "bg-[var(--bg-secondary)]/30"
                 }`}
               >
                 <div className="flex items-center gap-4">
@@ -944,7 +947,7 @@ export function Agents() {
                   )}
                   {agent.status === "installed" ? (
                     <button
-                      className="glass-btn glass-btn-teal text-xs py-1 px-4 flex items-center gap-1.5 group active:scale-95 transition-all"
+                      className="glass-btn glass-btn-primary text-xs py-1 px-4 flex items-center gap-1.5 group active:scale-95 transition-all"
                       onClick={() => setSelectedTool(agent)}
                     >
                       <Box className="w-3 h-3 group-hover:scale-110 transition-transform" />

@@ -2,7 +2,7 @@ import { app, BrowserWindow, nativeImage } from "electron";
 import path from "path";
 
 import log from "./utils/logger";
-import { createTray } from "./tray";
+import { TrayManager } from "./tray/TrayManager";
 import { setupIpcHandlers } from "./ipc/handlers";
 import { proxyManager } from "./proxy/manager";
 import { store } from "./utils/store";
@@ -71,6 +71,11 @@ function createWindow(): void {
       : {}),
   });
 
+  // Windows: 移除菜单栏
+  if (process.platform === "win32") {
+    mainWindow.setMenu(null);
+  }
+
   if (isDev) {
     mainWindow.loadURL("http://localhost:5173");
     mainWindow.webContents.openDevTools();
@@ -109,7 +114,7 @@ app
     createWindow();
 
     if (mainWindow) {
-      createTray(mainWindow);
+      TrayManager.getInstance().create(mainWindow);
     }
 
     app.on("activate", () => {
@@ -133,5 +138,6 @@ app.on("window-all-closed", () => {
 
 app.on("before-quit", async () => {
   isQuitting = true;
+  TrayManager.getInstance().destroy();
   await proxyManager.stop();
 });

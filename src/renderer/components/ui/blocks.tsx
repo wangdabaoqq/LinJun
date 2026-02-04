@@ -43,7 +43,7 @@ const BlocksIcon = forwardRef<BlocksIconHandle, BlocksIconProps>(
           controls.start("animate");
         }
       },
-      [controls, onMouseEnter]
+      [controls, onMouseEnter],
     );
 
     const handleMouseLeave = useCallback(
@@ -54,7 +54,7 @@ const BlocksIcon = forwardRef<BlocksIconHandle, BlocksIconProps>(
           controls.start("normal");
         }
       },
-      [controls, onMouseLeave]
+      [controls, onMouseLeave],
     );
 
     return (
@@ -84,7 +84,7 @@ const BlocksIcon = forwardRef<BlocksIconHandle, BlocksIconProps>(
         </svg>
       </div>
     );
-  }
+  },
 );
 
 BlocksIcon.displayName = "BlocksIcon";

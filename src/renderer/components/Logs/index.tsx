@@ -44,13 +44,13 @@ const JsonViewer = ({ data }: { data: string }) => {
         if (token.match(/^[{}[\],]$/)) {
           className = "text-[var(--text-primary)] opacity-40";
         } else if (token.match(/^"(?:\\.|[^"\\])*"\s*:$/)) {
-          className = "text-[#64d2ff]";
+          className = "text-[var(--accent-primary)]";
         } else if (token.startsWith('"')) {
-          className = "text-[#ffd60a]";
+          className = "text-[var(--warning)]";
         } else if (token.match(/^-?\d/)) {
-          className = "text-[#bf5af2]";
+          className = "text-[var(--accent-secondary)]";
         } else if (token.match(/^(true|false|null)$/)) {
-          className = "text-[#ff453a] font-bold";
+          className = "text-[var(--error)] font-bold";
         }
 
         return (
@@ -302,7 +302,7 @@ export function Logs() {
   };
 
   return (
-    <div className="flex flex-col h-full p-2 space-y-4">
+    <div className="flex flex-col h-full p-6 space-y-4">
       <div className="glass-card flex flex-col xl:flex-row items-start xl:items-center justify-between p-4 gap-4 bg-[var(--bg-primary)]/40 backdrop-blur-xl border border-[var(--glass-border)] rounded-2xl shadow-lg relative z-20 group">
         <div className="absolute inset-0 bg-gradient-to-r from-[var(--accent-primary)]/5 via-transparent to-[var(--accent-secondary)]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none rounded-2xl" />
 

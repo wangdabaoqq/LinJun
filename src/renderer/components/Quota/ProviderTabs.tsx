@@ -31,9 +31,13 @@ export function ProviderTabs({
               key={provider.id}
               onClick={() => onSelect(provider.id)}
               className={`
-                relative flex items-center gap-2.5 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-300 z-10
-                ${isSelected ? "text-white" : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"}
-              `}
+                  relative flex items-center gap-2.5 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-300 z-10
+                  ${
+                    isSelected
+                      ? "text-white shadow-sm"
+                      : "text-[var(--text-muted)] hover:text-[var(--text-primary)] bg-[var(--text-primary)]/[0.03] hover:bg-[var(--text-primary)]/[0.06]"
+                  }
+                `}
             >
               {isSelected && (
                 <motion.div
@@ -54,11 +58,11 @@ export function ProviderTabs({
               {provider.accountCount > 0 && (
                 <span
                   className={`
-                    ml-1 px-1.5 py-0.5 rounded text-[10px] font-bold leading-none transition-all duration-300
+                    ml-1.5 px-2.5 py-0 rounded text-[10px] font-bold tabular-nums transition-all duration-300
                     ${
                       isSelected
                         ? "bg-white/20 text-white"
-                        : "bg-[var(--surface-hover)] text-[var(--text-dim)] border border-[var(--border-subtle)]"
+                        : "bg-[var(--text-primary)]/[0.1] text-[var(--text-muted)]"
                     }
                   `}
                 >

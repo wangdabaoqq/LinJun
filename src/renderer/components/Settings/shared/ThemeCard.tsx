@@ -24,10 +24,10 @@ export function ThemeCard({
       whileHover={{ scale: 1.015, y: -2 }}
       whileTap={{ scale: 0.985 }}
       onClick={onClick}
-      className={`group relative overflow-hidden rounded-2xl p-5 transition-all duration-300 w-full text-left ${
+      className={`group relative overflow-hidden rounded-2xl p-5 transition-all duration-300 w-full text-left border ${
         selected
-          ? "bg-gradient-to-br from-[var(--accent-primary)]/15 to-[var(--accent-primary)]/5 border-2 border-[var(--accent-primary)] shadow-[0_0_30px_rgba(var(--accent-rgb),0.15)]"
-          : "bg-[var(--glass-bg)]/60 border-2 border-transparent hover:border-[var(--glass-border-hover)] hover:bg-[var(--glass-bg)]"
+          ? "bg-gradient-to-br from-[var(--accent-primary)]/15 to-[var(--accent-primary)]/5 border-[var(--accent-primary)] shadow-[0_0_30px_rgba(var(--accent-rgb),0.15)]"
+          : "bg-[var(--glass-bg)]/60 border-transparent hover:border-[var(--glass-border-hover)] hover:bg-[var(--glass-bg)]"
       }`}
     >
       {/* Decorative gradient orb */}

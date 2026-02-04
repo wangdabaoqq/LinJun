@@ -37,7 +37,7 @@ const LockIcon = forwardRef<LockIconHandle, LockIconProps>(
           controls.start("animate");
         }
       },
-      [controls, onMouseEnter]
+      [controls, onMouseEnter],
     );
 
     const handleMouseLeave = useCallback(
@@ -48,7 +48,7 @@ const LockIcon = forwardRef<LockIconHandle, LockIconProps>(
           controls.start("normal");
         }
       },
-      [controls, onMouseLeave]
+      [controls, onMouseLeave],
     );
 
     return (
@@ -106,7 +106,7 @@ const LockIcon = forwardRef<LockIconHandle, LockIconProps>(
         </motion.svg>
       </div>
     );
-  }
+  },
 );
 
 LockIcon.displayName = "LockIcon";

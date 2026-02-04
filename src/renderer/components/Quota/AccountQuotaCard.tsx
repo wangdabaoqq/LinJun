@@ -25,6 +25,7 @@ export interface AccountQuotaCardProps {
     additional?: QuotaWindow[];
   };
   lastUpdated: Date;
+  error?: string;
   onRefresh?: () => void;
 }
 
@@ -35,10 +36,22 @@ export function AccountQuotaCard({
   providerId,
   rateLimits,
   lastUpdated,
+  error,
   onRefresh,
 }: AccountQuotaCardProps) {
   const t = useTranslations();
   const [isModalOpen, setIsModalOpen] = React.useState(false);
+  const localizedBadge = React.useMemo(() => {
+    if (providerId === "custom" && badge?.startsWith("Balance ")) {
+      const amount = badge.replace(/^Balance\s+/, "").trim();
+      return `${t.quota.balanceLabel} ${amount}`;
+    }
+    return badge;
+  }, [badge, providerId, t.quota.balanceLabel]);
+
+  React.useEffect(() => {
+    console.log("[Quota] Status changed to:", status);
+  }, [status]);
 
   const allModels: QuotaWindow[] = [];
   if (rateLimits.primary) allModels.push(rateLimits.primary);
@@ -51,6 +64,9 @@ export function AccountQuotaCard({
   const displayCount = 4;
   const modelsToShow = sortedModels.slice(0, displayCount);
   const hasMoreModels = sortedModels.length > displayCount;
+  const customAdditionalCount = rateLimits.additional?.length ?? 0;
+  const showAllModelsButton =
+    providerId === "custom" ? customAdditionalCount > 0 : hasMoreModels;
 
   const getStatusColor = () => {
     switch (status) {
@@ -100,9 +116,9 @@ export function AccountQuotaCard({
                 <h3 className="font-semibold text-[var(--text-primary)] tracking-tight truncate">
                   {displayEmail}
                 </h3>
-                {badge && (
-                  <span className="flex-shrink-0 px-1.5 py-0.5 rounded text-[10px] font-bold bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] border border-[var(--accent-primary)]/20 uppercase tracking-wide whitespace-nowrap">
-                    {badge}
+                {localizedBadge && (
+                  <span className="flex-shrink-0 px-1.5 py-0.5 rounded text-[10px] font-bold bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] border border-[var(--glass-border)] uppercase tracking-wide whitespace-nowrap">
+                    {localizedBadge}
                   </span>
                 )}
               </div>
@@ -113,7 +129,8 @@ export function AccountQuotaCard({
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                onRefresh();
+                console.log("[Quota] Refresh clicked, current status:", status);
+                onRefresh?.();
               }}
               className="flex-shrink-0 ml-2 p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-soft transition-all duration-200"
               title={t.quota.refresh}
@@ -127,42 +144,77 @@ export function AccountQuotaCard({
         </div>
 
         <div className="space-y-4">
-          {modelsToShow.map((model, index) => (
-            <div
-              key={index}
-              className={
-                index > 0
-                  ? "pt-3 border-t border-[var(--border-subtle)]/50"
-                  : ""
-              }
-            >
-              <QuotaWindowBar
-                label={model.label}
-                usedPercent={model.usedPercent}
-                resetIn={model.resetIn}
-                limitReached={model.limitReached}
-                providerId={providerId}
-              />
+          {status === "error" && error && (
+            <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-[10px] font-semibold text-red-500">
+              {t.quota.errorLabel}: {error}
             </div>
-          ))}
+          )}
+          {providerId === "custom" ? (
+            <div className="space-y-3">
+              {rateLimits.primary && (
+                <QuotaWindowBar
+                  label={rateLimits.primary.label}
+                  usedPercent={rateLimits.primary.usedPercent}
+                  resetIn={rateLimits.primary.resetIn}
+                  limitReached={rateLimits.primary.limitReached}
+                  providerId={providerId}
+                />
+              )}
+              {showAllModelsButton && (
+                <button
+                  onClick={() => setIsModalOpen(true)}
+                  className="w-full py-1.5 px-3 text-[10px] font-medium tracking-wide text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)]/80 rounded-lg transition-all duration-200 flex items-center justify-center gap-1.5 group/btn border border-transparent hover:border-[var(--glass-border)]"
+                >
+                  <span className="opacity-70 group-hover/btn:opacity-100 transition-opacity">
+                    {t.quota.viewAllModels}
+                  </span>
+                  <ArrowRight
+                    size={10}
+                    className="opacity-50 group-hover/btn:opacity-100 group-hover/btn:translate-x-0.5 transition-all"
+                  />
+                </button>
+              )}
+            </div>
+          ) : (
+            <>
+              {modelsToShow.map((model, index) => (
+                <div
+                  key={index}
+                  className={
+                    index > 0
+                      ? "pt-3 border-t border-[var(--glass-border)]"
+                      : ""
+                  }
+                >
+                  <QuotaWindowBar
+                    label={model.label}
+                    usedPercent={model.usedPercent}
+                    resetIn={model.resetIn}
+                    limitReached={model.limitReached}
+                    providerId={providerId}
+                  />
+                </div>
+              ))}
 
-          {hasMoreModels && (
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="w-full mt-2 py-1.5 px-3 text-[10px] font-medium tracking-wide text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)]/80 rounded-lg transition-all duration-200 flex items-center justify-center gap-1.5 group/btn border border-transparent hover:border-[var(--border-subtle)]/30"
-            >
-              <span className="opacity-70 group-hover/btn:opacity-100 transition-opacity">
-                {t.quota.viewAllModels}
-              </span>
-              <ArrowRight
-                size={10}
-                className="opacity-50 group-hover/btn:opacity-100 group-hover/btn:translate-x-0.5 transition-all"
-              />
-            </button>
+              {showAllModelsButton && (
+                <button
+                  onClick={() => setIsModalOpen(true)}
+                  className="w-full mt-2 py-1.5 px-3 text-[10px] font-medium tracking-wide text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)]/80 rounded-lg transition-all duration-200 flex items-center justify-center gap-1.5 group/btn border border-transparent hover:border-[var(--glass-border)]"
+                >
+                  <span className="opacity-70 group-hover/btn:opacity-100 transition-opacity">
+                    {t.quota.viewAllModels}
+                  </span>
+                  <ArrowRight
+                    size={10}
+                    className="opacity-50 group-hover/btn:opacity-100 group-hover/btn:translate-x-0.5 transition-all"
+                  />
+                </button>
+              )}
+            </>
           )}
         </div>
 
-        <div className="mt-4 pt-3 flex items-center justify-between text-[10px] text-[var(--text-dim)] border-t border-[var(--border-subtle)]/30">
+        <div className="mt-4 pt-3 flex items-center justify-between text-[10px] text-[var(--text-dim)] border-t border-[var(--glass-border)]">
           <span className="flex items-center gap-1.5">
             {t.quota.updated} {getTimeAgo(lastUpdated)}
           </span>

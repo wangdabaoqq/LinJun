@@ -19,10 +19,10 @@ export function CustomToggle({
     <motion.div
       whileHover={{ scale: 1.005 }}
       whileTap={{ scale: 0.995 }}
-      className={`flex items-center justify-between p-4 rounded-2xl transition-all duration-300 cursor-pointer border ${
+      className={`flex items-center justify-between p-4 rounded-2xl transition-all duration-300 cursor-pointer border border-[var(--glass-border)] ${
         value
-          ? "bg-[var(--accent-primary)]/[0.06] border-[var(--accent-primary)]/20"
-          : "bg-black/5 dark:bg-white/5 border-transparent hover:bg-black/10 dark:hover:bg-white/10 hover:border-[var(--glass-border)]"
+          ? "bg-[var(--accent-primary)]/[0.06]"
+          : "bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 hover:border-[var(--glass-border-hover)]"
       }`}
       onClick={() => onChange(!value)}
     >

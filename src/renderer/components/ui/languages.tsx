@@ -76,7 +76,7 @@ const LanguagesIcon = forwardRef<LanguagesIconHandle, LanguagesIconProps>(
           pathControls.start("animate");
         }
       },
-      [onMouseEnter, pathControls, svgControls]
+      [onMouseEnter, pathControls, svgControls],
     );
 
     const handleMouseLeave = useCallback(
@@ -88,7 +88,7 @@ const LanguagesIcon = forwardRef<LanguagesIconHandle, LanguagesIconProps>(
           pathControls.start("normal");
         }
       },
-      [svgControls, pathControls, onMouseLeave]
+      [svgControls, pathControls, onMouseLeave],
     );
 
     return (
@@ -150,7 +150,7 @@ const LanguagesIcon = forwardRef<LanguagesIconHandle, LanguagesIconProps>(
         </motion.svg>
       </div>
     );
-  }
+  },
 );
 
 LanguagesIcon.displayName = "LanguagesIcon";

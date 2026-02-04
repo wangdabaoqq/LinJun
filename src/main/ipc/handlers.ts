@@ -76,6 +76,183 @@ export function setupIpcHandlers(): void {
     }
   });
 
+  ipcMain.handle(
+    "customProviders:import",
+    (
+      _event,
+      data: {
+        "openai-compatibility"?: {
+          name: string;
+          "base-url": string;
+          "api-key-entries": { "api-key": string; "proxy-url"?: string }[];
+          "system-access-token"?: string;
+          "new-api-user"?: string;
+          models?: { name: string; alias?: string }[];
+          prefix?: string;
+        }[];
+        "claude-api-key"?: {
+          name?: string;
+          "api-key": string;
+          "base-url"?: string;
+          "proxy-url"?: string;
+          "system-access-token"?: string;
+          models?: { name: string; alias?: string }[];
+          prefix?: string;
+        }[];
+        "gemini-api-key"?: {
+          name?: string;
+          "api-key": string;
+          "base-url"?: string;
+          "proxy-url"?: string;
+          "system-access-token"?: string;
+          headers?: Record<string, string>;
+          models?: { name: string; alias?: string }[];
+          prefix?: string;
+        }[];
+        "codex-api-key"?: {
+          name?: string;
+          "api-key": string;
+          "base-url"?: string;
+          "proxy-url"?: string;
+          "system-access-token"?: string;
+          models?: { name: string; alias?: string }[];
+          prefix?: string;
+        }[];
+      },
+      strategy: "overwrite" | "skip" = "overwrite",
+    ) => {
+      try {
+        const config = proxyManager.loadConfigFromYaml();
+        if (!config) {
+          return { success: false, error: "Failed to load config" };
+        }
+
+        const summary = {
+          added: 0,
+          updated: 0,
+          skipped: 0,
+        };
+
+        const mergeOpenAI = (
+          incoming: {
+            name: string;
+            "base-url": string;
+            "api-key-entries": { "api-key": string; "proxy-url"?: string }[];
+            "system-access-token"?: string;
+            models?: { name: string; alias?: string }[];
+            prefix?: string;
+          }[],
+        ) => {
+          const current = config["openai-compatibility"] || [];
+          const result = [...current];
+
+          incoming.forEach((provider) => {
+            if (!provider.name?.trim() || !provider["base-url"]?.trim()) {
+              summary.skipped += 1;
+              return;
+            }
+            if (!provider["api-key-entries"]?.length) {
+              summary.skipped += 1;
+              return;
+            }
+
+            const index = result.findIndex(
+              (p) =>
+                p.name === provider.name &&
+                p["base-url"] === provider["base-url"],
+            );
+            if (index === -1) {
+              result.push(provider);
+              summary.added += 1;
+            } else {
+              if (strategy === "skip") {
+                summary.skipped += 1;
+              } else {
+                result[index] = provider;
+                summary.updated += 1;
+              }
+            }
+          });
+
+          return result;
+        };
+
+        const mergeByApiKey = <T extends { "api-key": string }>(
+          current: T[] | undefined,
+          incoming: T[] | undefined,
+        ) => {
+          const result = [...(current || [])];
+          (incoming || []).forEach((entry) => {
+            if (!entry["api-key"]?.trim()) {
+              summary.skipped += 1;
+              return;
+            }
+
+            const index = result.findIndex(
+              (existing) => existing["api-key"] === entry["api-key"],
+            );
+            if (index === -1) {
+              result.push(entry);
+              summary.added += 1;
+            } else {
+              if (strategy === "skip") {
+                summary.skipped += 1;
+              } else {
+                result[index] = entry;
+                summary.updated += 1;
+              }
+            }
+          });
+          return result;
+        };
+
+        const updates = {
+          ...(data["openai-compatibility"]
+            ? {
+                "openai-compatibility": mergeOpenAI(
+                  data["openai-compatibility"],
+                ),
+              }
+            : {}),
+          ...(data["claude-api-key"]
+            ? {
+                "claude-api-key": mergeByApiKey(
+                  config["claude-api-key"],
+                  data["claude-api-key"],
+                ),
+              }
+            : {}),
+          ...(data["gemini-api-key"]
+            ? {
+                "gemini-api-key": mergeByApiKey(
+                  config["gemini-api-key"],
+                  data["gemini-api-key"],
+                ),
+              }
+            : {}),
+          ...(data["codex-api-key"]
+            ? {
+                "codex-api-key": mergeByApiKey(
+                  config["codex-api-key"],
+                  data["codex-api-key"],
+                ),
+              }
+            : {}),
+        };
+
+        if (Object.keys(updates).length === 0) {
+          return { success: false, error: "No valid entries to import" };
+        }
+
+        const success = proxyManager.updateConfigYaml(updates);
+        return { success, summary };
+      } catch (error) {
+        log.error("[IPC] Failed to import custom providers:", error);
+        return { success: false, error: String(error) };
+      }
+    },
+  );
+
   ipcMain.handle("api:cliLogin", async (_event, provider: string) => {
     try {
       return await proxyManager.runCliLogin(provider);
@@ -356,6 +533,8 @@ export function setupIpcHandlers(): void {
         name: string;
         "base-url": string;
         "api-key-entries": { "api-key": string; "proxy-url"?: string }[];
+        "system-access-token"?: string;
+        "new-api-user"?: string;
         models?: { name: string; alias?: string }[];
       },
     ) => {
@@ -394,6 +573,8 @@ export function setupIpcHandlers(): void {
         name: string;
         "base-url": string;
         "api-key-entries": { "api-key": string; "proxy-url"?: string }[];
+        "system-access-token"?: string;
+        "new-api-user"?: string;
         models?: { name: string; alias?: string }[];
       },
     ) => {
@@ -475,6 +656,7 @@ export function setupIpcHandlers(): void {
         "api-key": string;
         "base-url"?: string;
         "proxy-url"?: string;
+        "system-access-token"?: string;
         models?: { name: string; alias?: string }[];
       }[],
     ) => {
@@ -513,6 +695,7 @@ export function setupIpcHandlers(): void {
         "api-key": string;
         "base-url"?: string;
         "proxy-url"?: string;
+        "system-access-token"?: string;
         headers?: Record<string, string>;
       }[],
     ) => {
@@ -547,6 +730,7 @@ export function setupIpcHandlers(): void {
         "api-key": string;
         "base-url"?: string;
         "proxy-url"?: string;
+        "system-access-token"?: string;
       }[],
     ) => {
       try {

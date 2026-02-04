@@ -45,7 +45,7 @@ const GaugeIcon = forwardRef<GaugeIconHandle, GaugeIconProps>(
           controls.start("animate");
         }
       },
-      [controls, onMouseEnter]
+      [controls, onMouseEnter],
     );
 
     const handleMouseLeave = useCallback(
@@ -56,7 +56,7 @@ const GaugeIcon = forwardRef<GaugeIconHandle, GaugeIconProps>(
           controls.start("normal");
         }
       },
-      [controls, onMouseLeave]
+      [controls, onMouseLeave],
     );
 
     return (
@@ -94,7 +94,7 @@ const GaugeIcon = forwardRef<GaugeIconHandle, GaugeIconProps>(
         </svg>
       </div>
     );
-  }
+  },
 );
 
 GaugeIcon.displayName = "GaugeIcon";

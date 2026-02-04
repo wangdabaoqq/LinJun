@@ -73,6 +73,54 @@ interface ElectronAPI {
       }[]
     >;
   };
+  customProviders: {
+    import: (
+      data: {
+        "openai-compatibility"?: {
+          name: string;
+          "base-url": string;
+          "api-key-entries": { "api-key": string; "proxy-url"?: string }[];
+          "system-access-token"?: string;
+          "new-api-user"?: string;
+          models?: { name: string; alias?: string }[];
+          prefix?: string;
+        }[];
+        "claude-api-key"?: {
+          name?: string;
+          "api-key": string;
+          "base-url"?: string;
+          "proxy-url"?: string;
+          "system-access-token"?: string;
+          models?: { name: string; alias?: string }[];
+          prefix?: string;
+        }[];
+        "gemini-api-key"?: {
+          name?: string;
+          "api-key": string;
+          "base-url"?: string;
+          "proxy-url"?: string;
+          "system-access-token"?: string;
+          headers?: Record<string, string>;
+          models?: { name: string; alias?: string }[];
+          prefix?: string;
+        }[];
+        "codex-api-key"?: {
+          name?: string;
+          "api-key": string;
+          "base-url"?: string;
+          "proxy-url"?: string;
+          "system-access-token"?: string;
+          models?: { name: string; alias?: string }[];
+          prefix?: string;
+        }[];
+      },
+      strategy?: "overwrite" | "skip",
+    ) => Promise<{
+      success: boolean;
+      summary?: { added: number; updated: number; skipped: number };
+      error?: string;
+    }>;
+  };
 }
 
 declare module "*.svg" {

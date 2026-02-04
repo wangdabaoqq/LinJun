@@ -9,7 +9,8 @@ export type ProviderType =
   | "kiro"
   | "copilot"
   | "qwen"
-  | "iflow";
+  | "iflow"
+  | "custom";
 
 export interface QuotaWindow {
   label: string;

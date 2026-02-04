@@ -38,7 +38,7 @@ const FILE_TEXT = forwardRef<FileTextIconHandle, FileTextIconProps>(
           controls.start("animate");
         }
       },
-      [controls, onMouseEnter]
+      [controls, onMouseEnter],
     );
 
     const handleMouseLeave = useCallback(
@@ -49,7 +49,7 @@ const FILE_TEXT = forwardRef<FileTextIconHandle, FileTextIconProps>(
           controls.start("normal");
         }
       },
-      [controls, onMouseLeave]
+      [controls, onMouseLeave],
     );
 
     return (
@@ -151,7 +151,7 @@ const FILE_TEXT = forwardRef<FileTextIconHandle, FileTextIconProps>(
         </motion.svg>
       </div>
     );
-  }
+  },
 );
 
 FILE_TEXT.displayName = "FileTextIcon";
