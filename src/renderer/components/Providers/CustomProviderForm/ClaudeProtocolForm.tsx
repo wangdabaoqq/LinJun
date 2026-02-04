@@ -1,5 +1,5 @@
 import { memo, useState } from "react";
-import { Globe, Box, Key, Eye, EyeOff } from "lucide-react";
+import { Globe, Box, Key, Eye, EyeOff, User } from "lucide-react";
 import { useTranslations } from "../../../stores/settings";
 import { ClaudeApiKeyEntry, ModelEntry } from "./types";
 import { ModelEntryList } from "./ModelEntryList";
@@ -111,6 +111,19 @@ export const ClaudeProtocolForm = memo(function ClaudeProtocolForm({
         <p className="text-[10px] text-[var(--text-muted)] mt-1 px-1">
           {t.providers.customSystemTokenTip}
         </p>
+      </div>
+      <div className="space-y-2">
+        <label className="flex items-center gap-2 text-xs font-bold text-[var(--text-primary)] uppercase tracking-widest px-1">
+          <User className="w-3.5 h-3.5" />
+          {t.providers.customNewApiUser} ({t.providers.optional})
+        </label>
+        <input
+          type="text"
+          value={entry["new-api-user"] || ""}
+          onChange={(e) => onUpdate("new-api-user", e.target.value)}
+          placeholder={t.providers.customNewApiUserPlaceholder}
+          className="glass-input w-full font-mono text-sm bg-[var(--text-primary)]/[0.03] border border-[var(--glass-border)] text-[var(--text-primary)] placeholder:text-[var(--text-dim)]"
+        />
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">

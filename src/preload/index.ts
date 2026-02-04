@@ -223,6 +223,14 @@ const electronAPI = {
       }[],
     ) => ipcRenderer.invoke("codexCompat:save", entries),
   },
+  customProvider: {
+    testConnection: (params: {
+      protocol: "openai" | "claude" | "gemini" | "codex";
+      baseUrl: string;
+      apiKey: string;
+      newApiUser?: string;
+    }) => ipcRenderer.invoke("customProvider:testConnection", params),
+  },
   tray: {
     openDashboard: () => ipcRenderer.send("tray:open-dashboard"),
     setHeight: (height: number) => ipcRenderer.send("tray:resize", height),

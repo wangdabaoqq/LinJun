@@ -2,6 +2,7 @@ import { app, ipcMain, shell } from "electron";
 import path from "path";
 import fs from "fs";
 import crypto from "crypto";
+import type { IncomingMessage } from "http";
 
 import log from "../utils/logger";
 import { proxyManager } from "../proxy/manager";
@@ -1098,4 +1099,178 @@ export function setupIpcHandlers(): void {
       return { success: false, error: String(error) };
     }
   });
+
+  ipcMain.handle(
+    "customProvider:testConnection",
+    async (
+      _event,
+      params: {
+        protocol: "openai" | "claude" | "gemini" | "codex";
+        baseUrl: string;
+        apiKey: string;
+        newApiUser?: string;
+      },
+    ) => {
+      const { baseUrl, apiKey, newApiUser } = params;
+
+      if (!baseUrl || !apiKey) {
+        return { success: false, error: "Base URL and API Key are required" };
+      }
+
+      const normalizedUrl = baseUrl.replace(/\/+$/, "");
+      const startTime = Date.now();
+
+      const tryEndpoint = (
+        testUrl: string,
+        headers: Record<string, string>,
+      ): Promise<{
+        success: boolean;
+        statusCode: number;
+        latency: number;
+      }> => {
+        return new Promise(async (resolve) => {
+          try {
+            const urlObj = new URL(testUrl);
+            const isHttps = urlObj.protocol === "https:";
+            const httpModule = await import(isHttps ? "https" : "http");
+
+            const options = {
+              hostname: urlObj.hostname,
+              port: urlObj.port || (isHttps ? 443 : 80),
+              path: urlObj.pathname + urlObj.search,
+              method: "GET",
+              headers,
+              timeout: 10000,
+            };
+
+            const req = httpModule.request(options, (res: IncomingMessage) => {
+              const latency = Date.now() - startTime;
+              res.on("data", () => {});
+              res.on("end", () => {
+                resolve({
+                  success:
+                    (res.statusCode || 0) >= 200 && (res.statusCode || 0) < 300,
+                  statusCode: res.statusCode || 0,
+                  latency,
+                });
+              });
+            });
+
+            req.on("error", () => {
+              resolve({
+                success: false,
+                statusCode: 0,
+                latency: Date.now() - startTime,
+              });
+            });
+
+            req.on("timeout", () => {
+              req.destroy();
+              resolve({
+                success: false,
+                statusCode: 0,
+                latency: Date.now() - startTime,
+              });
+            });
+
+            req.end();
+          } catch {
+            resolve({
+              success: false,
+              statusCode: 0,
+              latency: Date.now() - startTime,
+            });
+          }
+        });
+      };
+
+      try {
+        // Try New API endpoint first: /api/pricing
+        const newApiHeaders: Record<string, string> = {
+          Authorization: `Bearer ${apiKey}`,
+        };
+        if (newApiUser) {
+          newApiHeaders["New-Api-User"] = newApiUser;
+        }
+
+        const newApiResult = await tryEndpoint(
+          `${normalizedUrl}/api/pricing`,
+          newApiHeaders,
+        );
+
+        if (newApiResult.success) {
+          return {
+            success: true,
+            latency: newApiResult.latency,
+            serviceType: "new-api" as const,
+          };
+        }
+
+        // If 404, try OpenRouter endpoint: /api/v1/key
+        if (newApiResult.statusCode === 404) {
+          const openRouterResult = await tryEndpoint(
+            `${normalizedUrl}/api/v1/key`,
+            { Authorization: `Bearer ${apiKey}` },
+          );
+
+          if (openRouterResult.success) {
+            return {
+              success: true,
+              latency: openRouterResult.latency,
+              serviceType: "openrouter" as const,
+            };
+          }
+
+          // Both failed with 404
+          if (openRouterResult.statusCode === 404) {
+            return {
+              success: false,
+              error: "Unsupported service (neither New API nor OpenRouter)",
+              latency: openRouterResult.latency,
+            };
+          }
+
+          // OpenRouter returned other error
+          if (
+            openRouterResult.statusCode === 401 ||
+            openRouterResult.statusCode === 403
+          ) {
+            return {
+              success: false,
+              error: `Authentication failed (HTTP ${openRouterResult.statusCode})`,
+              latency: openRouterResult.latency,
+            };
+          }
+
+          return {
+            success: false,
+            error: `Connection failed (HTTP ${openRouterResult.statusCode})`,
+            latency: openRouterResult.latency,
+          };
+        }
+
+        // New API returned auth error
+        if (
+          newApiResult.statusCode === 401 ||
+          newApiResult.statusCode === 403
+        ) {
+          return {
+            success: false,
+            error: `Authentication failed (HTTP ${newApiResult.statusCode})`,
+            latency: newApiResult.latency,
+          };
+        }
+
+        // Other error from New API
+        return {
+          success: false,
+          error: `Connection failed (HTTP ${newApiResult.statusCode})`,
+          latency: newApiResult.latency,
+        };
+      } catch (error) {
+        log.error("[IPC] Failed to test custom provider connection:", error);
+        return { success: false, error: String(error) };
+      }
+    },
+  );
 }

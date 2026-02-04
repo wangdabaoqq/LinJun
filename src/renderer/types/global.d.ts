@@ -121,6 +121,18 @@ interface ElectronAPI {
       error?: string;
     }>;
   };
+  customProvider: {
+    testConnection: (params: {
+      protocol: "openai" | "claude" | "gemini" | "codex";
+      baseUrl: string;
+      apiKey: string;
+      newApiUser?: string;
+    }) => Promise<{
+      success: boolean;
+      error?: string;
+      latency?: number;
+    }>;
+  };
 }
 
 declare module "*.svg" {

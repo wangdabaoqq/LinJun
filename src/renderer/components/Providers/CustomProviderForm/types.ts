@@ -16,6 +16,7 @@ export interface ClaudeApiKeyEntry {
   "base-url"?: string;
   "proxy-url"?: string;
   "system-access-token"?: string;
+  "new-api-user"?: string;
   prefix?: string;
   models?: ModelEntry[];
 }
@@ -26,6 +27,7 @@ export interface GeminiApiKeyEntry {
   "base-url"?: string;
   "proxy-url"?: string;
   "system-access-token"?: string;
+  "new-api-user"?: string;
   prefix?: string;
   headers?: Record<string, string>;
   models?: ModelEntry[];
@@ -37,6 +39,7 @@ export interface CodexApiKeyEntry {
   "base-url"?: string;
   "proxy-url"?: string;
   "system-access-token"?: string;
+  "new-api-user"?: string;
   prefix?: string;
   models?: ModelEntry[];
 }
@@ -67,6 +70,7 @@ export interface ClaudeCompatProvider {
   "base-url"?: string;
   "proxy-url"?: string;
   "system-access-token"?: string;
+  "new-api-user"?: string;
   prefix?: string;
   models?: { name: string; alias?: string }[];
 }
@@ -77,6 +81,7 @@ export interface GeminiCompatProvider {
   "base-url"?: string;
   "proxy-url"?: string;
   "system-access-token"?: string;
+  "new-api-user"?: string;
   prefix?: string;
   headers?: Record<string, string>;
   models?: { name: string; alias?: string }[];
@@ -88,6 +93,7 @@ export interface CodexCompatProvider {
   "base-url"?: string;
   "proxy-url"?: string;
   "system-access-token"?: string;
+  "new-api-user"?: string;
   prefix?: string;
   models?: { name: string; alias?: string }[];
 }

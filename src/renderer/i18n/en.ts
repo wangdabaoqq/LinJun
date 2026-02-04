@@ -104,6 +104,8 @@ export const en = {
     customProvider: "Custom Provider",
     customProviderDesc:
       "Configure OpenAI / Claude / Gemini / Codex compatible endpoints",
+    customNewApiOnly:
+      "Currently only supports New API / One API proxy services. Official APIs are not supported.",
     customProviderName: "Provider Name",
     customProviderNamePlaceholder: "e.g. OpenRouter",
     customBaseUrl: "Base URL",
@@ -132,6 +134,7 @@ export const en = {
     customNameRequired: "Provider name is required",
     customUrlRequired: "Base URL is required",
     customApiKeyRequired: "At least one API key is required",
+    customNewApiUserRequired: "New API User is required",
     customManage: "Manage Custom Providers",
     customEdit: "Edit",
     customDelete: "Delete",
@@ -182,6 +185,11 @@ export const en = {
       '# OpenAI-compatible providers\nopenai-compatibility:\n  - name: OpenRouter\n    base-url: https://openrouter.ai/api/v1\n    api-key-entries:\n      - api-key: "sk-..."\n    models:\n      - name: gpt-4o\n        alias: gpt4\n    prefix: or\n\n# Claude-compatible entries\nclaude-api-key:\n  - name: Anthropic\n    api-key: "sk-ant-..."\n    base-url: https://api.anthropic.com\n\n# Gemini-compatible entries\ngemini-api-key:\n  - name: Google\n    api-key: "AIza..."\n\n# Codex-compatible entries\ncodex-api-key:\n  - name: OpenAI\n    api-key: "sk-..."',
     customImportCancel: "Cancel",
     customImportConfirm: "Import",
+    customTestConnection: "Test Connection",
+    customTesting: "Testing...",
+    customTestSuccess: "Connection successful",
+    customTestFailed: "Connection failed",
+    customTestLatency: "Latency: {latency}ms",
     official: "Official",
     online: "Online",
     total: "Total",
