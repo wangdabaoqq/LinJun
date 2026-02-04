@@ -80,7 +80,59 @@ const PROVIDER_META: Record<
 
 function getCustomProviders() {
   const config = proxyManager.loadConfigFromYaml();
-  return config?.["openai-compatibility"] || [];
+  const providers: Array<{
+    name?: string;
+    "base-url"?: string;
+    "system-access-token"?: string;
+    "new-api-user"?: string;
+    type: "openai" | "claude" | "gemini" | "codex";
+  }> = [];
+
+  const openaiCompat = config?.["openai-compatibility"] || [];
+  openaiCompat.forEach((p) => {
+    providers.push({
+      name: p.name || "OpenAI Compatible",
+      "base-url": p["base-url"],
+      "system-access-token": p["system-access-token"],
+      "new-api-user": p["new-api-user"],
+      type: "openai",
+    });
+  });
+
+  const claudeKeys = config?.["claude-api-key"] || [];
+  claudeKeys.forEach((p) => {
+    providers.push({
+      name: p.name || "Claude",
+      "base-url": p["base-url"] || "https://api.anthropic.com",
+      "system-access-token": p["system-access-token"],
+      "new-api-user": p["new-api-user"],
+      type: "claude",
+    });
+  });
+
+  const geminiKeys = config?.["gemini-api-key"] || [];
+  geminiKeys.forEach((p) => {
+    providers.push({
+      name: p.name || "Gemini",
+      "base-url": p["base-url"] || "https://generativelanguage.googleapis.com",
+      "system-access-token": p["system-access-token"],
+      "new-api-user": p["new-api-user"],
+      type: "gemini",
+    });
+  });
+
+  const codexKeys = config?.["codex-api-key"] || [];
+  codexKeys.forEach((p) => {
+    providers.push({
+      name: p.name || "Codex",
+      "base-url": p["base-url"],
+      "system-access-token": p["system-access-token"],
+      "new-api-user": p["new-api-user"],
+      type: "codex",
+    });
+  });
+
+  return providers;
 }
 
 function createCustomAccountError(name: string, error: string): QuotaAccount {

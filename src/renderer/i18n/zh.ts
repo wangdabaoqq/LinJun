@@ -101,7 +101,7 @@ export const zh: Translations = {
     copilotDeviceError: "获取 GitHub Copilot 登录码失败",
     customProvider: "自定义",
     customProviderDesc: "配置 OpenAI / Claude / Gemini / Codex 兼容接口",
-    customNewApiOnly: "目前仅支持 New API / One API 等中转服务，不支持官方 API",
+    customNewApiOnly: "支持 New API / One API / OpenRouter 等中转服务",
     customProviderName: "提供商名称",
     customProviderNamePlaceholder: "例如：OpenRouter",
     customBaseUrl: "接口地址",

@@ -36,6 +36,7 @@ export function CustomProviderForm({
     success: boolean;
     error?: string;
     latency?: number;
+    serviceType?: "new-api" | "openrouter";
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -302,6 +303,9 @@ export function CustomProviderForm({
         ...(claudeEntry["system-access-token"]?.trim()
           ? { "system-access-token": claudeEntry["system-access-token"].trim() }
           : {}),
+        ...(claudeEntry["new-api-user"]?.trim()
+          ? { "new-api-user": claudeEntry["new-api-user"].trim() }
+          : {}),
         ...(claudeEntry.prefix?.trim()
           ? { prefix: claudeEntry.prefix.trim() }
           : {}),
@@ -349,6 +353,9 @@ export function CustomProviderForm({
           : {}),
         ...(geminiEntry["system-access-token"]?.trim()
           ? { "system-access-token": geminiEntry["system-access-token"].trim() }
+          : {}),
+        ...(geminiEntry["new-api-user"]?.trim()
+          ? { "new-api-user": geminiEntry["new-api-user"].trim() }
           : {}),
         ...(geminiEntry.prefix?.trim()
           ? { prefix: geminiEntry.prefix.trim() }
@@ -405,6 +412,9 @@ export function CustomProviderForm({
           : {}),
         ...(codexEntry["system-access-token"]?.trim()
           ? { "system-access-token": codexEntry["system-access-token"].trim() }
+          : {}),
+        ...(codexEntry["new-api-user"]?.trim()
+          ? { "new-api-user": codexEntry["new-api-user"].trim() }
           : {}),
         ...(codexEntry.prefix?.trim()
           ? { prefix: codexEntry.prefix.trim() }
@@ -590,9 +600,18 @@ export function CustomProviderForm({
                   <>
                     <Check className="w-4 h-4" />
                     <span>{t.providers.customTestSuccess}</span>
+                    {testResult.serviceType && (
+                      <span className="text-[var(--text-dim)] font-normal ml-1">
+                        (
+                        {testResult.serviceType === "new-api"
+                          ? "New API"
+                          : "OpenRouter"}
+                        )
+                      </span>
+                    )}
                     {testResult.latency && (
                       <span className="text-[var(--text-dim)] font-normal ml-1">
-                        ({testResult.latency}ms)
+                        {testResult.latency}ms
                       </span>
                     )}
                   </>

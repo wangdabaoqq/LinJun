@@ -131,6 +131,7 @@ interface ElectronAPI {
       success: boolean;
       error?: string;
       latency?: number;
+      serviceType?: "new-api" | "openrouter";
     }>;
   };
 }

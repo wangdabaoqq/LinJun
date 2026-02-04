@@ -43,29 +43,35 @@ export interface OpenAICompatibilityModel {
 }
 
 export interface ClaudeApiKeyEntry {
+  name?: string;
   "api-key": string;
   "base-url"?: string;
   "proxy-url"?: string;
   "system-access-token"?: string;
+  "new-api-user"?: string;
   prefix?: string;
   models?: OpenAICompatibilityModel[];
 }
 
 export interface GeminiApiKeyEntry {
+  name?: string;
   "api-key": string;
   "base-url"?: string;
   "proxy-url"?: string;
   "system-access-token"?: string;
+  "new-api-user"?: string;
   prefix?: string;
   headers?: Record<string, string>;
   models?: OpenAICompatibilityModel[];
 }
 
 export interface CodexApiKeyEntry {
+  name?: string;
   "api-key": string;
   "base-url"?: string;
   "proxy-url"?: string;
   "system-access-token"?: string;
+  "new-api-user"?: string;
   prefix?: string;
   models?: OpenAICompatibilityModel[];
 }

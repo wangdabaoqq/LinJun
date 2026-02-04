@@ -104,8 +104,7 @@ export const en = {
     customProvider: "Custom Provider",
     customProviderDesc:
       "Configure OpenAI / Claude / Gemini / Codex compatible endpoints",
-    customNewApiOnly:
-      "Currently only supports New API / One API proxy services. Official APIs are not supported.",
+    customNewApiOnly: "Supports New API / One API / OpenRouter proxy services",
     customProviderName: "Provider Name",
     customProviderNamePlaceholder: "e.g. OpenRouter",
     customBaseUrl: "Base URL",

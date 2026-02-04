@@ -654,10 +654,13 @@ export function setupIpcHandlers(): void {
     (
       _event,
       entries: {
+        name?: string;
         "api-key": string;
         "base-url"?: string;
         "proxy-url"?: string;
         "system-access-token"?: string;
+        "new-api-user"?: string;
+        prefix?: string;
         models?: { name: string; alias?: string }[];
       }[],
     ) => {
@@ -693,11 +696,15 @@ export function setupIpcHandlers(): void {
     (
       _event,
       entries: {
+        name?: string;
         "api-key": string;
         "base-url"?: string;
         "proxy-url"?: string;
         "system-access-token"?: string;
+        "new-api-user"?: string;
+        prefix?: string;
         headers?: Record<string, string>;
+        models?: { name: string; alias?: string }[];
       }[],
     ) => {
       try {
@@ -728,10 +735,14 @@ export function setupIpcHandlers(): void {
     (
       _event,
       entries: {
+        name?: string;
         "api-key": string;
         "base-url"?: string;
         "proxy-url"?: string;
         "system-access-token"?: string;
+        "new-api-user"?: string;
+        prefix?: string;
+        models?: { name: string; alias?: string }[];
       }[],
     ) => {
       try {
@@ -1185,7 +1196,6 @@ export function setupIpcHandlers(): void {
       };
 
       try {
-        // Try New API endpoint first: /api/pricing
         const newApiHeaders: Record<string, string> = {
           Authorization: `Bearer ${apiKey}`,
         };
@@ -1206,7 +1216,6 @@ export function setupIpcHandlers(): void {
           };
         }
 
-        // If 404, try OpenRouter endpoint: /api/v1/key
         if (newApiResult.statusCode === 404) {
           const openRouterResult = await tryEndpoint(
             `${normalizedUrl}/api/v1/key`,
@@ -1221,7 +1230,6 @@ export function setupIpcHandlers(): void {
             };
           }
 
-          // Both failed with 404
           if (openRouterResult.statusCode === 404) {
             return {
               success: false,
@@ -1230,7 +1238,6 @@ export function setupIpcHandlers(): void {
             };
           }
 
-          // OpenRouter returned other error
           if (
             openRouterResult.statusCode === 401 ||
             openRouterResult.statusCode === 403
@@ -1249,7 +1256,6 @@ export function setupIpcHandlers(): void {
           };
         }
 
-        // New API returned auth error
         if (
           newApiResult.statusCode === 401 ||
           newApiResult.statusCode === 403
@@ -1261,7 +1267,6 @@ export function setupIpcHandlers(): void {
           };
         }
 
-        // Other error from New API
         return {
           success: false,
           error: `Connection failed (HTTP ${newApiResult.statusCode})`,

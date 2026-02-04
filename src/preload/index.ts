@@ -229,7 +229,13 @@ const electronAPI = {
       baseUrl: string;
       apiKey: string;
       newApiUser?: string;
-    }) => ipcRenderer.invoke("customProvider:testConnection", params),
+    }) =>
+      ipcRenderer.invoke("customProvider:testConnection", params) as Promise<{
+        success: boolean;
+        error?: string;
+        latency?: number;
+        serviceType?: "new-api" | "openrouter";
+      }>,
   },
   tray: {
     openDashboard: () => ipcRenderer.send("tray:open-dashboard"),
