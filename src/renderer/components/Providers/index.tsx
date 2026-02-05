@@ -26,6 +26,7 @@ import {
   Provider,
   OpenAICompatProvider,
   Account,
+  CustomProviderType,
   CustomProviderDisplay,
   ClaudeCompatProvider,
   GeminiCompatProvider,
@@ -70,8 +71,13 @@ export function Providers() {
   const [editingCustomProvider, setEditingCustomProvider] =
     useState<CustomProviderDisplay | null>(null);
   const [deleteConfirmProvider, setDeleteConfirmProvider] = useState<{
-    type: string;
+    type: CustomProviderType;
     name: string;
+    rawData:
+      | OpenAICompatProvider
+      | ClaudeCompatProvider
+      | GeminiCompatProvider
+      | CodexCompatProvider;
   } | null>(null);
   const [removeConfirmAccount, setRemoveConfirmAccount] = useState<{
     providerId: string;
@@ -188,7 +194,11 @@ export function Providers() {
     return { totalProviders, totalAccounts, activeAccounts, customCount };
   }, [providerAccounts, customProviders]);
 
-  const handleDeleteCustomProvider = async (type: string, name: string) => {
+  const handleDeleteCustomProvider = async (
+    type: CustomProviderType,
+    name: string,
+    rawData: CustomProviderDisplay["rawData"],
+  ) => {
     try {
       let success = false;
       if (type === "openai") {
@@ -197,27 +207,75 @@ export function Providers() {
       } else if (type === "claude") {
         const current = await window.electronAPI?.claudeCompat?.getAll();
         if (current?.success && current.entries) {
-          const filtered = current.entries.filter(
-            (e: ClaudeCompatProvider) => e.name !== name,
-          );
+          const target = rawData as ClaudeCompatProvider;
+          const targetName = target.name || "";
+          const targetKey = target["api-key"] || "";
+          const targetBaseUrl = target["base-url"] || "";
+          const filtered = current.entries.filter((e: ClaudeCompatProvider) => {
+            if (targetName && e.name) {
+              return e.name !== targetName;
+            }
+            if (targetKey) {
+              const entryBaseUrl = e["base-url"] || "";
+              if (targetBaseUrl) {
+                return !(
+                  e["api-key"] === targetKey && entryBaseUrl === targetBaseUrl
+                );
+              }
+              return e["api-key"] !== targetKey;
+            }
+            return e.name !== name;
+          });
           const result = await window.electronAPI?.claudeCompat?.save(filtered);
           success = result?.success || false;
         }
       } else if (type === "gemini") {
         const current = await window.electronAPI?.geminiCompat?.getAll();
         if (current?.success && current.entries) {
-          const filtered = current.entries.filter(
-            (e: GeminiCompatProvider) => e.name !== name,
-          );
+          const target = rawData as GeminiCompatProvider;
+          const targetName = target.name || "";
+          const targetKey = target["api-key"] || "";
+          const targetBaseUrl = target["base-url"] || "";
+          const filtered = current.entries.filter((e: GeminiCompatProvider) => {
+            if (targetName && e.name) {
+              return e.name !== targetName;
+            }
+            if (targetKey) {
+              const entryBaseUrl = e["base-url"] || "";
+              if (targetBaseUrl) {
+                return !(
+                  e["api-key"] === targetKey && entryBaseUrl === targetBaseUrl
+                );
+              }
+              return e["api-key"] !== targetKey;
+            }
+            return e.name !== name;
+          });
           const result = await window.electronAPI?.geminiCompat?.save(filtered);
           success = result?.success || false;
         }
       } else if (type === "codex") {
         const current = await window.electronAPI?.codexCompat?.getAll();
         if (current?.success && current.entries) {
-          const filtered = current.entries.filter(
-            (e: CodexCompatProvider) => e.name !== name,
-          );
+          const target = rawData as CodexCompatProvider;
+          const targetName = target.name || "";
+          const targetKey = target["api-key"] || "";
+          const targetBaseUrl = target["base-url"] || "";
+          const filtered = current.entries.filter((e: CodexCompatProvider) => {
+            if (targetName && e.name) {
+              return e.name !== targetName;
+            }
+            if (targetKey) {
+              const entryBaseUrl = e["base-url"] || "";
+              if (targetBaseUrl) {
+                return !(
+                  e["api-key"] === targetKey && entryBaseUrl === targetBaseUrl
+                );
+              }
+              return e["api-key"] !== targetKey;
+            }
+            return e.name !== name;
+          });
           const result = await window.electronAPI?.codexCompat?.save(filtered);
           success = result?.success || false;
         }
@@ -758,6 +816,7 @@ export function Providers() {
                             setDeleteConfirmProvider({
                               type: cp.type,
                               name: cp.name,
+                              rawData: cp.rawData,
                             })
                           }
                           className="p-1.5 text-[var(--text-dim)] hover:text-neon-red hover:bg-neon-red/5 rounded-lg transition-all"
@@ -891,6 +950,7 @@ export function Providers() {
             handleDeleteCustomProvider(
               deleteConfirmProvider.type,
               deleteConfirmProvider.name,
+              deleteConfirmProvider.rawData,
             );
         }}
         title={

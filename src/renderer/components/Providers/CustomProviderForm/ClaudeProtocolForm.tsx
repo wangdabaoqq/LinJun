@@ -167,7 +167,7 @@ export const ClaudeProtocolForm = memo(function ClaudeProtocolForm({
         <div className="space-y-2">
           <label className="flex items-center gap-2 text-xs font-bold text-[var(--text-primary)] uppercase tracking-widest px-1">
             <Globe className="w-3.5 h-3.5" />
-            {t.providers.customBaseUrl} ({t.providers.optional})
+            {t.providers.customBaseUrl} *
           </label>
           <input
             type="text"
@@ -176,6 +176,9 @@ export const ClaudeProtocolForm = memo(function ClaudeProtocolForm({
             placeholder="https://api.anthropic.com"
             className="glass-input w-full font-mono text-xs bg-[var(--text-primary)]/[0.03] border border-[var(--glass-border)] text-[var(--text-primary)] placeholder:text-[var(--text-dim)]"
           />
+          <p className="text-[10px] text-[var(--text-muted)] mt-1 px-1">
+            填写兼容 Claude API 的服务端点地址，不要以斜杠结尾
+          </p>
         </div>
         <div className="space-y-2">
           <label className="text-xs font-bold text-[var(--text-primary)] uppercase tracking-widest px-1">

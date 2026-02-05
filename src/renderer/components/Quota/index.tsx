@@ -45,7 +45,7 @@ export function Quota({ onNavigate }: QuotaProps) {
   return (
     <div className="flex flex-col h-full bg-transparent overflow-hidden p-6">
       <div className="shrink-0 pb-6 z-20">
-        <div className="flex flex-col gap-6 max-w-7xl mx-auto">
+        <div className="flex flex-col gap-6 ">
           <div className="flex items-center gap-4">
             <div className="p-3.5 bg-[var(--accent-primary)]/5 rounded-2xl border border-[var(--glass-border)] shadow-lg shadow-[var(--accent-primary)]/5">
               <Activity className="w-7 h-7 text-[var(--accent-primary)]" />
@@ -85,7 +85,7 @@ export function Quota({ onNavigate }: QuotaProps) {
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto pb-6 custom-scrollbar">
-        <div className="max-w-7xl mx-auto h-full">
+        <div className=" h-full">
           {isLoading && accounts.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center animate-pulse">
               <div className="w-16 h-16 rounded-full bg-[var(--surface-hover)] mb-4"></div>

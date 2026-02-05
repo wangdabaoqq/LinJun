@@ -117,6 +117,18 @@ export function CustomProviderForm({
   const isEditingCodex = !!editCodexProvider;
   const isEditing =
     isEditingOpenai || isEditingClaude || isEditingGemini || isEditingCodex;
+  const originalName =
+    editProvider?.name ||
+    editClaudeProvider?.name ||
+    editGeminiProvider?.name ||
+    editCodexProvider?.name ||
+    "";
+  const originalClaudeKey = editClaudeProvider?.["api-key"] || "";
+  const originalGeminiKey = editGeminiProvider?.["api-key"] || "";
+  const originalCodexKey = editCodexProvider?.["api-key"] || "";
+  const originalClaudeBaseUrl = editClaudeProvider?.["base-url"] || "";
+  const originalGeminiBaseUrl = editGeminiProvider?.["base-url"] || "";
+  const originalCodexBaseUrl = editCodexProvider?.["base-url"] || "";
 
   const updateClaudeField = (
     field: keyof ClaudeApiKeyEntry,
@@ -317,6 +329,10 @@ export function CustomProviderForm({
         setError(t.providers.customApiKeyRequired);
         return;
       }
+      if (!claudeEntry["base-url"]?.trim()) {
+        setError(t.providers.customUrlRequired);
+        return;
+      }
 
       if (claudeEntry["enable-usage-query"]) {
         if (!claudeEntry["system-access-token"]?.trim()) {
@@ -363,7 +379,61 @@ export function CustomProviderForm({
       };
 
       try {
-        const result = await window.electronAPI?.claudeCompat?.save([cleaned]);
+        const existingResult = await window.electronAPI?.claudeCompat?.getAll();
+        const existingEntries: ClaudeApiKeyEntry[] =
+          existingResult?.entries || [];
+        const matchEntry = (entry: ClaudeApiKeyEntry) => {
+          if (originalName) {
+            return entry.name === originalName;
+          }
+          if (originalClaudeKey) {
+            const entryBaseUrl = entry["base-url"] || "";
+            if (originalClaudeBaseUrl) {
+              return (
+                entry["api-key"] === originalClaudeKey &&
+                entryBaseUrl === originalClaudeBaseUrl
+              );
+            }
+            return entry["api-key"] === originalClaudeKey;
+          }
+          return false;
+        };
+        const hasConflict = existingEntries.some((entry: ClaudeApiKeyEntry) => {
+          if (cleaned.name?.trim() && entry.name) {
+            return entry.name === cleaned.name?.trim();
+          }
+          const entryBaseUrl = entry["base-url"] || "";
+          const cleanedBaseUrl = cleaned["base-url"] || "";
+          return (
+            entry["api-key"] === cleaned["api-key"] &&
+            entryBaseUrl === cleanedBaseUrl
+          );
+        });
+
+        let updatedEntries: ClaudeApiKeyEntry[] = [];
+        if (isEditingClaude && protocol === initialProtocolValue) {
+          let replaced = false;
+          updatedEntries = existingEntries.map((entry: ClaudeApiKeyEntry) => {
+            if (!replaced && matchEntry(entry)) {
+              replaced = true;
+              return cleaned;
+            }
+            return entry;
+          });
+          if (!replaced) {
+            updatedEntries = [...existingEntries, cleaned];
+          }
+        } else {
+          if (hasConflict) {
+            setError(t.providers.customProviderExists);
+            setIsLoading(false);
+            return;
+          }
+          updatedEntries = [...existingEntries, cleaned];
+        }
+
+        const result =
+          await window.electronAPI?.claudeCompat?.save(updatedEntries);
         if (result?.success) {
           onSaved();
         } else {
@@ -377,6 +447,10 @@ export function CustomProviderForm({
     } else if (protocol === "gemini") {
       if (!geminiEntry["api-key"].trim()) {
         setError(t.providers.customApiKeyRequired);
+        return;
+      }
+      if (!geminiEntry["base-url"]?.trim()) {
+        setError(t.providers.customUrlRequired);
         return;
       }
 
@@ -434,7 +508,61 @@ export function CustomProviderForm({
       };
 
       try {
-        const result = await window.electronAPI?.geminiCompat?.save([cleaned]);
+        const existingResult = await window.electronAPI?.geminiCompat?.getAll();
+        const existingEntries: GeminiApiKeyEntry[] =
+          existingResult?.entries || [];
+        const matchEntry = (entry: GeminiApiKeyEntry) => {
+          if (originalName) {
+            return entry.name === originalName;
+          }
+          if (originalGeminiKey) {
+            const entryBaseUrl = entry["base-url"] || "";
+            if (originalGeminiBaseUrl) {
+              return (
+                entry["api-key"] === originalGeminiKey &&
+                entryBaseUrl === originalGeminiBaseUrl
+              );
+            }
+            return entry["api-key"] === originalGeminiKey;
+          }
+          return false;
+        };
+        const hasConflict = existingEntries.some((entry: GeminiApiKeyEntry) => {
+          if (cleaned.name?.trim() && entry.name) {
+            return entry.name === cleaned.name?.trim();
+          }
+          const entryBaseUrl = entry["base-url"] || "";
+          const cleanedBaseUrl = cleaned["base-url"] || "";
+          return (
+            entry["api-key"] === cleaned["api-key"] &&
+            entryBaseUrl === cleanedBaseUrl
+          );
+        });
+
+        let updatedEntries: GeminiApiKeyEntry[] = [];
+        if (isEditingGemini && protocol === initialProtocolValue) {
+          let replaced = false;
+          updatedEntries = existingEntries.map((entry: GeminiApiKeyEntry) => {
+            if (!replaced && matchEntry(entry)) {
+              replaced = true;
+              return cleaned;
+            }
+            return entry;
+          });
+          if (!replaced) {
+            updatedEntries = [...existingEntries, cleaned];
+          }
+        } else {
+          if (hasConflict) {
+            setError(t.providers.customProviderExists);
+            setIsLoading(false);
+            return;
+          }
+          updatedEntries = [...existingEntries, cleaned];
+        }
+
+        const result =
+          await window.electronAPI?.geminiCompat?.save(updatedEntries);
         if (result?.success) {
           onSaved();
         } else {
@@ -448,6 +576,10 @@ export function CustomProviderForm({
     } else if (protocol === "codex") {
       if (!codexEntry["api-key"].trim()) {
         setError(t.providers.customApiKeyRequired);
+        return;
+      }
+      if (!codexEntry["base-url"]?.trim()) {
+        setError(t.providers.customUrlRequired);
         return;
       }
 
@@ -497,7 +629,61 @@ export function CustomProviderForm({
       };
 
       try {
-        const result = await window.electronAPI?.codexCompat?.save([cleaned]);
+        const existingResult = await window.electronAPI?.codexCompat?.getAll();
+        const existingEntries: CodexApiKeyEntry[] =
+          existingResult?.entries || [];
+        const matchEntry = (entry: CodexApiKeyEntry) => {
+          if (originalName) {
+            return entry.name === originalName;
+          }
+          if (originalCodexKey) {
+            const entryBaseUrl = entry["base-url"] || "";
+            if (originalCodexBaseUrl) {
+              return (
+                entry["api-key"] === originalCodexKey &&
+                entryBaseUrl === originalCodexBaseUrl
+              );
+            }
+            return entry["api-key"] === originalCodexKey;
+          }
+          return false;
+        };
+        const hasConflict = existingEntries.some((entry: CodexApiKeyEntry) => {
+          if (cleaned.name?.trim() && entry.name) {
+            return entry.name === cleaned.name?.trim();
+          }
+          const entryBaseUrl = entry["base-url"] || "";
+          const cleanedBaseUrl = cleaned["base-url"] || "";
+          return (
+            entry["api-key"] === cleaned["api-key"] &&
+            entryBaseUrl === cleanedBaseUrl
+          );
+        });
+
+        let updatedEntries: CodexApiKeyEntry[] = [];
+        if (isEditingCodex && protocol === initialProtocolValue) {
+          let replaced = false;
+          updatedEntries = existingEntries.map((entry: CodexApiKeyEntry) => {
+            if (!replaced && matchEntry(entry)) {
+              replaced = true;
+              return cleaned;
+            }
+            return entry;
+          });
+          if (!replaced) {
+            updatedEntries = [...existingEntries, cleaned];
+          }
+        } else {
+          if (hasConflict) {
+            setError(t.providers.customProviderExists);
+            setIsLoading(false);
+            return;
+          }
+          updatedEntries = [...existingEntries, cleaned];
+        }
+
+        const result =
+          await window.electronAPI?.codexCompat?.save(updatedEntries);
         if (result?.success) {
           onSaved();
         } else {

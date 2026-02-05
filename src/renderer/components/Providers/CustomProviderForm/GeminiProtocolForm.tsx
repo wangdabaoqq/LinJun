@@ -200,7 +200,7 @@ export const GeminiProtocolForm = memo(function GeminiProtocolForm({
         <div className="space-y-2">
           <label className="flex items-center gap-2 text-xs font-bold text-[var(--text-primary)] uppercase tracking-widest px-1">
             <Globe className="w-3.5 h-3.5" />
-            {t.providers.customBaseUrl} ({t.providers.optional})
+            {t.providers.customBaseUrl} *
           </label>
           <input
             type="text"

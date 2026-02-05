@@ -167,7 +167,7 @@ export const CodexProtocolForm = memo(function CodexProtocolForm({
         <div className="space-y-2">
           <label className="flex items-center gap-2 text-xs font-bold text-[var(--text-primary)] uppercase tracking-widest px-1">
             <Globe className="w-3.5 h-3.5" />
-            {t.providers.customBaseUrl} ({t.providers.optional})
+            {t.providers.customBaseUrl} *
           </label>
           <input
             type="text"
@@ -176,6 +176,9 @@ export const CodexProtocolForm = memo(function CodexProtocolForm({
             placeholder="https://api.example.com"
             className="glass-input w-full font-mono text-xs bg-[var(--text-primary)]/[0.03] border border-[var(--glass-border)] text-[var(--text-primary)] placeholder:text-[var(--text-dim)]"
           />
+          <p className="text-[10px] text-[var(--text-muted)] mt-1 px-1">
+            填写兼容 OpenAI Response 格式的服务端点地址
+          </p>
         </div>
         <div className="space-y-2">
           <label className="text-xs font-bold text-[var(--text-primary)] uppercase tracking-widest px-1">

@@ -113,6 +113,7 @@ export const zh: Translations = {
     customPresetTip: "选择预设自动填充默认值，你仍可编辑任何字段",
     customProviderName: "提供商名称",
     customProviderNamePlaceholder: "例如：OpenRouter",
+    customProviderExists: "提供商已存在",
     customBaseUrl: "接口地址",
     customBaseUrlPlaceholder: "https://openrouter.ai/api/v1",
     customApiKeys: "API 密钥",

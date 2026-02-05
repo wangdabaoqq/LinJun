@@ -117,6 +117,7 @@ export const en = {
       "Select a preset to auto-fill defaults, you can still edit any field",
     customProviderName: "Provider Name",
     customProviderNamePlaceholder: "e.g. OpenRouter",
+    customProviderExists: "Provider already exists",
     customBaseUrl: "Base URL",
     customBaseUrlPlaceholder: "https://openrouter.ai/api/v1",
     customApiKeys: "API Keys",
