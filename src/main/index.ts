@@ -102,7 +102,11 @@ function createWindow(): void {
   proxyManager.on("statusChange", statusChangeHandler);
 
   mainWindow.on("close", (event) => {
-    if (process.platform === "darwin" && !isQuitting) {
+    if (isQuitting) {
+      return;
+    }
+
+    if (process.platform === "darwin" || process.platform === "win32") {
       event.preventDefault();
       mainWindow?.hide();
     }
