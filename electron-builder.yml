@@ -32,7 +32,7 @@ extraResources:
 mac:
   extraResources:
     - from: "resources/binaries/darwin-${arch}/"
-      to: "binaries/"
+      to: "binaries/darwin-${arch}/"
       filter:
         - "**/*"
         - "!LICENSE"
@@ -52,7 +52,7 @@ mac:
 win:
   extraResources:
     - from: "resources/binaries/win32-x64/"
-      to: "binaries/"
+      to: "binaries/win32-x64/"
       filter:
         - "**/*"
         - "!LICENSE"
@@ -71,7 +71,7 @@ win:
 linux:
   extraResources:
     - from: "resources/binaries/linux-x64/"
-      to: "binaries/"
+      to: "binaries/linux-x64/"
       filter:
         - "**/*"
         - "!LICENSE"
