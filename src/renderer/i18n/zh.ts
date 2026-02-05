@@ -13,7 +13,9 @@ export const zh: Translations = {
     copied: "已复制",
   },
   app: {
-    name: "霖君",
+    introName: "霖君",
+    topbarName: "CLI-to-API Bridge",
+    name: "CLI-to-API 桥接器",
     systemActive: "系统运行中",
   },
   topbar: {

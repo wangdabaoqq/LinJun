@@ -82,7 +82,7 @@ export function About() {
 
           <div className="space-y-2 z-10">
             <h1 className="text-4xl font-bold tracking-tight text-[var(--text-primary)]">
-              霖君
+              霖君111
             </h1>
             <p className="text-[var(--text-muted)] font-medium max-w-sm mx-auto">
               {t.about.tagline}

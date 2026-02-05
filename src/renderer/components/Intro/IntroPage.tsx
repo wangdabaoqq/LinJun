@@ -20,14 +20,14 @@ function AnimatedBackground() {
   return (
     <div className="absolute inset-0 overflow-hidden">
       {/* Base gradient */}
-      <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-blue-900/50 to-slate-900" />
+      <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-slate-900/70 to-slate-950" />
 
       {/* Animated gradient blobs */}
       <motion.div
         className="absolute w-[800px] h-[800px] rounded-full opacity-30"
         style={{
           background:
-            "radial-gradient(circle, rgba(59,130,246,0.4) 0%, transparent 70%)",
+            "radial-gradient(circle, rgba(180,180,190,0.35) 0%, transparent 70%)",
           filter: "blur(60px)",
         }}
         animate={{
@@ -45,7 +45,7 @@ function AnimatedBackground() {
         className="absolute right-0 w-[600px] h-[600px] rounded-full opacity-20"
         style={{
           background:
-            "radial-gradient(circle, rgba(147,197,253,0.5) 0%, transparent 70%)",
+            "radial-gradient(circle, rgba(200,200,210,0.35) 0%, transparent 70%)",
           filter: "blur(80px)",
         }}
         animate={{
@@ -63,7 +63,7 @@ function AnimatedBackground() {
         className="absolute bottom-0 left-1/3 w-[700px] h-[700px] rounded-full opacity-25"
         style={{
           background:
-            "radial-gradient(circle, rgba(99,102,241,0.4) 0%, transparent 70%)",
+            "radial-gradient(circle, rgba(160,160,175,0.35) 0%, transparent 70%)",
           filter: "blur(70px)",
         }}
         animate={{
@@ -85,9 +85,9 @@ function AnimatedBackground() {
       >
         <defs>
           <linearGradient id="waveGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="rgba(147,197,253,0)" />
-            <stop offset="50%" stopColor="rgba(147,197,253,0.3)" />
-            <stop offset="100%" stopColor="rgba(147,197,253,0)" />
+            <stop offset="0%" stopColor="rgba(200,200,210,0)" />
+            <stop offset="50%" stopColor="rgba(200,200,210,0.25)" />
+            <stop offset="100%" stopColor="rgba(200,200,210,0)" />
           </linearGradient>
         </defs>
         {[...Array(5)].map((_, i) => (
@@ -223,7 +223,7 @@ export function IntroPage({ onComplete }: IntroPageProps) {
           className="mb-8"
         >
           <h1 className="text-5xl md:text-6xl font-bold tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-blue-100 via-white to-blue-100 drop-shadow-[0_0_30px_rgba(59,130,246,0.3)]">
-            {t.app.name}
+            {t.app.introName}
           </h1>
         </motion.div>
 

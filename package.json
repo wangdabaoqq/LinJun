@@ -1,6 +1,5 @@
 {
   "name": "linjun",
-  "productName": "霖君",
   "version": "1.0.5",
   "description": "霖君 - Cross-platform CLIProxyAPIPlus management tool",
   "main": "./out/main/index.js",

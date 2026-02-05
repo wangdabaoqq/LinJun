@@ -12,7 +12,9 @@ export const en = {
     copied: "Copied",
   },
   app: {
-    name: "霖君",
+    introName: "LinJun",
+    topbarName: "CLI-to-API Bridge",
+    name: "CLI-to-API",
     systemActive: "SYSTEM ACTIVE",
   },
   topbar: {

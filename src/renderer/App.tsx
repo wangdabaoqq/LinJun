@@ -128,7 +128,7 @@ function TopBar() {
       <div className={`flex items-center gap-4 ${isMac ? "pl-20" : ""}`}>
         <div className="flex items-center gap-3 ml-2">
           <span className="text-lg font-semibold text-[var(--text-primary)]">
-            {t.app.name}
+            {t.app.topbarName}
           </span>
           <span className="text-xs text-[var(--text-dim)] bg-soft px-2 py-0.5 rounded">
             {version}
@@ -161,7 +161,9 @@ export default function App() {
   const [isTrayMode, setIsTrayMode] = useState(
     window.location.hash === "#tray",
   );
-  const [showIntro, setShowIntro] = useState(true);
+  const [showIntro, setShowIntro] = useState(() => {
+    return localStorage.getItem("hasSeenIntro") !== "true";
+  });
   const [currentPage, setCurrentPage] = useState<Page>("dashboard");
   const refreshAll = useDashboardStore((s) => s.refreshAll);
 
