@@ -49,6 +49,13 @@ export function AccountQuotaCard({
     return badge;
   }, [badge, providerId, t.quota.balanceLabel]);
 
+  const localizedError = React.useMemo(() => {
+    if (providerId === "custom" && error && /\b401\b/.test(error)) {
+      return t.quota.customUsageAuthError;
+    }
+    return error;
+  }, [error, providerId, t.quota.customUsageAuthError]);
+
   React.useEffect(() => {
     console.log("[Quota] Status changed to:", status);
   }, [status]);
@@ -144,9 +151,9 @@ export function AccountQuotaCard({
         </div>
 
         <div className="space-y-4">
-          {status === "error" && error && (
+          {status === "error" && localizedError && (
             <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-[10px] font-semibold text-red-500">
-              {t.quota.errorLabel}: {error}
+              {t.quota.errorLabel}: {localizedError}
             </div>
           )}
           {providerId === "custom" ? (

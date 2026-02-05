@@ -185,7 +185,7 @@ export const zh: Translations = {
     customImportJsonTip: "提示：JSON 的键名与字符串值必须使用双引号。",
     customImportExampleTitle: "YAML 示例（含注释）",
     customImportExampleJson:
-      '# OpenAI 兼容\nopenai-compatibility:\n  - name: OpenRouter\n    base-url: https://openrouter.ai/api/v1\n    api-key-entries:\n      - api-key: "sk-..."\n    models:\n      - name: gpt-4o\n        alias: gpt4\n    prefix: or\n\n# Claude 兼容\nclaude-api-key:\n  - name: Anthropic\n    api-key: "sk-ant-..."\n    base-url: https://api.anthropic.com\n\n# Gemini 兼容\ngemini-api-key:\n  - name: Google\n    api-key: "AIza..."\n\n# Codex 兼容\ncodex-api-key:\n  - name: OpenAI\n    api-key: "sk-..."',
+      '# OpenAI 兼容\nopenai-compatibility:\n  - name: OpenRouter\n    base-url: https://openrouter.ai/api/v1\n    api-key-entries:\n      - api-key: "sk-..."\n    # 开启用量查询并提供凭据(目前仅支持NewApi)\n    enable-usage-query: true\n    system-access-token: "token-..."\n    new-api-user: "username"\n    models:\n      - name: gpt-4o\n        alias: gpt4\n    prefix: or\n\n# Claude 兼容\nclaude-api-key:\n  - name: Anthropic\n    api-key: "sk-ant-..."\n    base-url: https://api.anthropic.com\n    # 用量查询（可选）\n    enable-usage-query: true\n    system-access-token: "token-..."\n    new-api-user: "username"\n\n# Gemini 兼容\ngemini-api-key:\n  - name: Google\n    api-key: "AIza..."\n    # 用量查询（可选）\n    enable-usage-query: true\n    system-access-token: "token-..."\n    new-api-user: "username"\n\n# Codex 兼容\ncodex-api-key:\n  - name: OpenAI\n    api-key: "sk-..."\n    # 用量查询（可选）\n    enable-usage-query: true\n    system-access-token: "token-..."\n    new-api-user: "username"',
     customImportCancel: "取消",
     customImportConfirm: "导入",
     customTestConnection: "测试连接",
@@ -251,6 +251,8 @@ export const zh: Translations = {
     gridView: "网格视图",
     listView: "列表视图",
     usageQueryDisabled: "在提供商设置中启用用量查询以查看配额和模型",
+    customUsageAuthError:
+      "认证失败（401），请检查 system-access-token 与 new-api-user 是否正确。",
     customProviderTip:
       "New API / One API 服务可在提供商设置中启用用量查询，以查看余额和模型列表",
   },

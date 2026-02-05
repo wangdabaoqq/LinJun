@@ -1,5 +1,7 @@
 import path from "path";
 
+import axios from "axios";
+
 import log from "../utils/logger";
 import {
   scanTokenFiles,
@@ -157,6 +159,19 @@ function createCustomAccountError(name: string, error: string): QuotaAccount {
     lastUpdated: new Date(),
     error,
   };
+}
+
+function getCustomUsageErrorMessage(error: unknown): string {
+  if (axios.isAxiosError(error)) {
+    const status = error.response?.status;
+    if (status === 401) {
+      return "Authentication failed (401). Check system-access-token and new-api-user.";
+    }
+  }
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return "Unknown error";
 }
 
 function createCustomAccountSimple(name: string): QuotaAccount {
@@ -533,9 +548,9 @@ export async function getQuotaByProvider(
           createCustomQuotaAccount(name, quota, usedQuota, modelWindows),
         );
       } catch (error) {
-        const err = error as unknown;
-        const message = err instanceof Error ? err.message : "Unknown error";
-        results.push(createCustomAccountError(name, message));
+        results.push(
+          createCustomAccountError(name, getCustomUsageErrorMessage(error)),
+        );
       }
     }
 
@@ -670,9 +685,7 @@ export async function refreshQuota(
       }
       return createCustomQuotaAccount(email, quota, usedQuota, modelWindows);
     } catch (error) {
-      const err = error as unknown;
-      const message = err instanceof Error ? err.message : "Unknown error";
-      return createCustomAccountError(email, message);
+      return createCustomAccountError(email, getCustomUsageErrorMessage(error));
     }
   }
   const tokens = scanTokenFiles();

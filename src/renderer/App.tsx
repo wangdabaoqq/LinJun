@@ -181,7 +181,7 @@ export default function App() {
       case "dashboard":
         return <Dashboard onNavigate={setCurrentPage} />;
       case "quota":
-        return <Quota />;
+        return <Quota onNavigate={setCurrentPage} />;
       case "providers":
         return <Providers />;
       case "agents":

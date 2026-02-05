@@ -3,10 +3,16 @@ import { useTranslations } from "../../stores/settings";
 import { useQuotaStore, ProviderType } from "../../stores/quota";
 import { ProviderTabs } from "./ProviderTabs";
 import { AccountQuotaCard } from "./AccountQuotaCard";
-import { Activity, RotateCw, Info } from "lucide-react";
+import { QuotaTip } from "./QuotaTip";
+import { Activity, RotateCw } from "lucide-react";
 import { getProviderIcon } from "../icons/ProviderIcons";
+import { Page } from "../Sidebar";
 
-export function Quota() {
+interface QuotaProps {
+  onNavigate?: (page: Page) => void;
+}
+
+export function Quota({ onNavigate }: QuotaProps) {
   const t = useTranslations();
   const providers = useQuotaStore((state) => state.providers);
   const selectedProvider = useQuotaStore((state) => state.selectedProvider);
@@ -29,6 +35,12 @@ export function Quota() {
     accountCount: p.accountCount,
     color: p.color,
   }));
+
+  const handleGoToSettings = () => {
+    if (onNavigate) {
+      onNavigate("providers");
+    }
+  };
 
   return (
     <div className="flex flex-col h-full bg-transparent overflow-hidden p-6">
@@ -82,15 +94,9 @@ export function Quota() {
           ) : accounts.length > 0 ? (
             <div className="space-y-4">
               {selectedProvider === "custom" && (
-                <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl bg-[var(--accent-primary)]/5 border border-[var(--accent-primary)]/10">
-                  <Info
-                    size={16}
-                    className="text-[var(--accent-primary)] flex-shrink-0"
-                  />
-                  <p className="text-xs text-[var(--text-muted)]">
-                    {t.quota.customProviderTip}
-                  </p>
-                </div>
+                <QuotaTip onAction={handleGoToSettings} actionLabel="前往设置">
+                  {t.quota.customProviderTip}
+                </QuotaTip>
               )}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                 {accounts.map((account, index) => (

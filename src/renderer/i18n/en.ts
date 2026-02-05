@@ -193,7 +193,7 @@ export const en = {
       "Tip: JSON keys and string values must use double quotes.",
     customImportExampleTitle: "YAML Example (with comments)",
     customImportExampleJson:
-      '# OpenAI-compatible providers\nopenai-compatibility:\n  - name: OpenRouter\n    base-url: https://openrouter.ai/api/v1\n    api-key-entries:\n      - api-key: "sk-..."\n    models:\n      - name: gpt-4o\n        alias: gpt4\n    prefix: or\n\n# Claude-compatible entries\nclaude-api-key:\n  - name: Anthropic\n    api-key: "sk-ant-..."\n    base-url: https://api.anthropic.com\n\n# Gemini-compatible entries\ngemini-api-key:\n  - name: Google\n    api-key: "AIza..."\n\n# Codex-compatible entries\ncodex-api-key:\n  - name: OpenAI\n    api-key: "sk-..."',
+      '# OpenAI-compatible providers\nopenai-compatibility:\n  - name: OpenRouter\n    base-url: https://openrouter.ai/api/v1\n    api-key-entries:\n      - api-key: "sk-..."\n    # Enable usage query and provide credentials\n    enable-usage-query: true\n    system-access-token: "token-..."\n    new-api-user: "username"\n    models:\n      - name: gpt-4o\n        alias: gpt4\n    prefix: or\n\n# Claude-compatible entries\nclaude-api-key:\n  - name: Anthropic\n    api-key: "sk-ant-..."\n    base-url: https://api.anthropic.com\n    # Usage query (optional)\n    enable-usage-query: true\n    system-access-token: "token-..."\n    new-api-user: "username"\n\n# Gemini-compatible entries\ngemini-api-key:\n  - name: Google\n    api-key: "AIza..."\n    # Usage query (optional)\n    enable-usage-query: true\n    system-access-token: "token-..."\n    new-api-user: "username"\n\n# Codex-compatible entries\ncodex-api-key:\n  - name: OpenAI\n    api-key: "sk-..."\n    # Usage query (optional)\n    enable-usage-query: true\n    system-access-token: "token-..."\n    new-api-user: "username"',
     customImportCancel: "Cancel",
     customImportConfirm: "Import",
     customTestConnection: "Test Connection",
@@ -261,6 +261,8 @@ export const en = {
     listView: "List View",
     usageQueryDisabled:
       "Enable Usage Query in provider settings to view quota and models",
+    customUsageAuthError:
+      "Authentication failed (401). Check system-access-token and new-api-user.",
     customProviderTip:
       "New API / One API services can enable Usage Query in provider settings to view balance and models",
   },
