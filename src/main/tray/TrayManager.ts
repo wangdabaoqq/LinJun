@@ -11,6 +11,8 @@ import path from "path";
 import { proxyManager } from "../proxy/manager";
 import { TrayWindow } from "./TrayWindow";
 
+const isWindows = process.platform === "win32";
+
 export class TrayManager {
   private static instance: TrayManager;
   private tray: Tray | null = null;
@@ -91,7 +93,10 @@ export class TrayManager {
   }
 
   private openDashboard(): void {
-    if (this.mainWindow) {
+    if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+      if (this.mainWindow.isMinimized()) {
+        this.mainWindow.restore();
+      }
       this.mainWindow.show();
       this.mainWindow.focus();
     }
@@ -101,11 +106,19 @@ export class TrayManager {
   private buildMenu(): Menu {
     const template: MenuItemConstructorOptions[] = [
       {
-        label: `Status: ${this.isRunning ? "Running" : "Stopped"}`,
+        label: isWindows
+          ? `状态: ${this.isRunning ? "运行中" : "已停止"}`
+          : `Status: ${this.isRunning ? "Running" : "Stopped"}`,
         enabled: false,
       },
       {
-        label: this.isRunning ? "Stop Proxy" : "Start Proxy",
+        label: isWindows
+          ? this.isRunning
+            ? "停止代理"
+            : "启动代理"
+          : this.isRunning
+            ? "Stop Proxy"
+            : "Start Proxy",
         click: async () => {
           if (this.isRunning) {
             await proxyManager.stop();
@@ -116,11 +129,11 @@ export class TrayManager {
       },
       { type: "separator" },
       {
-        label: "Open Dashboard",
+        label: isWindows ? "打开主界面" : "Open Dashboard",
         click: () => this.openDashboard(),
       },
       {
-        label: "Quit LinJun",
+        label: isWindows ? "退出霖君" : "Quit LinJun",
         click: () => {
           this.destroy();
           app.quit();
