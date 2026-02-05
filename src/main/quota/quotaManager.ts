@@ -85,6 +85,7 @@ function getCustomProviders() {
     "base-url"?: string;
     "system-access-token"?: string;
     "new-api-user"?: string;
+    "enable-usage-query"?: boolean;
     type: "openai" | "claude" | "gemini" | "codex";
   }> = [];
 
@@ -95,6 +96,7 @@ function getCustomProviders() {
       "base-url": p["base-url"],
       "system-access-token": p["system-access-token"],
       "new-api-user": p["new-api-user"],
+      "enable-usage-query": p["enable-usage-query"],
       type: "openai",
     });
   });
@@ -106,6 +108,7 @@ function getCustomProviders() {
       "base-url": p["base-url"] || "https://api.anthropic.com",
       "system-access-token": p["system-access-token"],
       "new-api-user": p["new-api-user"],
+      "enable-usage-query": p["enable-usage-query"],
       type: "claude",
     });
   });
@@ -117,6 +120,7 @@ function getCustomProviders() {
       "base-url": p["base-url"] || "https://generativelanguage.googleapis.com",
       "system-access-token": p["system-access-token"],
       "new-api-user": p["new-api-user"],
+      "enable-usage-query": p["enable-usage-query"],
       type: "gemini",
     });
   });
@@ -128,6 +132,7 @@ function getCustomProviders() {
       "base-url": p["base-url"],
       "system-access-token": p["system-access-token"],
       "new-api-user": p["new-api-user"],
+      "enable-usage-query": p["enable-usage-query"],
       type: "codex",
     });
   });
@@ -151,6 +156,24 @@ function createCustomAccountError(name: string, error: string): QuotaAccount {
     },
     lastUpdated: new Date(),
     error,
+  };
+}
+
+function createCustomAccountSimple(name: string): QuotaAccount {
+  return {
+    id: `custom-${name}`,
+    provider: "custom",
+    email: name,
+    status: "active",
+    rateLimits: {
+      primary: {
+        label: "",
+        usedPercent: 0,
+        resetIn: "",
+        limitReached: false,
+      },
+    },
+    lastUpdated: new Date(),
   };
 }
 
@@ -466,13 +489,19 @@ export async function getQuotaByProvider(
     const customProviders = getCustomProviders();
     for (const customProvider of customProviders) {
       const name = customProvider.name || "Custom";
+      const enableUsageQuery = customProvider["enable-usage-query"] || false;
+
+      if (!enableUsageQuery) {
+        results.push(createCustomAccountSimple(name));
+        continue;
+      }
+
       const accessToken = customProvider["system-access-token"] || "";
       const baseUrl = customProvider["base-url"] || "";
       const newApiUser = customProvider["new-api-user"] || "";
+
       if (!accessToken || !baseUrl) {
-        results.push(
-          createCustomAccountError(name, "Missing system access token"),
-        );
+        results.push(createCustomAccountSimple(name));
         continue;
       }
 
@@ -603,11 +632,17 @@ export async function refreshQuota(
     if (!customProvider) {
       return createCustomAccountError(email, "Custom provider not found");
     }
+
+    const enableUsageQuery = customProvider["enable-usage-query"] || false;
+    if (!enableUsageQuery) {
+      return createCustomAccountSimple(email);
+    }
+
     const accessToken = customProvider["system-access-token"] || "";
     const baseUrl = customProvider["base-url"] || "";
     const newApiUser = customProvider["new-api-user"] || "";
     if (!accessToken || !baseUrl) {
-      return createCustomAccountError(email, "Missing system access token");
+      return createCustomAccountSimple(email);
     }
     try {
       const response = await fetchCustomUserSelf(

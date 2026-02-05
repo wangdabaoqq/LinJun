@@ -105,6 +105,12 @@ export const en = {
     customProviderDesc:
       "Configure OpenAI / Claude / Gemini / Codex compatible endpoints",
     customNewApiOnly: "Supports New API / One API / OpenRouter proxy services",
+    customPreset: "Preset Provider",
+    customPresetManual: "Manual",
+    customPresetNewApi: "New API",
+    customPresetOpenRouter: "OpenRouter",
+    customPresetTip:
+      "Select a preset to auto-fill defaults, you can still edit any field",
     customProviderName: "Provider Name",
     customProviderNamePlaceholder: "e.g. OpenRouter",
     customBaseUrl: "Base URL",
@@ -117,6 +123,9 @@ export const en = {
     customSystemTokenPlaceholder: "token-...",
     customNewApiUser: "New API User",
     customNewApiUserPlaceholder: "username",
+    customEnableUsageQuery: "Enable Usage Query",
+    customEnableUsageQueryTip:
+      "Query balance and usage from New API / One API services",
     customProxyUrl: "Proxy URL",
     customProxyUrlPlaceholder: "socks5://proxy.example.com:1080",
     customPrefix: "Prefix",
@@ -133,6 +142,7 @@ export const en = {
     customNameRequired: "Provider name is required",
     customUrlRequired: "Base URL is required",
     customApiKeyRequired: "At least one API key is required",
+    customSystemTokenRequired: "System Access Token is required",
     customNewApiUserRequired: "New API User is required",
     customManage: "Manage Custom Providers",
     customEdit: "Edit",

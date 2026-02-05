@@ -1,5 +1,76 @@
 export type ProtocolType = "openai" | "claude" | "gemini" | "codex";
 
+export type PresetProviderId = "manual" | "new-api" | "openrouter";
+
+export interface PresetProvider {
+  id: PresetProviderId;
+  labelKey: string;
+  protocol: ProtocolType;
+  defaults: {
+    name?: string;
+    "base-url"?: string;
+    prefix?: string;
+  };
+  showFields: {
+    systemAccessToken: boolean;
+    newApiUser: boolean;
+  };
+  requiredFields: {
+    systemAccessToken: boolean;
+    newApiUser: boolean;
+  };
+}
+
+export const PRESET_PROVIDERS: PresetProvider[] = [
+  {
+    id: "manual",
+    labelKey: "customPresetManual",
+    protocol: "openai",
+    defaults: {},
+    showFields: {
+      systemAccessToken: false,
+      newApiUser: false,
+    },
+    requiredFields: {
+      systemAccessToken: false,
+      newApiUser: false,
+    },
+  },
+  {
+    id: "new-api",
+    labelKey: "customPresetNewApi",
+    protocol: "openai",
+    defaults: {
+      name: "New API",
+    },
+    showFields: {
+      systemAccessToken: true,
+      newApiUser: true,
+    },
+    requiredFields: {
+      systemAccessToken: true,
+      newApiUser: true,
+    },
+  },
+  {
+    id: "openrouter",
+    labelKey: "customPresetOpenRouter",
+    protocol: "openai",
+    defaults: {
+      name: "OpenRouter",
+      "base-url": "https://openrouter.ai/api",
+    },
+    showFields: {
+      systemAccessToken: false,
+      newApiUser: false,
+    },
+    requiredFields: {
+      systemAccessToken: false,
+      newApiUser: false,
+    },
+  },
+];
+
 export interface ModelEntry {
   name: string;
   alias?: string;
@@ -17,6 +88,7 @@ export interface ClaudeApiKeyEntry {
   "proxy-url"?: string;
   "system-access-token"?: string;
   "new-api-user"?: string;
+  "enable-usage-query"?: boolean;
   prefix?: string;
   models?: ModelEntry[];
 }
@@ -28,6 +100,7 @@ export interface GeminiApiKeyEntry {
   "proxy-url"?: string;
   "system-access-token"?: string;
   "new-api-user"?: string;
+  "enable-usage-query"?: boolean;
   prefix?: string;
   headers?: Record<string, string>;
   models?: ModelEntry[];
@@ -40,6 +113,7 @@ export interface CodexApiKeyEntry {
   "proxy-url"?: string;
   "system-access-token"?: string;
   "new-api-user"?: string;
+  "enable-usage-query"?: boolean;
   prefix?: string;
   models?: ModelEntry[];
 }
@@ -61,6 +135,7 @@ export interface OpenAICompatProvider {
   models?: { name: string; alias?: string }[];
   "system-access-token"?: string;
   "new-api-user"?: string;
+  "enable-usage-query"?: boolean;
   prefix?: string;
 }
 
@@ -71,6 +146,7 @@ export interface ClaudeCompatProvider {
   "proxy-url"?: string;
   "system-access-token"?: string;
   "new-api-user"?: string;
+  "enable-usage-query"?: boolean;
   prefix?: string;
   models?: { name: string; alias?: string }[];
 }
@@ -82,6 +158,7 @@ export interface GeminiCompatProvider {
   "proxy-url"?: string;
   "system-access-token"?: string;
   "new-api-user"?: string;
+  "enable-usage-query"?: boolean;
   prefix?: string;
   headers?: Record<string, string>;
   models?: { name: string; alias?: string }[];
@@ -94,6 +171,7 @@ export interface CodexCompatProvider {
   "proxy-url"?: string;
   "system-access-token"?: string;
   "new-api-user"?: string;
+  "enable-usage-query"?: boolean;
   prefix?: string;
   models?: { name: string; alias?: string }[];
 }

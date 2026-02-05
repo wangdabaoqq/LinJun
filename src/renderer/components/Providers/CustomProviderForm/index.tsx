@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Zap, X, Box, Save, Wifi, Check, XCircle, Info } from "lucide-react";
+import { Zap, X, Box, Save, Wifi, Check, XCircle } from "lucide-react";
 
 import { useTranslations } from "../../../stores/settings";
 import {
@@ -79,6 +79,9 @@ export function CustomProviderForm({
   const [newApiUser, setNewApiUser] = useState(
     editProvider?.["new-api-user"] || "",
   );
+  const [enableUsageQuery, setEnableUsageQuery] = useState(
+    editProvider?.["enable-usage-query"] || false,
+  );
   const [openaiApiKeys, setOpenaiApiKeys] = useState<OpenAIApiKeyEntry[]>(
     editProvider?.["api-key-entries"] || [{ "api-key": "" }],
   );
@@ -117,10 +120,15 @@ export function CustomProviderForm({
 
   const updateClaudeField = (
     field: keyof ClaudeApiKeyEntry,
-    value: string | ModelEntry[] | undefined,
+    value: string | boolean | ModelEntry[] | undefined,
   ) => {
     if (field === "models") {
       setClaudeEntry({ ...claudeEntry, models: value as ModelEntry[] });
+    } else if (field === "enable-usage-query") {
+      setClaudeEntry({
+        ...claudeEntry,
+        "enable-usage-query": value as boolean,
+      });
     } else {
       setClaudeEntry({ ...claudeEntry, [field]: value || undefined });
     }
@@ -128,7 +136,7 @@ export function CustomProviderForm({
 
   const updateGeminiField = (
     field: keyof GeminiApiKeyEntry,
-    value: string | Record<string, string> | ModelEntry[] | undefined,
+    value: string | boolean | Record<string, string> | ModelEntry[] | undefined,
   ) => {
     if (field === "headers") {
       setGeminiEntry({
@@ -140,6 +148,11 @@ export function CustomProviderForm({
         ...geminiEntry,
         models: value as ModelEntry[] | undefined,
       });
+    } else if (field === "enable-usage-query") {
+      setGeminiEntry({
+        ...geminiEntry,
+        "enable-usage-query": value as boolean,
+      });
     } else {
       setGeminiEntry({ ...geminiEntry, [field]: value || undefined });
     }
@@ -147,12 +160,17 @@ export function CustomProviderForm({
 
   const updateCodexField = (
     field: keyof CodexApiKeyEntry,
-    value: string | ModelEntry[] | undefined,
+    value: string | boolean | ModelEntry[] | undefined,
   ) => {
     if (field === "models") {
       setCodexEntry({
         ...codexEntry,
         models: value as ModelEntry[] | undefined,
+      });
+    } else if (field === "enable-usage-query") {
+      setCodexEntry({
+        ...codexEntry,
+        "enable-usage-query": value as boolean,
       });
     } else {
       setCodexEntry({ ...codexEntry, [field]: value || undefined });
@@ -235,6 +253,15 @@ export function CustomProviderForm({
         return;
       }
 
+      if (enableUsageQuery && !systemAccessToken.trim()) {
+        setError(t.providers.customSystemTokenRequired);
+        return;
+      }
+      if (enableUsageQuery && !newApiUser.trim()) {
+        setError(t.providers.customNewApiUserRequired);
+        return;
+      }
+
       setIsLoading(true);
 
       const providerData: OpenAICompatProvider = {
@@ -245,6 +272,7 @@ export function CustomProviderForm({
           ? { "system-access-token": systemAccessToken.trim() }
           : {}),
         ...(newApiUser.trim() ? { "new-api-user": newApiUser.trim() } : {}),
+        "enable-usage-query": enableUsageQuery,
         "api-key-entries": validKeys.map((k) => ({
           "api-key": k["api-key"].trim(),
           ...(k["proxy-url"]?.trim()
@@ -290,9 +318,20 @@ export function CustomProviderForm({
         return;
       }
 
+      if (claudeEntry["enable-usage-query"]) {
+        if (!claudeEntry["system-access-token"]?.trim()) {
+          setError(t.providers.customSystemTokenRequired);
+          return;
+        }
+        if (!claudeEntry["new-api-user"]?.trim()) {
+          setError(t.providers.customNewApiUserRequired);
+          return;
+        }
+      }
+
       setIsLoading(true);
 
-      const cleaned = {
+      const cleaned: ClaudeCompatProvider = {
         ...(claudeEntry.name?.trim() ? { name: claudeEntry.name.trim() } : {}),
         "api-key": claudeEntry["api-key"].trim(),
         "base-url":
@@ -306,6 +345,7 @@ export function CustomProviderForm({
         ...(claudeEntry["new-api-user"]?.trim()
           ? { "new-api-user": claudeEntry["new-api-user"].trim() }
           : {}),
+        "enable-usage-query": claudeEntry["enable-usage-query"] || false,
         ...(claudeEntry.prefix?.trim()
           ? { prefix: claudeEntry.prefix.trim() }
           : {}),
@@ -340,9 +380,20 @@ export function CustomProviderForm({
         return;
       }
 
+      if (geminiEntry["enable-usage-query"]) {
+        if (!geminiEntry["system-access-token"]?.trim()) {
+          setError(t.providers.customSystemTokenRequired);
+          return;
+        }
+        if (!geminiEntry["new-api-user"]?.trim()) {
+          setError(t.providers.customNewApiUserRequired);
+          return;
+        }
+      }
+
       setIsLoading(true);
 
-      const cleaned = {
+      const cleaned: GeminiCompatProvider = {
         ...(geminiEntry.name?.trim() ? { name: geminiEntry.name.trim() } : {}),
         "api-key": geminiEntry["api-key"].trim(),
         ...(geminiEntry["base-url"]?.trim()
@@ -357,6 +408,7 @@ export function CustomProviderForm({
         ...(geminiEntry["new-api-user"]?.trim()
           ? { "new-api-user": geminiEntry["new-api-user"].trim() }
           : {}),
+        "enable-usage-query": geminiEntry["enable-usage-query"] || false,
         ...(geminiEntry.prefix?.trim()
           ? { prefix: geminiEntry.prefix.trim() }
           : {}),
@@ -399,9 +451,20 @@ export function CustomProviderForm({
         return;
       }
 
+      if (codexEntry["enable-usage-query"]) {
+        if (!codexEntry["system-access-token"]?.trim()) {
+          setError(t.providers.customSystemTokenRequired);
+          return;
+        }
+        if (!codexEntry["new-api-user"]?.trim()) {
+          setError(t.providers.customNewApiUserRequired);
+          return;
+        }
+      }
+
       setIsLoading(true);
 
-      const cleaned = {
+      const cleaned: CodexCompatProvider = {
         ...(codexEntry.name?.trim() ? { name: codexEntry.name.trim() } : {}),
         "api-key": codexEntry["api-key"].trim(),
         ...(codexEntry["base-url"]?.trim()
@@ -416,6 +479,7 @@ export function CustomProviderForm({
         ...(codexEntry["new-api-user"]?.trim()
           ? { "new-api-user": codexEntry["new-api-user"].trim() }
           : {}),
+        "enable-usage-query": codexEntry["enable-usage-query"] || false,
         ...(codexEntry.prefix?.trim()
           ? { prefix: codexEntry.prefix.trim() }
           : {}),
@@ -482,12 +546,12 @@ export function CustomProviderForm({
           </button>
         </div>
 
-        <div className="relative z-10 mx-8 mt-6 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center gap-3">
-          <Info className="w-4 h-4 text-amber-500 flex-shrink-0" />
-          <p className="text-xs text-amber-500 font-medium">
-            {t.providers.customNewApiOnly}
-          </p>
-        </div>
+        {error && (
+          <div className="relative z-10 mx-8 mt-6 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-bold animate-shake flex items-center gap-2">
+            <XCircle className="w-4 h-4 flex-shrink-0" />
+            {error}
+          </div>
+        )}
 
         <div className="relative z-10 flex-1 overflow-y-auto p-8 space-y-10 custom-scrollbar">
           {!isEditing && (
@@ -542,6 +606,7 @@ export function CustomProviderForm({
                 models={openaiModels}
                 systemAccessToken={systemAccessToken}
                 newApiUser={newApiUser}
+                enableUsageQuery={enableUsageQuery}
                 isEditing={isEditingOpenai}
                 onNameChange={setName}
                 onBaseUrlChange={setBaseUrl}
@@ -550,6 +615,7 @@ export function CustomProviderForm({
                 onModelsChange={setOpenaiModels}
                 onSystemAccessTokenChange={setSystemAccessToken}
                 onNewApiUserChange={setNewApiUser}
+                onEnableUsageQueryChange={setEnableUsageQuery}
               />
             ) : protocol === "claude" ? (
               <ClaudeProtocolForm
@@ -568,12 +634,6 @@ export function CustomProviderForm({
               />
             ) : null}
           </div>
-
-          {error && (
-            <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-bold animate-shake">
-              {error}
-            </div>
-          )}
         </div>
 
         <div className="relative z-10 p-8 border-t border-[var(--glass-border)] bg-[var(--text-primary)]/[0.01] backdrop-blur-2xl flex justify-between items-center">

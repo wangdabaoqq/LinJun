@@ -1,5 +1,5 @@
 import { memo, useState } from "react";
-import { Globe, Box, Key, Eye, EyeOff } from "lucide-react";
+import { Globe, Box, Key, Eye, EyeOff, User, Activity } from "lucide-react";
 import { useTranslations } from "../../../stores/settings";
 import { CodexApiKeyEntry, ModelEntry } from "./types";
 import { ModelEntryList } from "./ModelEntryList";
@@ -8,7 +8,7 @@ interface CodexProtocolFormProps {
   entry: CodexApiKeyEntry;
   onUpdate: (
     field: keyof CodexApiKeyEntry,
-    value: string | ModelEntry[] | undefined,
+    value: string | boolean | ModelEntry[] | undefined,
   ) => void;
 }
 
@@ -83,35 +83,86 @@ export const CodexProtocolForm = memo(function CodexProtocolForm({
           </button>
         </div>
       </div>
-      <div className="space-y-2">
-        <label className="flex items-center gap-2 text-xs font-bold text-[var(--text-primary)] uppercase tracking-widest px-1">
-          <Key className="w-3.5 h-3.5" />
-          {t.providers.customSystemToken} ({t.providers.optional})
-        </label>
-        <div className="relative">
-          <input
-            type={showSystemToken ? "text" : "password"}
-            value={entry["system-access-token"] || ""}
-            onChange={(e) => onUpdate("system-access-token", e.target.value)}
-            placeholder={t.providers.customSystemTokenPlaceholder}
-            className="glass-input w-full font-mono text-sm bg-[var(--text-primary)]/[0.03] border border-[var(--glass-border)] text-[var(--text-primary)] placeholder:text-[var(--text-dim)] pr-10"
-          />
-          <button
-            type="button"
-            onClick={() => setShowSystemToken(!showSystemToken)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-dim)] hover:text-[var(--text-primary)] transition-colors"
+      <div className="p-4 rounded-xl bg-[var(--text-primary)]/[0.02] border border-[var(--glass-border)]">
+        <label className="flex items-center justify-between cursor-pointer">
+          <div className="flex items-center gap-3">
+            <Activity className="w-4 h-4 text-[var(--accent-primary)]" />
+            <div>
+              <span className="text-xs font-bold text-[var(--text-primary)] uppercase tracking-widest">
+                {t.providers.customEnableUsageQuery}
+              </span>
+              <p className="text-[10px] text-[var(--text-muted)] mt-0.5">
+                {t.providers.customEnableUsageQueryTip}
+              </p>
+            </div>
+          </div>
+          <div
+            className={`relative w-11 h-6 rounded-full transition-colors ${
+              entry["enable-usage-query"]
+                ? "bg-[var(--accent-primary)]"
+                : "bg-[var(--text-primary)]/20"
+            }`}
+            onClick={() =>
+              onUpdate("enable-usage-query", !entry["enable-usage-query"])
+            }
           >
-            {showSystemToken ? (
-              <EyeOff className="w-4 h-4" />
-            ) : (
-              <Eye className="w-4 h-4" />
-            )}
-          </button>
-        </div>
-        <p className="text-[10px] text-[var(--text-muted)] mt-1 px-1">
-          {t.providers.customSystemTokenTip}
-        </p>
+            <div
+              className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow-md transition-transform ${
+                entry["enable-usage-query"] ? "translate-x-6" : "translate-x-1"
+              }`}
+            />
+          </div>
+        </label>
       </div>
+
+      {entry["enable-usage-query"] && (
+        <>
+          <div className="space-y-2">
+            <label className="flex items-center gap-2 text-xs font-bold text-[var(--text-primary)] uppercase tracking-widest px-1">
+              <Key className="w-3.5 h-3.5" />
+              {t.providers.customSystemToken} *
+            </label>
+            <div className="relative">
+              <input
+                type={showSystemToken ? "text" : "password"}
+                value={entry["system-access-token"] || ""}
+                onChange={(e) =>
+                  onUpdate("system-access-token", e.target.value)
+                }
+                placeholder={t.providers.customSystemTokenPlaceholder}
+                className="glass-input w-full font-mono text-sm bg-[var(--text-primary)]/[0.03] border border-[var(--glass-border)] text-[var(--text-primary)] placeholder:text-[var(--text-dim)] pr-10"
+              />
+              <button
+                type="button"
+                onClick={() => setShowSystemToken(!showSystemToken)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-dim)] hover:text-[var(--text-primary)] transition-colors"
+              >
+                {showSystemToken ? (
+                  <EyeOff className="w-4 h-4" />
+                ) : (
+                  <Eye className="w-4 h-4" />
+                )}
+              </button>
+            </div>
+            <p className="text-[10px] text-[var(--text-muted)] mt-1 px-1">
+              {t.providers.customSystemTokenTip}
+            </p>
+          </div>
+          <div className="space-y-2">
+            <label className="flex items-center gap-2 text-xs font-bold text-[var(--text-primary)] uppercase tracking-widest px-1">
+              <User className="w-3.5 h-3.5" />
+              {t.providers.customNewApiUser} *
+            </label>
+            <input
+              type="text"
+              value={entry["new-api-user"] || ""}
+              onChange={(e) => onUpdate("new-api-user", e.target.value)}
+              placeholder={t.providers.customNewApiUserPlaceholder}
+              className="glass-input w-full font-mono text-sm bg-[var(--text-primary)]/[0.03] border border-[var(--glass-border)] text-[var(--text-primary)] placeholder:text-[var(--text-dim)]"
+            />
+          </div>
+        </>
+      )}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
           <label className="flex items-center gap-2 text-xs font-bold text-[var(--text-primary)] uppercase tracking-widest px-1">

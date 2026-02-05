@@ -536,6 +536,8 @@ export function setupIpcHandlers(): void {
         "api-key-entries": { "api-key": string; "proxy-url"?: string }[];
         "system-access-token"?: string;
         "new-api-user"?: string;
+        "enable-usage-query"?: boolean;
+        prefix?: string;
         models?: { name: string; alias?: string }[];
       },
     ) => {
@@ -576,6 +578,8 @@ export function setupIpcHandlers(): void {
         "api-key-entries": { "api-key": string; "proxy-url"?: string }[];
         "system-access-token"?: string;
         "new-api-user"?: string;
+        "enable-usage-query"?: boolean;
+        prefix?: string;
         models?: { name: string; alias?: string }[];
       },
     ) => {
@@ -660,6 +664,7 @@ export function setupIpcHandlers(): void {
         "proxy-url"?: string;
         "system-access-token"?: string;
         "new-api-user"?: string;
+        "enable-usage-query"?: boolean;
         prefix?: string;
         models?: { name: string; alias?: string }[];
       }[],
@@ -702,6 +707,7 @@ export function setupIpcHandlers(): void {
         "proxy-url"?: string;
         "system-access-token"?: string;
         "new-api-user"?: string;
+        "enable-usage-query"?: boolean;
         prefix?: string;
         headers?: Record<string, string>;
         models?: { name: string; alias?: string }[];
@@ -741,6 +747,7 @@ export function setupIpcHandlers(): void {
         "proxy-url"?: string;
         "system-access-token"?: string;
         "new-api-user"?: string;
+        "enable-usage-query"?: boolean;
         prefix?: string;
         models?: { name: string; alias?: string }[];
       }[],

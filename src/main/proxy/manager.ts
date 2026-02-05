@@ -49,6 +49,7 @@ export interface ClaudeApiKeyEntry {
   "proxy-url"?: string;
   "system-access-token"?: string;
   "new-api-user"?: string;
+  "enable-usage-query"?: boolean;
   prefix?: string;
   models?: OpenAICompatibilityModel[];
 }
@@ -60,6 +61,7 @@ export interface GeminiApiKeyEntry {
   "proxy-url"?: string;
   "system-access-token"?: string;
   "new-api-user"?: string;
+  "enable-usage-query"?: boolean;
   prefix?: string;
   headers?: Record<string, string>;
   models?: OpenAICompatibilityModel[];
@@ -72,6 +74,7 @@ export interface CodexApiKeyEntry {
   "proxy-url"?: string;
   "system-access-token"?: string;
   "new-api-user"?: string;
+  "enable-usage-query"?: boolean;
   prefix?: string;
   models?: OpenAICompatibilityModel[];
 }
@@ -83,6 +86,7 @@ export interface OpenAICompatibilityProvider {
   "api-key-entries": OpenAICompatibilityApiKeyEntry[];
   "system-access-token"?: string;
   "new-api-user"?: string;
+  "enable-usage-query"?: boolean;
   models?: OpenAICompatibilityModel[];
 }
 

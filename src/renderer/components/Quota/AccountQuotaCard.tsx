@@ -151,7 +151,7 @@ export function AccountQuotaCard({
           )}
           {providerId === "custom" ? (
             <div className="space-y-3">
-              {rateLimits.primary && (
+              {rateLimits.primary && rateLimits.primary.label && (
                 <QuotaWindowBar
                   label={rateLimits.primary.label}
                   usedPercent={rateLimits.primary.usedPercent}
