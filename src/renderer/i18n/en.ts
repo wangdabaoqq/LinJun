@@ -8,6 +8,8 @@ export const en = {
     edit: "Edit",
     close: "Close",
     confirm: "Confirm",
+    copy: "Copy",
+    copied: "Copied",
   },
   app: {
     name: "霖君",
@@ -257,6 +259,10 @@ export const en = {
     usageOverview: "Usage Overview",
     gridView: "Grid View",
     listView: "List View",
+    usageQueryDisabled:
+      "Enable Usage Query in provider settings to view quota and models",
+    customProviderTip:
+      "New API / One API services can enable Usage Query in provider settings to view balance and models",
   },
   agents: {
     title: "AGENTS",

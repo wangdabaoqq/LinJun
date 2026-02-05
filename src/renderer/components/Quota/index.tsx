@@ -3,7 +3,7 @@ import { useTranslations } from "../../stores/settings";
 import { useQuotaStore, ProviderType } from "../../stores/quota";
 import { ProviderTabs } from "./ProviderTabs";
 import { AccountQuotaCard } from "./AccountQuotaCard";
-import { Activity, RotateCw } from "lucide-react";
+import { Activity, RotateCw, Info } from "lucide-react";
 import { getProviderIcon } from "../icons/ProviderIcons";
 
 export function Quota() {
@@ -80,28 +80,41 @@ export function Quota() {
               <div className="h-4 w-48 bg-[var(--surface-hover)] rounded-full"></div>
             </div>
           ) : accounts.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-              {accounts.map((account, index) => (
-                <div
-                  key={account.id}
-                  style={{
-                    animationDelay: `${index * 50}ms`,
-                    animationFillMode: "both",
-                  }}
-                  className="animate-in fade-in slide-in-from-bottom-4 duration-500"
-                >
-                  <AccountQuotaCard
-                    email={account.email}
-                    badge={account.badge}
-                    status={account.status}
-                    error={account.error}
-                    providerId={selectedProvider || undefined}
-                    rateLimits={account.rateLimits}
-                    lastUpdated={account.lastUpdated}
-                    onRefresh={() => refreshAccount(account.id)}
+            <div className="space-y-4">
+              {selectedProvider === "custom" && (
+                <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl bg-[var(--accent-primary)]/5 border border-[var(--accent-primary)]/10">
+                  <Info
+                    size={16}
+                    className="text-[var(--accent-primary)] flex-shrink-0"
                   />
+                  <p className="text-xs text-[var(--text-muted)]">
+                    {t.quota.customProviderTip}
+                  </p>
                 </div>
-              ))}
+              )}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                {accounts.map((account, index) => (
+                  <div
+                    key={account.id}
+                    style={{
+                      animationDelay: `${index * 50}ms`,
+                      animationFillMode: "both",
+                    }}
+                    className="animate-in fade-in slide-in-from-bottom-4 duration-500"
+                  >
+                    <AccountQuotaCard
+                      email={account.email}
+                      badge={account.badge}
+                      status={account.status}
+                      error={account.error}
+                      providerId={selectedProvider || undefined}
+                      rateLimits={account.rateLimits}
+                      lastUpdated={account.lastUpdated}
+                      onRefresh={() => refreshAccount(account.id)}
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
           ) : (
             <div className="h-full flex flex-col items-center justify-center text-center p-8">

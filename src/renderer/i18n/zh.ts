@@ -9,6 +9,8 @@ export const zh: Translations = {
     edit: "编辑",
     close: "关闭",
     confirm: "确认",
+    copy: "复制",
+    copied: "已复制",
   },
   app: {
     name: "CLI-to-API 桥接器",
@@ -248,6 +250,9 @@ export const zh: Translations = {
     usageOverview: "用量概览",
     gridView: "网格视图",
     listView: "列表视图",
+    usageQueryDisabled: "在提供商设置中启用用量查询以查看配额和模型",
+    customProviderTip:
+      "New API / One API 服务可在提供商设置中启用用量查询，以查看余额和模型列表",
   },
   agents: {
     title: "代理",

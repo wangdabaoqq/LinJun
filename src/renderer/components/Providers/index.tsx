@@ -11,6 +11,8 @@ import {
   ShieldCheck,
   ChevronDown,
   Upload,
+  Check,
+  Copy,
 } from "lucide-react";
 
 import { useTranslations } from "../../stores/settings";
@@ -83,6 +85,7 @@ export function Providers() {
     type: "success" | "error";
     message: string;
   } | null>(null);
+  const [copiedProvider, setCopiedProvider] = useState<string | null>(null);
   const [isImporting, setIsImporting] = useState(false);
   const [openaiProviders, setOpenaiProviders] = useState<
     OpenAICompatProvider[]
@@ -225,6 +228,117 @@ export function Providers() {
       }
     } catch (err) {
       log.error("[Providers] Failed to delete custom provider:", err);
+    }
+  };
+
+  const buildCopyName = (baseName: string, existingNames: string[]) => {
+    const trimmedNames = new Set(
+      existingNames.map((name) => name.trim()).filter(Boolean),
+    );
+    const copyBase = `${baseName} Copy`;
+    if (!trimmedNames.has(copyBase)) return copyBase;
+
+    let index = 2;
+    let candidate = `${copyBase} ${index}`;
+    while (trimmedNames.has(candidate)) {
+      index += 1;
+      candidate = `${copyBase} ${index}`;
+    }
+    return candidate;
+  };
+
+  const handleCopyCustomProvider = async (cp: CustomProviderDisplay) => {
+    try {
+      const existingNames = customProviders
+        .filter((provider) => provider.type === cp.type)
+        .map((provider) => provider.name);
+      const newName = buildCopyName(cp.name, existingNames);
+      const copiedKey = `${cp.type}-${cp.name}`;
+
+      if (cp.type === "openai") {
+        const providerData = {
+          ...(cp.rawData as OpenAICompatProvider),
+          name: newName,
+        };
+        const result =
+          await window.electronAPI?.openaiCompat?.add(providerData);
+        if (!result?.success) {
+          log.error(
+            "[Providers] Failed to copy OpenAI provider:",
+            result?.error,
+          );
+          return;
+        }
+      } else if (cp.type === "claude") {
+        const current = await window.electronAPI?.claudeCompat?.getAll();
+        if (!current?.success || !current.entries) {
+          log.error("[Providers] Failed to load Claude providers");
+          return;
+        }
+        const newEntry: ClaudeCompatProvider = {
+          ...(cp.rawData as ClaudeCompatProvider),
+          name: newName,
+        };
+        const result = await window.electronAPI?.claudeCompat?.save([
+          ...current.entries,
+          newEntry,
+        ]);
+        if (!result?.success) {
+          log.error(
+            "[Providers] Failed to copy Claude provider:",
+            result?.error,
+          );
+          return;
+        }
+      } else if (cp.type === "gemini") {
+        const current = await window.electronAPI?.geminiCompat?.getAll();
+        if (!current?.success || !current.entries) {
+          log.error("[Providers] Failed to load Gemini providers");
+          return;
+        }
+        const newEntry: GeminiCompatProvider = {
+          ...(cp.rawData as GeminiCompatProvider),
+          name: newName,
+        };
+        const result = await window.electronAPI?.geminiCompat?.save([
+          ...current.entries,
+          newEntry,
+        ]);
+        if (!result?.success) {
+          log.error(
+            "[Providers] Failed to copy Gemini provider:",
+            result?.error,
+          );
+          return;
+        }
+      } else if (cp.type === "codex") {
+        const current = await window.electronAPI?.codexCompat?.getAll();
+        if (!current?.success || !current.entries) {
+          log.error("[Providers] Failed to load Codex providers");
+          return;
+        }
+        const newEntry: CodexCompatProvider = {
+          ...(cp.rawData as CodexCompatProvider),
+          name: newName,
+        };
+        const result = await window.electronAPI?.codexCompat?.save([
+          ...current.entries,
+          newEntry,
+        ]);
+        if (!result?.success) {
+          log.error(
+            "[Providers] Failed to copy Codex provider:",
+            result?.error,
+          );
+          return;
+        }
+      }
+
+      setCopiedProvider(copiedKey);
+      setTimeout(() => setCopiedProvider(null), 2000);
+      loadCustomProviders();
+    } catch (error) {
+      log.error("[Providers] Failed to copy provider config:", error);
     }
   };
 
@@ -614,8 +728,30 @@ export function Providers() {
                             setShowCustomProviderForm(true);
                           }}
                           className="p-1.5 text-[var(--text-dim)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 rounded-lg transition-all"
+                          title={t.common.edit}
                         >
                           <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            handleCopyCustomProvider(cp);
+                          }}
+                          className={`p-1.5 rounded-lg transition-all ${
+                            copiedProvider === `${cp.type}-${cp.name}`
+                              ? "text-emerald-500"
+                              : "text-[var(--text-dim)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5"
+                          }`}
+                          title={
+                            copiedProvider === `${cp.type}-${cp.name}`
+                              ? t.common.copied
+                              : t.common.copy
+                          }
+                        >
+                          {copiedProvider === `${cp.type}-${cp.name}` ? (
+                            <Check className="w-3.5 h-3.5" />
+                          ) : (
+                            <Copy className="w-3.5 h-3.5" />
+                          )}
                         </button>
                         <button
                           onClick={() =>
