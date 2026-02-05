@@ -22,6 +22,7 @@ export {
   getKiroUsage,
   isKiroTokenValid,
   refreshKiroTokenManually,
+  isKiroRefreshBlocked,
 } from "./kiroService";
 export type {
   KiroUsageResponse,

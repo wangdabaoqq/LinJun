@@ -26,20 +26,21 @@ files:
   - "!**/{npm-debug.log,yarn.lock,.yarn-integrity,.yarn-metadata.json}"
 
 extraResources:
-  - from: "resources/binaries/"
-    to: "binaries/"
-    filter:
-      - "**/*"
-      - "!LICENSE"
-      - "!README.md"
-      - "!README_CN.md"
-      - "!.DS_Store"
-      - "!.gitkeep"
-      - "!static"
   - from: "resources/icons/icons/32x32.png"
     to: "icons/tray-icon.png"
 
 mac:
+  extraResources:
+    - from: "resources/binaries/darwin-${arch}/"
+      to: "binaries/"
+      filter:
+        - "**/*"
+        - "!LICENSE"
+        - "!README.md"
+        - "!README_CN.md"
+        - "!.DS_Store"
+        - "!.gitkeep"
+        - "!static"
   category: public.app-category.developer-tools
   icon: resources/icon.icns
   target:
@@ -49,6 +50,17 @@ mac:
   gatekeeperAssess: false
 
 win:
+  extraResources:
+    - from: "resources/binaries/win32-x64/"
+      to: "binaries/"
+      filter:
+        - "**/*"
+        - "!LICENSE"
+        - "!README.md"
+        - "!README_CN.md"
+        - "!.DS_Store"
+        - "!.gitkeep"
+        - "!static"
   icon: resources/icon.ico
   target:
     - target: nsis
@@ -57,6 +69,17 @@ win:
       arch: [x64]
 
 linux:
+  extraResources:
+    - from: "resources/binaries/linux-x64/"
+      to: "binaries/"
+      filter:
+        - "**/*"
+        - "!LICENSE"
+        - "!README.md"
+        - "!README_CN.md"
+        - "!.DS_Store"
+        - "!.gitkeep"
+        - "!static"
   icon: resources/icon.png
   category: Development
   target:

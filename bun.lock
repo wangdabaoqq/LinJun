@@ -14,7 +14,6 @@
         "js-yaml": "^4.1.1",
         "lucide-react": "^0.562.0",
         "motion": "^12.27.5",
-        "tail-file": "^1.4.16",
         "tailwind-merge": "^3.4.0",
         "zustand": "^4.4.0",
       },
@@ -2266,8 +2265,6 @@
     "swr": ["swr@2.3.8", "", { "dependencies": { "dequal": "^2.0.3", "use-sync-external-store": "^1.6.0" }, "peerDependencies": { "react": "^16.11.0 || ^17.0.0 || ^18.0.0 || ^19.0.0" } }, "sha512-gaCPRVoMq8WGDcWj9p4YWzCMPHzE0WNl6W8ADIx9c3JBEIdMkJGMzW+uzXvxHMltwcYACr9jP+32H8/hgwMR7w=="],
 
     "tabbable": ["tabbable@6.4.0", "", {}, "sha512-05PUHKSNE8ou2dwIxTngl4EzcnsCDZGJ/iCLtDflR/SHB/ny14rXc+qU5P4mG9JkusiV7EivzY9Mhm55AzAvCg=="],
-
-    "tail-file": ["tail-file@1.4.16", "", { "dependencies": { "debug": "^4.1.1" } }, "sha512-K1SAxKcAhJU1aJytAbA/jSRxL4PsYuDWNCGSsVcTG1SLKFW9FRGj7K3f6F/Leb9XLR7UIe7EfFza3sH12ztPBw=="],
 
     "tailwind-merge": ["tailwind-merge@3.4.0", "", {}, "sha512-uSaO4gnW+b3Y2aWoWfFpX62vn2sR3skfhbjsEnaBI81WD1wBLlHZe5sWf0AqjksNdYTbGBEd0UasQMT3SNV15g=="],
 

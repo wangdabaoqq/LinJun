@@ -24,6 +24,7 @@ import { store } from "../utils/store";
 import {
   getKiroUsage,
   isKiroTokenValid,
+  isKiroRefreshBlocked,
   KiroUsageResponse,
 } from "./kiroService";
 import {
@@ -462,6 +463,9 @@ export async function getProviders(): Promise<ProviderInfo[]> {
       const tokens = getTokensByProvider(provider);
       let validKiroCount = 0;
       for (const token of tokens) {
+        if (isKiroRefreshBlocked(token.filePath)) {
+          continue;
+        }
         const isValid = await isKiroTokenValid(token);
         if (isValid) validKiroCount++;
       }
@@ -591,6 +595,9 @@ export async function getQuotaByProvider(
         );
       }
     } else if (provider === "kiro") {
+      if (isKiroRefreshBlocked(token.filePath)) {
+        continue;
+      }
       try {
         const usage = await getKiroUsage(token);
         let displayEmail = token.email || usage.userInfo?.email || "";

@@ -10,6 +10,45 @@ const KIRO_REFRESH_URL =
 const KIRO_USER_AGENT =
   "aws-sdk-js/3.0.0 KiroIDE-0.1.0 os/macos lang/js md/nodejs/18.0.0";
 const KIRO_AMZ_USER_AGENT = "aws-sdk-js/3.0.0";
+const KIRO_REFRESH_MAX_ATTEMPTS = 3;
+const KIRO_REFRESH_WINDOW_MS = 10 * 60 * 1000;
+
+const kiroRefreshAttempts = new Map<
+  string,
+  { count: number; firstAttemptAt: number }
+>();
+
+function canAttemptKiroRefresh(filePath: string): boolean {
+  const now = Date.now();
+  const record = kiroRefreshAttempts.get(filePath);
+  if (!record) return true;
+  if (now - record.firstAttemptAt > KIRO_REFRESH_WINDOW_MS) {
+    kiroRefreshAttempts.delete(filePath);
+    return true;
+  }
+  return record.count < KIRO_REFRESH_MAX_ATTEMPTS;
+}
+
+export function isKiroRefreshBlocked(filePath: string): boolean {
+  return !canAttemptKiroRefresh(filePath);
+}
+
+function recordKiroRefreshAttempt(filePath: string, success: boolean): void {
+  if (success) {
+    kiroRefreshAttempts.delete(filePath);
+    return;
+  }
+  const now = Date.now();
+  const record = kiroRefreshAttempts.get(filePath);
+  if (!record || now - record.firstAttemptAt > KIRO_REFRESH_WINDOW_MS) {
+    kiroRefreshAttempts.set(filePath, { count: 1, firstAttemptAt: now });
+    return;
+  }
+  kiroRefreshAttempts.set(filePath, {
+    count: record.count + 1,
+    firstAttemptAt: record.firstAttemptAt,
+  });
+}
 
 export interface KiroUsageEntry {
   displayName: string;
@@ -84,16 +123,30 @@ export async function getKiroUsage(
       axios.isAxiosError(error) &&
       (error.response?.status === 401 || error.response?.status === 403)
     ) {
-      const newAccessToken = await refreshKiroToken(token.refreshToken);
-      if (!newAccessToken) {
-        throw new Error("Failed to refresh Kiro access token");
+      if (!canAttemptKiroRefresh(token.filePath)) {
+        log.warn(
+          `[Kiro] Refresh retry limit reached for ${token.filePath}. Skipping refresh.`,
+        );
+        throw new Error("Kiro refresh retry limit reached");
       }
+      try {
+        const newAccessToken = await refreshKiroToken(token.refreshToken);
+        if (!newAccessToken) {
+          recordKiroRefreshAttempt(token.filePath, false);
+          throw new Error("Failed to refresh Kiro access token");
+        }
 
-      updateTokenFile(token.filePath, {
-        accessToken: newAccessToken,
-      });
+        updateTokenFile(token.filePath, {
+          accessToken: newAccessToken,
+        });
 
-      return await fetchKiroUsage(newAccessToken);
+        const usage = await fetchKiroUsage(newAccessToken);
+        recordKiroRefreshAttempt(token.filePath, true);
+        return usage;
+      } catch (refreshError) {
+        recordKiroRefreshAttempt(token.filePath, false);
+        throw refreshError;
+      }
     }
 
     throw error;
@@ -111,13 +164,22 @@ export async function isKiroTokenValid(
       axios.isAxiosError(error) &&
       (error.response?.status === 401 || error.response?.status === 403)
     ) {
+      if (!canAttemptKiroRefresh(token.filePath)) {
+        log.warn(
+          `[Kiro] Refresh retry limit reached for ${token.filePath}. Skipping validation refresh.`,
+        );
+        return false;
+      }
       try {
         const newAccessToken = await refreshKiroToken(token.refreshToken);
         if (newAccessToken) {
           updateTokenFile(token.filePath, { accessToken: newAccessToken });
+          recordKiroRefreshAttempt(token.filePath, true);
           return true;
         }
+        recordKiroRefreshAttempt(token.filePath, false);
       } catch {
+        recordKiroRefreshAttempt(token.filePath, false);
         return false;
       }
     }

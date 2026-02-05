@@ -1,5 +1,6 @@
 {
   "name": "linjun",
+  "productName": "霖君",
   "version": "1.0.5",
   "description": "霖君 - Cross-platform CLIProxyAPIPlus management tool",
   "main": "./out/main/index.js",
@@ -40,7 +41,6 @@
     "js-yaml": "^4.1.1",
     "lucide-react": "^0.562.0",
     "motion": "^12.27.5",
-    "tail-file": "^1.4.16",
     "tailwind-merge": "^3.4.0",
     "zustand": "^4.4.0"
   },

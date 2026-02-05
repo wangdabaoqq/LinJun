@@ -155,10 +155,13 @@ function BokehBackground() {
   );
 }
 
+import { IntroPage } from "./components/Intro/IntroPage";
+
 export default function App() {
   const [isTrayMode, setIsTrayMode] = useState(
     window.location.hash === "#tray",
   );
+  const [showIntro, setShowIntro] = useState(true);
   const [currentPage, setCurrentPage] = useState<Page>("dashboard");
   const refreshAll = useDashboardStore((s) => s.refreshAll);
 
@@ -175,6 +178,19 @@ export default function App() {
       refreshAll();
     }
   }, [refreshAll, isTrayMode]);
+
+  // Check if intro has been seen before
+  useEffect(() => {
+    const hasSeenIntro = localStorage.getItem("hasSeenIntro");
+    if (hasSeenIntro === "true") {
+      setShowIntro(false);
+    }
+  }, []);
+
+  const handleIntroComplete = () => {
+    setShowIntro(false);
+    localStorage.setItem("hasSeenIntro", "true");
+  };
 
   const renderPage = () => {
     switch (currentPage) {
@@ -205,6 +221,9 @@ export default function App() {
 
   return (
     <div className="flex flex-col h-screen relative">
+      <AnimatePresence>
+        {showIntro && <IntroPage onComplete={handleIntroComplete} />}
+      </AnimatePresence>
       <BokehBackground />
       <TopBar />
       <div className="flex flex-1 overflow-hidden">

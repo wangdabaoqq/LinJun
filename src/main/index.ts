@@ -1,6 +1,9 @@
 import { app, BrowserWindow, nativeImage } from "electron";
 import path from "path";
 
+// Set app name for macOS menu bar
+app.setName("霖君");
+
 import log from "./utils/logger";
 import { TrayManager } from "./tray/TrayManager";
 import { setupIpcHandlers } from "./ipc/handlers";

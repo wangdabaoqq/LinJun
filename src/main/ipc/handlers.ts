@@ -26,6 +26,7 @@ import {
   scanTokenFiles,
   isKiroTokenValid,
   refreshKiroTokenManually,
+  isKiroRefreshBlocked,
 } from "../quota";
 import {
   validateApiKey,
@@ -902,6 +903,9 @@ export function setupIpcHandlers(): void {
 
       for (const token of tokens) {
         if (token.provider === "kiro") {
+          if (isKiroRefreshBlocked(token.filePath)) {
+            continue;
+          }
           const isValid = await isKiroTokenValid(token);
           if (!isValid) {
             log.info(`[IPC] Skipping expired Kiro account: ${token.filePath}`);

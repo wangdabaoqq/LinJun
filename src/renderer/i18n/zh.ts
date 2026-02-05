@@ -13,7 +13,7 @@ export const zh: Translations = {
     copied: "已复制",
   },
   app: {
-    name: "CLI-to-API 桥接器",
+    name: "霖君",
     systemActive: "系统运行中",
   },
   topbar: {
