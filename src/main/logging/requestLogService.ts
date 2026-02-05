@@ -22,7 +22,7 @@ export interface RequestLogEntry {
   duration?: number;
 }
 
-const SUCCESS_PREFIXES = ["v1-responses", "v1-messages"];
+const SUCCESS_PREFIXES = ["v1-responses", "v1-messages", "v1-chat-completions"];
 const ERROR_PREFIX = "error-v1";
 
 function isSuccessLog(name: string): boolean {
@@ -225,18 +225,6 @@ function parseKeyValueBlock(block: string): Record<string, string> {
       }
     });
   return map;
-}
-
-function _extractProvider(section: string): string | undefined {
-  if (!section) return undefined;
-  const authLine = section
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .find((line) => line.startsWith("Auth:"));
-
-  if (!authLine) return undefined;
-  const match = authLine.match(/provider=([^,\s]+)/);
-  return match ? match[1] : undefined;
 }
 
 interface ApiRequestInfo {
