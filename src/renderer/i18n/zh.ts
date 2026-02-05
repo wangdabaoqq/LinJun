@@ -263,7 +263,7 @@ export const zh: Translations = {
     title: "代理",
     subtitle: "CLI 代理检测与配置",
     detectedAgents: "已检测的代理",
-    scanSystem: "↻ 扫描系统",
+    scanSystem: "扫描系统",
     configure: "配置",
     configured: "已配置",
     notFound: "未找到",

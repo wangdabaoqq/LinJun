@@ -56,6 +56,17 @@ const electronAPI = {
     checkForUpdates: () => ipcRenderer.invoke("app:checkForUpdates"),
     openExternal: (url: string) => ipcRenderer.invoke("app:openExternal", url),
     quit: () => ipcRenderer.send("app:quit"),
+    getHomeDir: () =>
+      ipcRenderer.invoke("app:getHomeDir") as Promise<{
+        success: boolean;
+        homeDir?: string;
+        error?: string;
+      }>,
+    getPlatform: () =>
+      ipcRenderer.invoke("app:getPlatform") as Promise<{
+        success: boolean;
+        platform: string;
+      }>,
   },
   apiKeys: {
     getAll: () => ipcRenderer.invoke("apiKeys:getAll"),

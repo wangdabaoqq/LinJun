@@ -244,6 +244,10 @@ function ConfigModal({ tool, onClose }: ConfigModalProps) {
     error?: string;
     latency?: number;
   } | null>(null);
+  const [saveMessage, setSaveMessage] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
   const [activeTab, setActiveTab] = useState<
     "connection" | "config" | "auth" | "env"
   >("connection");
@@ -336,7 +340,6 @@ wire_api = "responses"`;
   };
 
   const getDefaultClaudeEnv = () => {
-    const _port = proxyUrl.split(":").pop() || String(DEFAULT_PORT);
     return `# CLIProxyAPI Configuration for Claude Code
 export ANTHROPIC_BASE_URL="${proxyUrl}"
 export ANTHROPIC_AUTH_TOKEN="${apiKey}"
@@ -426,18 +429,17 @@ export GEMINI_MODEL="gemini-3-pro-preview"`;
 
   const handleSaveConfig = async () => {
     setSaving(true);
+    setSaveMessage(null);
     try {
-      const homeDir =
-        process.platform === "win32"
-          ? process.env.USERPROFILE
-          : process.env.HOME;
-
-      const configPath =
-        tool.name === "Claude Code"
-          ? `${homeDir}/.claude/settings.json`
-          : tool.name === "OpenCode"
-            ? `${homeDir}/.config/opencode/opencode.json`
-            : `${homeDir}/.codex/config.toml`;
+      const configResult = await window.electronAPI?.cli.readConfig(tool.name);
+      const configPath = configResult?.config?.configPath;
+      if (!configResult?.success || !configPath) {
+        setSaveMessage({
+          type: "error",
+          message: `保存失败: ${configResult?.error || "无法获取配置路径"}`,
+        });
+        return;
+      }
 
       const result = await window.electronAPI?.cli.writeConfig(
         configPath,
@@ -445,14 +447,20 @@ export GEMINI_MODEL="gemini-3-pro-preview"`;
         true,
       );
       if (result?.success) {
-        alert(
-          `配置已保存${result.backupPath ? `\n备份文件: ${result.backupPath}` : ""}`,
-        );
+        setSaveMessage({
+          type: "success",
+          message: `配置已保存\n保存路径: ${configPath}${
+            result.backupPath ? `\n备份文件: ${result.backupPath}` : ""
+          }`,
+        });
       } else {
-        alert(`保存失败: ${result?.error}`);
+        setSaveMessage({
+          type: "error",
+          message: `保存失败: ${result?.error}`,
+        });
       }
     } catch (error) {
-      alert(`保存失败: ${String(error)}`);
+      setSaveMessage({ type: "error", message: `保存失败: ${String(error)}` });
     } finally {
       setSaving(false);
     }
@@ -460,12 +468,17 @@ export GEMINI_MODEL="gemini-3-pro-preview"`;
 
   const handleSaveAuth = async () => {
     setSaving(true);
+    setSaveMessage(null);
     try {
-      const homeDir =
-        process.platform === "win32"
-          ? process.env.USERPROFILE
-          : process.env.HOME;
-      const authPath = `${homeDir}/.codex/auth.json`;
+      const configResult = await window.electronAPI?.cli.readConfig(tool.name);
+      const authPath = configResult?.config?.authPath;
+      if (!configResult?.success || !authPath) {
+        setSaveMessage({
+          type: "error",
+          message: `保存失败: ${configResult?.error || "无法获取认证路径"}`,
+        });
+        return;
+      }
 
       const result = await window.electronAPI?.cli.writeConfig(
         authPath,
@@ -473,14 +486,20 @@ export GEMINI_MODEL="gemini-3-pro-preview"`;
         true,
       );
       if (result?.success) {
-        alert(
-          `认证文件已保存${result.backupPath ? `\n备份文件: ${result.backupPath}` : ""}`,
-        );
+        setSaveMessage({
+          type: "success",
+          message: `认证文件已保存\n保存路径: ${authPath}${
+            result.backupPath ? `\n备份文件: ${result.backupPath}` : ""
+          }`,
+        });
       } else {
-        alert(`保存失败: ${result?.error}`);
+        setSaveMessage({
+          type: "error",
+          message: `保存失败: ${result?.error}`,
+        });
       }
     } catch (error) {
-      alert(`保存失败: ${String(error)}`);
+      setSaveMessage({ type: "error", message: `保存失败: ${String(error)}` });
     } finally {
       setSaving(false);
     }
@@ -568,6 +587,26 @@ export GEMINI_MODEL="gemini-3-pro-preview"`;
           </div>
 
           <div className="animate-fade-in">
+            {saveMessage && (
+              <div
+                className={`mb-4 rounded-2xl border px-4 py-3 flex items-start justify-between gap-3 transition-all duration-300 animate-scale-in origin-top ${
+                  saveMessage.type === "success"
+                    ? "bg-[var(--accent-primary)]/10 border-[var(--accent-primary)]/30 text-[var(--accent-primary)]"
+                    : "bg-red-500/10 border-red-500/30 text-red-400"
+                }`}
+              >
+                <div className="whitespace-pre-line text-sm font-medium">
+                  {saveMessage.message}
+                </div>
+                <button
+                  onClick={() => setSaveMessage(null)}
+                  className="p-1 rounded-lg hover:bg-white/10 text-[var(--text-primary)]/70"
+                  aria-label="Close message"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
             {activeTab === "connection" && (
               <div className="space-y-6">
                 <div>

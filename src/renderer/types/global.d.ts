@@ -44,6 +44,12 @@ interface ElectronAPI {
       notes: string;
     } | null>;
     openExternal: (url: string) => Promise<{ success: boolean }>;
+    getHomeDir: () => Promise<{
+      success: boolean;
+      homeDir?: string;
+      error?: string;
+    }>;
+    getPlatform: () => Promise<{ success: boolean; platform: string }>;
   };
   apiKeys: {
     getAll: () => Promise<{ success: boolean; keys: string[]; error?: string }>;

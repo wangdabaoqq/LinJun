@@ -418,6 +418,19 @@ export function setupIpcHandlers(): void {
     return app.getVersion();
   });
 
+  ipcMain.handle("app:getHomeDir", () => {
+    try {
+      return { success: true, homeDir: app.getPath("home") };
+    } catch (error) {
+      log.error("[IPC] Failed to get home directory:", error);
+      return { success: false, error: String(error) };
+    }
+  });
+
+  ipcMain.handle("app:getPlatform", () => {
+    return { success: true, platform: process.platform };
+  });
+
   ipcMain.handle("app:checkForUpdates", async () => {
     return await checkForUpdates();
   });
@@ -809,7 +822,10 @@ export function setupIpcHandlers(): void {
       try {
         // Validate path is within user's home directory
         const homeDir = app.getPath("home");
-        if (!isPathSafe(homeDir, filePath.replace(homeDir, ""))) {
+        const relativePath = path.isAbsolute(filePath)
+          ? path.relative(homeDir, filePath)
+          : filePath;
+        if (!isPathSafe(homeDir, relativePath)) {
           log.warn(`[IPC] Rejected unsafe path: ${filePath}`);
           return { success: false, error: "Invalid file path" };
         }

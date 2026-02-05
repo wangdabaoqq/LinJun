@@ -273,7 +273,7 @@ export const en = {
     title: "AGENTS",
     subtitle: "CLI Agent Detection & Configuration",
     detectedAgents: "DETECTED AGENTS",
-    scanSystem: "↻ SCAN SYSTEM",
+    scanSystem: "SCAN SYSTEM",
     configure: "CONFIGURE",
     configured: "CONFIGURED",
     notFound: "NOT FOUND",
