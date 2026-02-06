@@ -8,9 +8,6 @@ directories:
 asar: true
 compression: normal
 
-dmg:
-  writeUpdateInfo: false
-
 files:
   - "!**/.git/*"
   - "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}"
@@ -44,7 +41,7 @@ mac:
   category: public.app-category.developer-tools
   icon: resources/icon.icns
   target:
-    - target: dmg
+    - target: zip
       arch: [x64, arm64]
   hardenedRuntime: true
   gatekeeperAssess: false
