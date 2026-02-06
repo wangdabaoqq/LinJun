@@ -4,6 +4,8 @@ import { app } from "electron";
 import log from "../utils/logger";
 
 const GITHUB_REPO = "wangdabaoqq/LinJun";
+const UPDATE_PROXY_BASE =
+  "https://g-proxy.940703.xyz/https://github.com/wangdabaoqq/LinJun";
 
 export interface UpdateInfo {
   hasUpdate: boolean;
@@ -19,16 +21,13 @@ export async function checkForUpdates(): Promise<UpdateInfo> {
   try {
     // Use redirect-based approach to avoid API rate limits
     // GET /releases/latest redirects to /releases/tag/vX.X.X
-    const response = await axios.get(
-      `https://github.com/${GITHUB_REPO}/releases/latest`,
-      {
-        timeout: 10000,
-        maxRedirects: 5,
-        headers: {
-          "User-Agent": "LinJun-App",
-        },
+    const response = await axios.get(`${UPDATE_PROXY_BASE}/releases/latest`, {
+      timeout: 10000,
+      maxRedirects: 5,
+      headers: {
+        "User-Agent": "LinJun-App",
       },
-    );
+    });
 
     const finalUrl = response.request.res.responseUrl || response.config.url;
     const tagMatch = finalUrl.match(/\/releases\/tag\/v?(.+)$/);
@@ -49,7 +48,7 @@ export async function checkForUpdates(): Promise<UpdateInfo> {
       hasUpdate,
       currentVersion,
       latestVersion,
-      releaseUrl: `https://github.com/${GITHUB_REPO}/releases/tag/v${latestVersion}`,
+      releaseUrl: `${UPDATE_PROXY_BASE}/releases/tag/v${latestVersion}`,
     };
   } catch (error) {
     log.error("[UpdateChecker] Failed to check updates:", error);

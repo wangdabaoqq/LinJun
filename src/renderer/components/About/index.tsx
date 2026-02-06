@@ -197,7 +197,7 @@ export function About() {
                       onClick={() =>
                         handleOpenExternal(
                           updateStatus.result!.releaseUrl ||
-                            "https://github.com/wangdabaoqq/LinJun/releases",
+                            "https://g-proxy.940703.xyz/https://github.com/wangdabaoqq/LinJun/releases",
                         )
                       }
                       className="px-4 py-2 bg-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/90 text-white text-sm font-medium rounded-full transition-colors flex items-center gap-2 shadow-lg shadow-[var(--accent-primary)]/20"
