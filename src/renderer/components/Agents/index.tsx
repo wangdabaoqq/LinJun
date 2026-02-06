@@ -1,8 +1,21 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import log from "@renderer/utils/logger";
 import { useTranslations, useSettingsStore } from "../../stores/settings";
-import { X, Zap, Box, Globe, RefreshCw, Loader2 } from "lucide-react";
+import {
+  X,
+  Zap,
+  Box,
+  Globe,
+  RefreshCw,
+  Loader2,
+  Save,
+  Copy,
+  Check,
+  XCircle,
+} from "lucide-react";
 import { DEFAULT_PORT } from "../../../shared/constants";
+import { Modal } from "../ui/Modal";
+import { copyTextToClipboard } from "@renderer/utils/clipboard";
 
 interface CLIToolInfo {
   name: string;
@@ -260,6 +273,79 @@ function ConfigModal({ tool, onClose }: ConfigModalProps) {
   const hasEnvConfig =
     tool.name === "Claude Code" || tool.name === "Gemini CLI";
 
+  const tabItems = useMemo(() => {
+    const items: Array<{
+      id: "connection" | "config" | "auth" | "env";
+      label: string;
+    }> = [
+      {
+        id: "connection",
+        label: t.agents.tabConnection,
+      },
+    ];
+
+    if (hasConfigFiles) {
+      items.push({
+        id: "config",
+        label:
+          tool.name === "Claude Code"
+            ? t.agents.tabSettings
+            : tool.name === "OpenCode"
+              ? t.agents.tabConfigJson
+              : t.agents.tabConfigToml,
+      });
+    }
+
+    if (hasAuthFile) {
+      items.push({
+        id: "auth",
+        label: t.agents.tabAuth,
+      });
+    }
+
+    if (hasEnvConfig) {
+      items.push({
+        id: "env",
+        label: t.agents.tabEnv,
+      });
+    }
+
+    return items;
+  }, [
+    hasAuthFile,
+    hasConfigFiles,
+    hasEnvConfig,
+    t.agents.tabAuth,
+    t.agents.tabConfigJson,
+    t.agents.tabConfigToml,
+    t.agents.tabConnection,
+    t.agents.tabEnv,
+    t.agents.tabSettings,
+    tool.name,
+  ]);
+
+  const activeTabIndex = Math.max(
+    0,
+    tabItems.findIndex((item) => item.id === activeTab),
+  );
+
+  const tabSliderLeft = useMemo(() => {
+    if (tabItems.length === 4) {
+      if (activeTabIndex === 0) return "4px";
+      if (activeTabIndex === 1) return "calc(25% + 2px)";
+      if (activeTabIndex === 2) return "calc(50% + 1px)";
+      return "calc(75% - 1px)";
+    }
+
+    return `calc(${(100 / tabItems.length) * activeTabIndex}% + 2px)`;
+  }, [activeTabIndex, tabItems.length]);
+
+  useEffect(() => {
+    if (!tabItems.some((item) => item.id === activeTab)) {
+      setActiveTab(tabItems[0]?.id || "connection");
+    }
+  }, [activeTab, tabItems]);
+
   // 监听端口变化，自动更新 proxyUrl
   useEffect(() => {
     setProxyUrl(`http://127.0.0.1:${port}`);
@@ -318,7 +404,7 @@ function ConfigModal({ tool, onClose }: ConfigModalProps) {
   };
 
   const getDefaultCodexConfig = () => {
-    return `# CLIProxyAPI Configuration for Codex CLI
+    return `# ${t.agents.configCodexHeader}
 model_provider = "cliproxyapi"
 model = "gpt-5.2-codex"
 model_reasoning_effort = "high"
@@ -340,7 +426,7 @@ wire_api = "responses"`;
   };
 
   const getDefaultClaudeEnv = () => {
-    return `# CLIProxyAPI Configuration for Claude Code
+    return `# ${t.agents.configClaudeHeader}
 export ANTHROPIC_BASE_URL="${proxyUrl}"
 export ANTHROPIC_AUTH_TOKEN="${apiKey}"
 export ANTHROPIC_DEFAULT_OPUS_MODEL="gemini-claude-opus-4-5-thinking"
@@ -349,7 +435,7 @@ export ANTHROPIC_DEFAULT_HAIKU_MODEL="gemini-3-flash-preview"`;
   };
 
   const getDefaultGeminiEnv = () => {
-    return `# CLIProxyAPI Configuration for Gemini CLI
+    return `# ${t.agents.configGeminiHeader}
 export CODE_ASSIST_ENDPOINT="${proxyUrl}"
 export GEMINI_MODEL="gemini-3-pro-preview"`;
   };
@@ -368,7 +454,7 @@ export GEMINI_MODEL="gemini-3-pro-preview"`;
       provider: {
         linjun: {
           ...(Object.keys(models).length > 0 && { models }),
-          name: "LinJun Proxy",
+          name: t.agents.linjunProxy,
           npm: "@ai-sdk/anthropic",
           options: {
             apiKey: apiKey || "your-api-key",
@@ -415,7 +501,9 @@ export GEMINI_MODEL="gemini-3-pro-preview"`;
         proxyUrl,
         apiKey || undefined,
       );
-      setConnectionResult(result || { success: false, error: "No response" });
+      setConnectionResult(
+        result || { success: false, error: t.agents.noResponse },
+      );
     } catch (error) {
       setConnectionResult({ success: false, error: String(error) });
     } finally {
@@ -423,8 +511,25 @@ export GEMINI_MODEL="gemini-3-pro-preview"`;
     }
   };
 
-  const handleCopyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
+  const handleCopyToClipboard = async (text: string) => {
+    try {
+      const copied = await copyTextToClipboard(text);
+      if (!copied) {
+        throw new Error("copy not available");
+      }
+      setSaveMessage({
+        type: "success",
+        message: t.common.copied,
+      });
+      // Auto-clear success message after 2 seconds
+      setTimeout(() => setSaveMessage(null), 2000);
+    } catch (error) {
+      log.error("[Agents] Failed to copy to clipboard:", error);
+      setSaveMessage({
+        type: "error",
+        message: t.common.copyFailed,
+      });
+    }
   };
 
   const handleSaveConfig = async () => {
@@ -436,7 +541,10 @@ export GEMINI_MODEL="gemini-3-pro-preview"`;
       if (!configResult?.success || !configPath) {
         setSaveMessage({
           type: "error",
-          message: `保存失败: ${configResult?.error || "无法获取配置路径"}`,
+          message: t.agents.saveFailed.replace(
+            "{error}",
+            configResult?.error || t.agents.noPathError,
+          ),
         });
         return;
       }
@@ -449,18 +557,29 @@ export GEMINI_MODEL="gemini-3-pro-preview"`;
       if (result?.success) {
         setSaveMessage({
           type: "success",
-          message: `配置已保存\n保存路径: ${configPath}${
-            result.backupPath ? `\n备份文件: ${result.backupPath}` : ""
+          message: `${t.agents.saveSuccess}\n${t.agents.savePath.replace(
+            "{path}",
+            configPath,
+          )}${
+            result.backupPath
+              ? `\n${t.agents.backupFile.replace("{path}", result.backupPath)}`
+              : ""
           }`,
         });
       } else {
         setSaveMessage({
           type: "error",
-          message: `保存失败: ${result?.error}`,
+          message: t.agents.saveFailed.replace(
+            "{error}",
+            result?.error || t.agents.unknownError,
+          ),
         });
       }
     } catch (error) {
-      setSaveMessage({ type: "error", message: `保存失败: ${String(error)}` });
+      setSaveMessage({
+        type: "error",
+        message: t.agents.saveFailed.replace("{error}", String(error)),
+      });
     } finally {
       setSaving(false);
     }
@@ -475,7 +594,10 @@ export GEMINI_MODEL="gemini-3-pro-preview"`;
       if (!configResult?.success || !authPath) {
         setSaveMessage({
           type: "error",
-          message: `保存失败: ${configResult?.error || "无法获取认证路径"}`,
+          message: t.agents.saveFailed.replace(
+            "{error}",
+            configResult?.error || t.agents.noAuthPathError,
+          ),
         });
         return;
       }
@@ -488,366 +610,432 @@ export GEMINI_MODEL="gemini-3-pro-preview"`;
       if (result?.success) {
         setSaveMessage({
           type: "success",
-          message: `认证文件已保存\n保存路径: ${authPath}${
-            result.backupPath ? `\n备份文件: ${result.backupPath}` : ""
+          message: `${t.agents.authSaveSuccess}\n${t.agents.savePath.replace(
+            "{path}",
+            authPath,
+          )}${
+            result.backupPath
+              ? `\n${t.agents.backupFile.replace("{path}", result.backupPath)}`
+              : ""
           }`,
         });
       } else {
         setSaveMessage({
           type: "error",
-          message: `保存失败: ${result?.error}`,
+          message: t.agents.saveFailed.replace(
+            "{error}",
+            result?.error || t.agents.unknownError,
+          ),
         });
       }
     } catch (error) {
-      setSaveMessage({ type: "error", message: `保存失败: ${String(error)}` });
+      setSaveMessage({
+        type: "error",
+        message: t.agents.saveFailed.replace("{error}", String(error)),
+      });
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div
-        className="fixed inset-0 bg-[var(--overlay-bg)] backdrop-blur-xl animate-fade-in"
-        style={{ WebkitBackdropFilter: "blur(24px)" }}
-      />
-      <div className="relative w-full max-w-[800px] max-h-[85vh] flex flex-col overflow-hidden animate-scale-in shadow-[0_0_60px_-15px_rgba(0,0,0,0.3)] border border-[var(--glass-border)] rounded-2xl">
-        <div className="absolute inset-0 bg-gradient-to-br from-[var(--bg-primary)] via-[var(--bg-secondary)] to-[var(--bg-primary)] z-0" />
-        <div className="absolute inset-0 bg-[var(--bg-primary)]/60 backdrop-blur-2xl z-0" />
-
-        <div className="relative z-10 flex items-center justify-between p-6 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/30">
+    <Modal
+      isOpen={true}
+      onClose={onClose}
+      title={
+        <div className="flex items-center gap-4">
+          <div className="p-2.5 rounded-xl bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] shadow-[0_0_15px_-3px_var(--accent-primary)]">
+            <Box className="w-6 h-6 stroke-[2px]" />
+          </div>
           <div>
             <h2 className="text-xl font-bold text-[var(--text-primary)] tracking-tight">
-              {tool.name} {t.agents.proxyConfig || "配置"}
+              {tool.name} {t.agents.proxyConfig}
             </h2>
-            <p className="text-xs text-[var(--text-primary)]/70 mt-1 font-mono">
-              {tool.path || "未找到安装路径"}
+            <p className="text-[10px] text-[var(--text-dim)] mt-0.5 font-bold tracking-wider font-mono opacity-80">
+              {tool.path || t.agents.pathNotFound}
             </p>
           </div>
-          <button
-            onClick={onClose}
-            className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-white/10 text-[var(--text-primary)]/60 hover:text-[var(--text-primary)] transition-all"
-          >
-            <X className="w-5 h-5" />
-          </button>
+        </div>
+      }
+      maxWidth="max-w-[920px]"
+      className="isolation-isolate rounded-3xl"
+      bodyClassName="p-8 overflow-y-auto custom-scrollbar"
+    >
+      <div className="space-y-8">
+        <div
+          className="relative grid gap-1 p-1 bg-[var(--bg-tertiary)] rounded-2xl border border-[var(--glass-border)] shadow-inner"
+          role="tablist"
+          aria-label={t.agents.proxyConfig}
+          style={{
+            gridTemplateColumns: `repeat(${tabItems.length}, minmax(0, 1fr))`,
+          }}
+        >
+          <div
+            className="absolute top-1 bottom-1 rounded-xl bg-[var(--bg-primary)] shadow-soft-md transition-all duration-300 ease-out motion-reduce:transition-none"
+            style={{
+              width: `calc(${100 / tabItems.length}% - 4px)`,
+              left: tabSliderLeft,
+            }}
+          />
+          {tabItems.map((item) => {
+            return (
+              <button
+                key={item.id}
+                type="button"
+                role="tab"
+                aria-selected={activeTab === item.id}
+                aria-controls={`agent-config-tabpanel-${item.id}`}
+                id={`agent-config-tab-${item.id}`}
+                tabIndex={activeTab === item.id ? 0 : -1}
+                className={`relative z-10 py-2.5 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all duration-300 flex items-center justify-center ${
+                  activeTab === item.id
+                    ? "text-[var(--text-primary)]"
+                    : "text-[var(--text-dim)] hover:text-[var(--text-primary)]"
+                } motion-reduce:transition-none`}
+                onClick={() => setActiveTab(item.id)}
+              >
+                {item.label}
+              </button>
+            );
+          })}
         </div>
 
-        <div className="relative z-10 flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
-          <div className="flex gap-2 p-1 bg-[var(--bg-deep)] rounded-xl border border-white/5">
-            <button
-              className={`flex-1 px-4 py-2 text-xs font-bold uppercase tracking-widest rounded-lg transition-all ${
-                activeTab === "connection"
-                  ? "bg-white/10 text-[var(--accent-teal)] shadow-sm"
-                  : "text-[var(--text-primary)]/60 hover:text-[var(--text-primary)] hover:bg-white/5"
+        <div className="animate-fade-in">
+          {saveMessage && (
+            <div
+              className={`mb-4 rounded-xl border px-4 py-3 flex items-start justify-between gap-3 transition-all duration-300 animate-scale-in origin-top ${
+                saveMessage.type === "success"
+                  ? "bg-[var(--accent-primary)]/10 border-[var(--accent-primary)]/30 text-[var(--accent-primary)] dark:border-[var(--glass-border)]"
+                  : "bg-[var(--error)]/10 border-[var(--error)]/30 text-[var(--error)]"
               }`}
-              onClick={() => setActiveTab("connection")}
             >
-              连接信息
-            </button>
-            {hasConfigFiles && (
-              <button
-                className={`flex-1 px-4 py-2 text-xs font-bold uppercase tracking-widest rounded-lg transition-all ${
-                  activeTab === "config"
-                    ? "bg-white/10 text-[var(--accent-teal)] shadow-sm"
-                    : "text-[var(--text-primary)]/60 hover:text-[var(--text-primary)] hover:bg-white/5"
-                }`}
-                onClick={() => setActiveTab("config")}
-              >
-                {tool.name === "Claude Code"
-                  ? "settings.json"
-                  : tool.name === "OpenCode"
-                    ? "config.json"
-                    : "config.toml"}
-              </button>
-            )}
-            {hasAuthFile && (
-              <button
-                className={`flex-1 px-4 py-2 text-xs font-bold uppercase tracking-widest rounded-lg transition-all ${
-                  activeTab === "auth"
-                    ? "bg-white/10 text-[var(--accent-teal)] shadow-sm"
-                    : "text-[var(--text-primary)]/60 hover:text-[var(--text-primary)] hover:bg-white/5"
-                }`}
-                onClick={() => setActiveTab("auth")}
-              >
-                auth.json
-              </button>
-            )}
-            {hasEnvConfig && (
-              <button
-                className={`flex-1 px-4 py-2 text-xs font-bold uppercase tracking-widest rounded-lg transition-all ${
-                  activeTab === "env"
-                    ? "bg-white/10 text-[var(--accent-teal)] shadow-sm"
-                    : "text-[var(--text-primary)]/60 hover:text-[var(--text-primary)] hover:bg-white/5"
-                }`}
-                onClick={() => setActiveTab("env")}
-              >
-                环境变量
-              </button>
-            )}
-          </div>
-
-          <div className="animate-fade-in">
-            {saveMessage && (
-              <div
-                className={`mb-4 rounded-2xl border px-4 py-3 flex items-start justify-between gap-3 transition-all duration-300 animate-scale-in origin-top ${
-                  saveMessage.type === "success"
-                    ? "bg-[var(--accent-primary)]/10 border-[var(--accent-primary)]/30 text-[var(--accent-primary)]"
-                    : "bg-red-500/10 border-red-500/30 text-red-400"
-                }`}
-              >
-                <div className="whitespace-pre-line text-sm font-medium">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                {saveMessage.type === "success" ? (
+                  <Check className="w-4 h-4" />
+                ) : (
+                  <XCircle className="w-4 h-4" />
+                )}
+                <span className="whitespace-pre-line">
                   {saveMessage.message}
-                </div>
-                <button
-                  onClick={() => setSaveMessage(null)}
-                  className="p-1 rounded-lg hover:bg-white/10 text-[var(--text-primary)]/70"
-                  aria-label="Close message"
-                >
-                  <X className="w-4 h-4" />
-                </button>
+                </span>
               </div>
-            )}
-            {activeTab === "connection" && (
-              <div className="space-y-6">
+              <button
+                onClick={() => setSaveMessage(null)}
+                className="p-1 rounded-lg hover:bg-[var(--text-primary)]/10 text-[var(--text-primary)]/70"
+                aria-label={t.common.close}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
+          {activeTab === "connection" && (
+            <div
+              className="space-y-6 animate-slide-fade-in"
+              role="tabpanel"
+              id="agent-config-tabpanel-connection"
+              aria-labelledby="agent-config-tab-connection"
+            >
+              <div className="space-y-5 rounded-2xl border border-[var(--glass-border)] bg-[var(--text-primary)]/[0.02] p-5">
                 <div>
-                  <label className="block text-xs font-bold text-[var(--text-primary)]/70 uppercase tracking-widest mb-2 px-1">
-                    代理服务器 URL
+                  <label className="block text-[10px] font-bold text-[var(--text-dim)] uppercase tracking-widest mb-2 px-1">
+                    {t.agents.proxyUrl}
                   </label>
                   <input
                     type="text"
                     value={proxyUrl}
                     onChange={(e) => setProxyUrl(e.target.value)}
-                    className="glass-input w-full bg-[var(--bg-deep)] border-white/10 text-[var(--text-primary)] font-mono"
+                    className="glass-input w-full font-mono text-sm"
                     placeholder={`http://127.0.0.1:${DEFAULT_PORT}`}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-[var(--text-primary)]/70 uppercase tracking-widest mb-2 px-1">
-                    API 密钥 (可选)
+                  <label className="block text-[10px] font-bold text-[var(--text-dim)] uppercase tracking-widest mb-2 px-1">
+                    {t.agents.apiKey}
                   </label>
                   <input
                     type="text"
                     value={apiKey}
                     onChange={(e) => setApiKey(e.target.value)}
-                    className="glass-input w-full bg-[var(--bg-deep)] border-white/10 text-[var(--text-primary)] font-mono"
-                    placeholder="输入 API 密钥"
+                    className="glass-input w-full font-mono text-sm"
+                    placeholder={t.agents.apiKeyPlaceholder}
                   />
                 </div>
+              </div>
 
-                <button
-                  onClick={handleTestConnection}
-                  disabled={testingConnection}
-                  className={`w-full py-3.5 rounded-xl flex items-center justify-center gap-3 transition-all duration-300 font-bold shadow-lg active:scale-95 group ${
-                    testingConnection
-                      ? "bg-white/10 text-[var(--text-primary)]/50 cursor-not-allowed"
-                      : "bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] text-white shadow-blue-500/20"
+              <button
+                onClick={handleTestConnection}
+                disabled={testingConnection}
+                className={`w-full h-11 rounded-xl text-sm font-semibold transition-all active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${
+                  testingConnection
+                    ? "border border-[var(--glass-border)] text-[var(--text-dim)] bg-[var(--bg-secondary)]/50"
+                    : "glass-btn glass-btn-primary"
+                }`}
+              >
+                {testingConnection ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    {t.agents.testing}
+                  </>
+                ) : (
+                  <>
+                    <Zap className="w-4 h-4" />
+                    {t.agents.testConnection}
+                  </>
+                )}
+              </button>
+
+              {connectionResult && (
+                <div
+                  className={`overflow-hidden rounded-xl border backdrop-blur-md transition-all duration-500 animate-scale-in origin-top ${
+                    connectionResult.success
+                      ? "bg-[var(--success)]/8 border-[var(--glass-border)] shadow-inner dark:bg-[var(--success)]/18"
+                      : "bg-[var(--error)]/10 border-[var(--error)]/30"
                   }`}
                 >
-                  {testingConnection ? (
-                    <>
-                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      <span>正在测试...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Zap className="w-5 h-5 fill-white/20 group-hover:scale-125 group-hover:rotate-12 transition-transform" />
-                      <span>测试连接</span>
-                    </>
-                  )}
-                </button>
+                  <div className="p-4 flex items-center gap-4">
+                    <div
+                      className={`relative flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center shadow-inner ${
+                        connectionResult.success
+                          ? "bg-[var(--success)]/12 text-[var(--success)] border border-[var(--glass-border)] dark:bg-[var(--success)]/25 dark:border-[var(--glass-border)]"
+                          : "bg-[var(--error)] text-white"
+                      }`}
+                    >
+                      {connectionResult.success ? (
+                        <>
+                          <span className="absolute inset-0 rounded-xl bg-[var(--success)]/15 animate-pulse dark:bg-[var(--success)]/25" />
+                          <Check className="relative w-6 h-6" />
+                        </>
+                      ) : (
+                        <X className="w-5 h-5" />
+                      )}
+                    </div>
 
-                {connectionResult && (
-                  <div
-                    className={`overflow-hidden rounded-2xl border backdrop-blur-md transition-all duration-500 animate-scale-in origin-top ${
-                      connectionResult.success
-                        ? "bg-[var(--accent-primary)]/10 border-[var(--accent-primary)]/30 shadow-[0_0_20px_-5px_rgba(var(--accent-primary-rgb),0.3)]"
-                        : "bg-red-500/10 border-red-500/30"
-                    }`}
-                  >
-                    <div className="p-5 flex items-start gap-4">
-                      <div
-                        className={`flex-shrink-0 w-12 h-12 rounded-2xl flex items-center justify-center shadow-inner ${
-                          connectionResult.success
-                            ? "bg-[var(--accent-primary)] text-white shadow-blue-500/20"
-                            : "bg-red-500 text-white"
-                        }`}
-                      >
-                        {connectionResult.success ? (
-                          <Zap className="w-6 h-6" />
-                        ) : (
-                          <X className="w-6 h-6" />
-                        )}
-                      </div>
-
-                      <div className="flex-1 min-w-0">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5">
                         <h4
-                          className={`text-lg font-bold mb-1 ${
+                          className={`text-sm font-bold ${
                             connectionResult.success
-                              ? "text-[var(--accent-primary)]"
-                              : "text-red-500"
+                              ? "text-[var(--success)]"
+                              : "text-[var(--error)]"
                           }`}
                         >
-                          {connectionResult.success ? "连接成功" : "连接失败"}
+                          {connectionResult.success
+                            ? t.agents.testSuccess
+                            : t.agents.testFailed}
                         </h4>
-
                         {connectionResult.success && (
-                          <div className="flex items-center gap-2 text-sm text-[var(--text-primary)] font-medium">
-                            <span className="opacity-70">响应时间:</span>
-                            <span
-                              className={`font-mono font-bold px-2 py-0.5 rounded-lg bg-black/20 ${
-                                (connectionResult.latency || 0) < 200
-                                  ? "text-[var(--success)]"
-                                  : (connectionResult.latency || 0) < 500
-                                    ? "text-[var(--warning)]"
-                                    : "text-[var(--error)]"
-                              }`}
-                            >
-                              {connectionResult.latency}ms
-                            </span>
-                          </div>
-                        )}
-
-                        {connectionResult.error && (
-                          <div className="mt-3 text-xs font-mono bg-black/40 p-3 rounded-xl border border-white/5 text-red-400 break-all shadow-inner leading-relaxed">
-                            {connectionResult.error}
-                          </div>
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-[var(--success)]/40 bg-[var(--success)]/12 text-[var(--success)] text-[10px] font-bold uppercase tracking-wide dark:bg-[var(--success)]/20 dark:border-[var(--glass-border)] dark:text-[var(--text-primary)]">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[var(--success)] animate-pulse" />
+                            {t.status.online}
+                          </span>
                         )}
                       </div>
+
+                      {connectionResult.success && (
+                        <p className="text-[11px] text-[var(--text-dim)] mb-2">
+                          {t.agents.testSuccessReady}
+                        </p>
+                      )}
+
+                      {connectionResult.success && (
+                        <div className="flex items-center gap-2 text-xs text-[var(--text-primary)] font-medium">
+                          <span className="opacity-70">{t.agents.latency}</span>
+                          <span
+                            className={`font-mono font-bold px-1.5 py-0.5 rounded bg-[var(--bg-tertiary)] ${
+                              (connectionResult.latency || 0) < 200
+                                ? "text-[var(--success)]"
+                                : (connectionResult.latency || 0) < 500
+                                  ? "text-[var(--warning)]"
+                                  : "text-[var(--error)]"
+                            }`}
+                          >
+                            {connectionResult.latency}
+                            {t.agents.ms}
+                          </span>
+                        </div>
+                      )}
+
+                      {connectionResult.error && (
+                        <div className="mt-2 text-[10px] font-mono bg-[var(--bg-tertiary)] p-2 rounded border border-[var(--glass-border)] text-[var(--error)] break-all shadow-inner leading-relaxed">
+                          {connectionResult.error}
+                        </div>
+                      )}
                     </div>
                   </div>
-                )}
-              </div>
-            )}
+                </div>
+              )}
+            </div>
+          )}
 
-            {activeTab === "config" && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between mb-2 px-1">
-                  <span className="text-xs font-bold text-[var(--text-primary)]/50 font-mono">
-                    {tool.name === "Claude Code"
-                      ? "~/.claude/settings.json"
-                      : tool.name === "OpenCode"
-                        ? "~/.config/opencode/opencode.json"
-                        : "~/.codex/config.toml"}
-                  </span>
-                  <button
-                    onClick={() => handleCopyToClipboard(configContent)}
-                    className="glass-btn text-[10px] font-bold uppercase tracking-widest py-1 px-3 bg-white/5 hover:bg-white/10"
-                  >
-                    复制内容
-                  </button>
-                </div>
-                <div className="relative group">
-                  <textarea
-                    value={configContent}
-                    onChange={(e) => setConfigContent(e.target.value)}
-                    className="glass-input w-full h-72 font-mono text-xs bg-[var(--bg-deep)] border-white/10 text-[var(--text-primary)] focus:border-[var(--accent-teal)]/50 resize-none custom-scrollbar"
-                    spellCheck={false}
-                  />
-                  <div className="absolute top-0 right-0 p-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Box className="w-4 h-4 text-white/10" />
-                  </div>
-                </div>
+          {activeTab === "config" && (
+            <div
+              className="space-y-4"
+              role="tabpanel"
+              id="agent-config-tabpanel-config"
+              aria-labelledby="agent-config-tab-config"
+            >
+              <div className="flex items-center justify-between mb-2 px-1">
+                <span className="text-xs font-bold text-[var(--text-dim)] font-mono">
+                  {tool.name === "Claude Code"
+                    ? `~/.claude/${t.agents.tabSettings}`
+                    : tool.name === "OpenCode"
+                      ? `~/.config/opencode/${t.agents.tabConfigJson}`
+                      : `~/.codex/${t.agents.tabConfigToml}`}
+                </span>
                 <button
-                  onClick={handleSaveConfig}
-                  disabled={saving}
-                  className="w-full py-3 rounded-xl font-bold text-sm bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] text-white shadow-lg shadow-blue-500/20 active:scale-[0.98] transition-all disabled:opacity-50"
+                  onClick={() => handleCopyToClipboard(configContent)}
+                  className="glass-btn text-[10px] font-bold uppercase tracking-widest py-1 px-3 bg-[var(--text-primary)]/5 hover:bg-[var(--text-primary)]/10 flex items-center gap-1.5"
                 >
-                  {saving ? "保存中..." : "保存配置文件"}
+                  <Copy className="w-3 h-3" />
+                  {t.agents.copyContent}
                 </button>
-                <p className="text-[10px] text-[var(--text-primary)]/40 text-center font-medium">
-                  💡 保存时会自动备份现有配置文件
-                </p>
               </div>
-            )}
-
-            {activeTab === "auth" && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between mb-2 px-1">
-                  <span className="text-xs font-bold text-[var(--text-primary)]/50 font-mono">
-                    ~/.codex/auth.json
-                  </span>
-                  <button
-                    onClick={() => handleCopyToClipboard(authContent)}
-                    className="glass-btn text-[10px] font-bold uppercase tracking-widest py-1 px-3 bg-white/5 hover:bg-white/10"
-                  >
-                    复制内容
-                  </button>
-                </div>
+              <div className="relative group">
                 <textarea
-                  value={authContent}
-                  onChange={(e) => setAuthContent(e.target.value)}
-                  className="glass-input w-full h-72 font-mono text-xs bg-[var(--bg-deep)] border-white/10 text-[var(--text-primary)] focus:border-[var(--accent-teal)]/50 resize-none custom-scrollbar"
+                  value={configContent}
+                  onChange={(e) => setConfigContent(e.target.value)}
+                  className="glass-input w-full h-72 font-mono text-xs focus:border-[var(--accent-teal)]/50 resize-none custom-scrollbar"
                   spellCheck={false}
                 />
+                <div className="absolute top-0 right-0 p-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Box className="w-4 h-4 text-[var(--text-primary)]/10" />
+                </div>
+              </div>
+              <button
+                onClick={handleSaveConfig}
+                disabled={saving}
+                className="w-full h-11 rounded-xl text-sm font-semibold transition-all active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed glass-btn glass-btn-primary flex items-center justify-center gap-2"
+              >
+                {saving ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    {t.agents.saving}
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4" />
+                    {t.agents.saveConfig}
+                  </>
+                )}
+              </button>
+              <p className="text-[10px] text-[var(--text-dim)] text-center font-medium">
+                {t.agents.backupTip}
+              </p>
+            </div>
+          )}
+
+          {activeTab === "auth" && (
+            <div
+              className="space-y-4"
+              role="tabpanel"
+              id="agent-config-tabpanel-auth"
+              aria-labelledby="agent-config-tab-auth"
+            >
+              <div className="flex items-center justify-between mb-2 px-1">
+                <span className="text-xs font-bold text-[var(--text-dim)] font-mono">
+                  ~/.codex/{t.agents.tabAuth}
+                </span>
                 <button
-                  onClick={handleSaveAuth}
-                  disabled={saving}
-                  className="w-full py-3 rounded-xl font-bold text-sm bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] text-white shadow-lg shadow-blue-500/20 active:scale-[0.98] transition-all disabled:opacity-50"
+                  onClick={() => handleCopyToClipboard(authContent)}
+                  className="glass-btn text-[10px] font-bold uppercase tracking-widest py-1 px-3 bg-[var(--text-primary)]/5 hover:bg-[var(--text-primary)]/10 flex items-center gap-1.5"
                 >
-                  {saving ? "保存中..." : "保存认证文件"}
+                  <Copy className="w-3 h-3" />
+                  {t.agents.copyContent}
                 </button>
               </div>
-            )}
+              <textarea
+                value={authContent}
+                onChange={(e) => setAuthContent(e.target.value)}
+                className="glass-input w-full h-72 font-mono text-xs focus:border-[var(--accent-teal)]/50 resize-none custom-scrollbar"
+                spellCheck={false}
+              />
+              <button
+                onClick={handleSaveAuth}
+                disabled={saving}
+                className="w-full h-11 rounded-xl text-sm font-semibold transition-all active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed glass-btn glass-btn-primary flex items-center justify-center gap-2"
+              >
+                {saving ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    {t.agents.saving}
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4" />
+                    {t.agents.saveAuth}
+                  </>
+                )}
+              </button>
+            </div>
+          )}
 
-            {activeTab === "env" && (
-              <div className="space-y-5">
-                <div className="flex items-center justify-between mb-2 px-1">
-                  <span className="text-xs font-bold text-[var(--text-primary)]/50 font-mono uppercase tracking-wider">
-                    ENV CONFIG (bash/zsh)
-                  </span>
-                  <button
-                    onClick={() => handleCopyToClipboard(envContent)}
-                    className="glass-btn text-[10px] font-bold uppercase tracking-widest py-1 px-3 bg-white/5 hover:bg-white/10"
-                  >
-                    复制命令
-                  </button>
-                </div>
-                <div className="relative">
-                  <textarea
-                    value={envContent}
-                    readOnly
-                    className="glass-input w-full h-72 font-mono text-xs bg-[var(--bg-deep)] border-white/10 text-[var(--text-primary)] resize-none custom-scrollbar leading-relaxed"
-                    spellCheck={false}
-                  />
-                  <div className="absolute top-4 right-4 animate-pulse">
-                    <div className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)] shadow-[0_0_8px_var(--accent-primary)]" />
-                  </div>
-                </div>
-                <div className="bg-white/5 rounded-2xl p-5 border border-white/5 space-y-3">
-                  <p className="text-xs font-bold text-[var(--text-primary)] uppercase tracking-widest flex items-center gap-2">
-                    <Globe className="w-3.5 h-3.5" />
-                    使用指南
-                  </p>
-                  <ol className="text-xs text-[var(--text-primary)]/70 space-y-2.5 ml-4 list-decimal font-medium leading-relaxed">
-                    <li>复制上面的环境变量配置</li>
-                    <li>粘贴到终端执行（立即在该终端窗口生效）</li>
-                    <li>
-                      或将其添加到{" "}
-                      <code className="bg-black/30 px-1 rounded text-[var(--accent-teal)]">
-                        ~/.bashrc
-                      </code>{" "}
-                      或{" "}
-                      <code className="bg-black/30 px-1 rounded text-[var(--accent-teal)]">
-                        ~/.zshrc
-                      </code>{" "}
-                      中（全局永久生效）
-                    </li>
-                    <li>
-                      执行{" "}
-                      <code className="bg-black/30 px-1 rounded text-[var(--accent-teal)]">
-                        source ~/.zshrc
-                      </code>{" "}
-                      使其立即生效
-                    </li>
-                  </ol>
+          {activeTab === "env" && (
+            <div
+              className="space-y-5"
+              role="tabpanel"
+              id="agent-config-tabpanel-env"
+              aria-labelledby="agent-config-tab-env"
+            >
+              <div className="flex items-center justify-between mb-2 px-1">
+                <span className="text-xs font-bold text-[var(--text-dim)] font-mono uppercase tracking-wider">
+                  {t.agents.envConfigTitle}
+                </span>
+                <button
+                  onClick={() => handleCopyToClipboard(envContent)}
+                  className="glass-btn text-[10px] font-bold uppercase tracking-widest py-1 px-3 bg-[var(--text-primary)]/5 hover:bg-[var(--text-primary)]/10 flex items-center gap-1.5"
+                >
+                  <Copy className="w-3 h-3" />
+                  {t.agents.copyCommand}
+                </button>
+              </div>
+              <div className="relative">
+                <textarea
+                  value={envContent}
+                  readOnly
+                  className="glass-input w-full h-72 font-mono text-xs focus:border-[var(--accent-teal)]/50 resize-none custom-scrollbar leading-relaxed"
+                  spellCheck={false}
+                />
+                <div className="absolute top-4 right-4 animate-pulse">
+                  <div className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)] shadow-[0_0_8px_var(--accent-primary)]" />
                 </div>
               </div>
-            )}
-          </div>
+              <div className="bg-[var(--text-primary)]/5 rounded-xl p-5 border border-[var(--glass-border)] space-y-3">
+                <p className="text-xs font-bold text-[var(--text-primary)] uppercase tracking-widest flex items-center gap-2">
+                  <Globe className="w-3.5 h-3.5" />
+                  {t.agents.guideTitle}
+                </p>
+                <ol className="text-xs text-[var(--text-primary)]/70 space-y-2.5 ml-4 list-decimal font-medium leading-relaxed">
+                  <li>{t.agents.guideStep1}</li>
+                  <li>{t.agents.guideStep2}</li>
+                  <li>
+                    {t.agents.guideStep3
+                      .split("{file1}")[0]
+                      .replace("{file2}", "")}
+                    <code className="bg-[var(--bg-tertiary)] px-1 rounded text-[var(--accent-teal)]">
+                      ~/.bashrc
+                    </code>
+                    {t.agents.guideOr}
+                    <code className="bg-[var(--bg-tertiary)] px-1 rounded text-[var(--accent-teal)]">
+                      ~/.zshrc
+                    </code>
+                    {t.agents.guideStep3.split("{file2}")[1]}
+                  </li>
+                  <li>
+                    {t.agents.guideStep4.split("{command}")[0]}
+                    <code className="bg-[var(--bg-tertiary)] px-1 rounded text-[var(--accent-teal)]">
+                      source ~/.zshrc
+                    </code>
+                    {t.agents.guideStep4.split("{command}")[1]}
+                  </li>
+                </ol>
+              </div>
+            </div>
+          )}
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }
 
@@ -905,9 +1093,9 @@ export function Agents() {
   const getStatusText = (status: string) => {
     switch (status) {
       case "installed":
-        return t.agents.configured || "已安装";
+        return t.agents.configured;
       default:
-        return t.agents.notFound || "未找到";
+        return t.agents.notFound;
     }
   };
 
@@ -935,7 +1123,7 @@ export function Agents() {
             {scanning ? (
               <>
                 <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" />
-                扫描中...
+                {t.agents.scanning}
               </>
             ) : (
               <>
@@ -950,7 +1138,7 @@ export function Agents() {
           <div className="flex flex-col items-center justify-center py-12 text-[var(--text-muted)] gap-3">
             <Loader2 className="w-8 h-8 animate-spin text-[var(--accent-primary)]" />
             <p className="text-sm font-medium tracking-wide opacity-70">
-              检测中...
+              {t.agents.detecting}
             </p>
           </div>
         ) : (
@@ -973,7 +1161,8 @@ export function Agents() {
                       {agent.name}
                     </div>
                     <div className="text-xs terminal-text text-[var(--text-dim)]">
-                      {agent.path || `命令: ${agent.command}`}
+                      {agent.path ||
+                        `${t.agents.commandPrefix}${agent.command}`}
                     </div>
                   </div>
                 </div>
@@ -990,7 +1179,7 @@ export function Agents() {
                       onClick={() => setSelectedTool(agent)}
                     >
                       <Box className="w-3 h-3 group-hover:scale-110 transition-transform" />
-                      配置
+                      {t.agents.configure}
                     </button>
                   ) : (
                     <span className="text-xs text-[var(--text-dim)]">

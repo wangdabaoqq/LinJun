@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Zap, X, Box, Save, Wifi, Check, XCircle } from "lucide-react";
+import { Zap, X, Box, Save, XCircle } from "lucide-react";
 
 import { useTranslations } from "../../../stores/settings";
 import {
@@ -832,7 +832,7 @@ export function CustomProviderForm({
               {isTesting ? (
                 <div className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin" />
               ) : (
-                <Wifi className="w-4 h-4" />
+                <Zap className="w-4 h-4" />
               )}
               {isTesting
                 ? t.providers.customTesting
@@ -844,7 +844,7 @@ export function CustomProviderForm({
               >
                 {testResult.success ? (
                   <>
-                    <Check className="w-4 h-4" />
+                    <Zap className="w-4 h-4" />
                     <span>{t.providers.customTestSuccess}</span>
                     {testResult.serviceType && (
                       <span className="text-[var(--text-dim)] font-normal ml-1">
