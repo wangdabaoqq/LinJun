@@ -139,6 +139,10 @@ Go to **Agents** tab → Select detected agent → Configure to use local proxy.
 | -------------------------------------- | ---------------------------------------- |
 | ![Agents](docs/screenshots/agents.png) | ![API Key](docs/screenshots/api-key.png) |
 
+| Guide                                | Logs                               |
+| ------------------------------------ | ---------------------------------- |
+| ![Guide](docs/screenshots/guide.png) | ![Logs](docs/screenshots/logs.png) |
+
 ## ⚙️ Settings
 
 - **Port**: Change the proxy listening port (default: 8310)

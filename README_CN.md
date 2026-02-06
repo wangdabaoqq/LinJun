@@ -140,6 +140,10 @@ bun run build:all      # 所有平台
 | -------------------------------------- | ---------------------------------------- |
 | ![Agents](docs/screenshots/agents.png) | ![API Key](docs/screenshots/api-key.png) |
 
+| 引导页                               | 日志                               |
+| ------------------------------------ | ---------------------------------- |
+| ![Guide](docs/screenshots/guide.png) | ![Logs](docs/screenshots/logs.png) |
+
 ## ⚙️ 设置选项
 
 - **端口**：更改代理监听端口（默认：8310）
