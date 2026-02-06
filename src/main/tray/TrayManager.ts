@@ -62,7 +62,11 @@ export class TrayManager {
     if (!this.tray) return;
 
     this.tray.on("click", () => {
-      this.toggleWindow();
+      if (isWindows) {
+        this.openDashboard();
+      } else {
+        this.toggleWindow();
+      }
     });
 
     this.tray.on("right-click", () => {
