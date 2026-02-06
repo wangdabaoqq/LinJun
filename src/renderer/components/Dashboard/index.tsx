@@ -21,7 +21,15 @@ import { useTranslations } from "../../stores/settings";
 import { getProviderIcon } from "../icons/ProviderIcons";
 import { Modal } from "../ui/Modal";
 
-function StatusBadge({ running }: { running: boolean }) {
+function StatusBadge({
+  running,
+  runningText,
+  stoppedText,
+}: {
+  running: boolean;
+  runningText: string;
+  stoppedText: string;
+}) {
   return (
     <div
       className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium ${
@@ -33,7 +41,7 @@ function StatusBadge({ running }: { running: boolean }) {
       <span
         className={`w-2 h-2 rounded-full ${running ? "bg-[var(--accent-primary)] animate-pulse" : "bg-red-500"}`}
       />
-      {running ? "运行中" : "已停止"}
+      {running ? runningText : stoppedText}
     </div>
   );
 }
@@ -181,20 +189,33 @@ export function QuotaBar({
 
 function AccountStatusCard({
   accounts,
+  labels,
 }: {
   accounts: { status: string; count: number }[];
+  labels: {
+    accountStatus: string;
+    accountsCount: string;
+    active: string;
+    cooling: string;
+    error: string;
+  };
 }) {
   const total = accounts.reduce((sum, a) => sum + a.count, 0);
+  const getStatusLabel = (status: string) => {
+    if (status === "active") return labels.active;
+    if (status === "cooling") return labels.cooling;
+    return labels.error;
+  };
 
   return (
     <div className="glass-card p-4">
       <div className="flex items-center gap-2 mb-4">
         <Users className="w-4 h-4 text-[var(--text-muted)]" />
         <span className="text-sm font-medium text-[var(--text-primary)]">
-          账户状态
+          {labels.accountStatus}
         </span>
         <span className="text-xs text-[var(--text-dim)] ml-auto">
-          {total} 个账户
+          {labels.accountsCount.replace("{count}", String(total))}
         </span>
       </div>
       <div className="flex gap-2 mb-3">
@@ -227,12 +248,7 @@ function AccountStatusCard({
               }`}
             />
             <span className="text-[var(--text-muted)]">
-              {status === "active"
-                ? "活跃"
-                : status === "cooling"
-                  ? "冷却"
-                  : "错误"}
-              : {count}
+              {getStatusLabel(status)}: {count}
             </span>
           </div>
         ))}
@@ -243,6 +259,7 @@ function AccountStatusCard({
 
 function ProviderTable({
   providers,
+  labels,
 }: {
   providers: {
     provider: string;
@@ -251,10 +268,20 @@ function ProviderTable({
     successRate: number;
     avgLatency: number;
   }[];
+  labels: {
+    noData: string;
+    provider: string;
+    requests: string;
+    tokens: string;
+    successRate: string;
+    latency: string;
+  };
 }) {
   if (providers.length === 0) {
     return (
-      <div className="text-center py-8 text-[var(--text-muted)]">暂无数据</div>
+      <div className="text-center py-8 text-[var(--text-muted)]">
+        {labels.noData}
+      </div>
     );
   }
 
@@ -263,11 +290,13 @@ function ProviderTable({
       <table className="w-full">
         <thead>
           <tr className="text-xs text-[var(--text-dim)] border-b border-[var(--border-primary)]">
-            <th className="text-left py-2 font-medium">Provider</th>
-            <th className="text-right py-2 font-medium">请求数</th>
-            <th className="text-right py-2 font-medium">Tokens</th>
-            <th className="text-right py-2 font-medium">成功率</th>
-            <th className="text-right py-2 font-medium">延迟</th>
+            <th className="text-left py-2 font-medium">{labels.provider}</th>
+            <th className="text-right py-2 font-medium">{labels.requests}</th>
+            <th className="text-right py-2 font-medium">{labels.tokens}</th>
+            <th className="text-right py-2 font-medium">
+              {labels.successRate}
+            </th>
+            <th className="text-right py-2 font-medium">{labels.latency}</th>
           </tr>
         </thead>
         <tbody>
@@ -313,9 +342,14 @@ function ProviderTable({
 function TrendChart({
   data,
   height = 60,
+  labels,
 }: {
   data: { hour: string; count: number }[];
   height?: number;
+  labels: {
+    noTrendData: string;
+    tooltip: string;
+  };
 }) {
   if (data.length === 0 || data.every((d) => d.count === 0)) {
     return (
@@ -323,7 +357,7 @@ function TrendChart({
         className="flex items-center justify-center text-[var(--text-dim)] text-sm"
         style={{ height }}
       >
-        暂无趋势数据
+        {labels.noTrendData}
       </div>
     );
   }
@@ -340,7 +374,9 @@ function TrendChart({
             height: `${(d.count / max) * 100}%`,
             minHeight: d.count > 0 ? 4 : 0,
           }}
-          title={`${d.hour}: ${d.count} 请求`}
+          title={labels.tooltip
+            .replace("{hour}", d.hour)
+            .replace("{count}", String(d.count))}
         />
       ))}
     </div>
@@ -349,6 +385,7 @@ function TrendChart({
 
 function TokenBreakdownCard({
   breakdown,
+  labels,
 }: {
   breakdown: {
     input: number;
@@ -357,6 +394,15 @@ function TokenBreakdownCard({
     cached: number;
     total: number;
   } | null;
+  labels: {
+    title: string;
+    noData: string;
+    input: string;
+    output: string;
+    reasoning: string;
+    cached: string;
+    total: string;
+  };
 }) {
   if (!breakdown || breakdown.total === 0) {
     return (
@@ -364,29 +410,33 @@ function TokenBreakdownCard({
         <div className="flex items-center gap-2 mb-3">
           <Database className="w-4 h-4 text-[var(--text-muted)]" />
           <span className="text-sm font-medium text-[var(--text-primary)]">
-            Token 细分
+            {labels.title}
           </span>
         </div>
         <div className="text-center py-4 text-[var(--text-muted)] text-sm">
-          暂无 Token 数据
+          {labels.noData}
         </div>
       </div>
     );
   }
 
   const items = [
-    { label: "输入", value: breakdown.input, color: "var(--accent-primary)" },
     {
-      label: "输出",
+      label: labels.input,
+      value: breakdown.input,
+      color: "var(--accent-primary)",
+    },
+    {
+      label: labels.output,
       value: breakdown.output,
       color: "var(--accent-secondary)",
     },
     {
-      label: "推理",
+      label: labels.reasoning,
       value: breakdown.reasoning,
       color: "var(--accent-tertiary)",
     },
-    { label: "缓存", value: breakdown.cached, color: "#10b981" },
+    { label: labels.cached, value: breakdown.cached, color: "#10b981" },
   ];
 
   const formatTokens = (n: number) => {
@@ -401,11 +451,11 @@ function TokenBreakdownCard({
         <div className="flex items-center gap-2">
           <Database className="w-4 h-4 text-[var(--text-muted)]" />
           <span className="text-sm font-medium text-[var(--text-primary)]">
-            Token 细分
+            {labels.title}
           </span>
         </div>
         <span className="text-xs text-[var(--text-dim)]">
-          {formatTokens(breakdown.total)} 总计
+          {formatTokens(breakdown.total)} {labels.total}
         </span>
       </div>
       <div className="space-y-2">
@@ -499,7 +549,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
           : q.accountId;
         return {
           id: q.accountId,
-          name: name || "Custom",
+          name: name || t.dashboard.customPrefix,
           protocol: account?.provider || "custom",
           used: q.used,
           limit: q.limit,
@@ -507,7 +557,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
         };
       });
     return options;
-  }, [quotas, accounts]);
+  }, [quotas, accounts, t.dashboard.customPrefix]);
 
   useEffect(() => {
     if (customQuotaOptions.length === 0) {
@@ -550,7 +600,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
 
     if (selectedCustom) {
       entries.push({
-        provider: `自定义 · ${selectedCustom.name}`,
+        provider: `${t.dashboard.customPrefix} · ${selectedCustom.name}`,
         used: selectedCustom.used,
         limit: selectedCustom.limit,
         resetAt: selectedCustom.resetAt,
@@ -558,7 +608,12 @@ export function Dashboard({ onNavigate }: DashboardProps) {
     }
 
     return entries;
-  }, [customQuotaOptions, quotas, selectedCustomProvider]);
+  }, [
+    customQuotaOptions,
+    quotas,
+    selectedCustomProvider,
+    t.dashboard.customPrefix,
+  ]);
 
   const customProviderCount = customQuotaOptions.length;
 
@@ -574,16 +629,16 @@ export function Dashboard({ onNavigate }: DashboardProps) {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-[var(--text-primary)]">
-            仪表盘
+            {t.dashboard.title}
           </h1>
           <p className="text-sm text-[var(--text-muted)] mt-1">
-            CLIProxyAPIPlus 运行状态概览
+            {t.dashboard.overview}
           </p>
         </div>
         <div className="flex items-center gap-4">
           {lastUpdated && (
             <span className="text-xs text-[var(--text-dim)]">
-              更新于 {lastUpdated.toLocaleTimeString()}
+              {t.dashboard.updatedAt} {lastUpdated.toLocaleTimeString()}
             </span>
           )}
           <button
@@ -595,14 +650,21 @@ export function Dashboard({ onNavigate }: DashboardProps) {
               className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`}
             />
           </button>
-          <StatusBadge running={proxyStatus.running} />
+          <StatusBadge
+            running={proxyStatus.running}
+            runningText={t.status.running}
+            stoppedText={t.status.stopped}
+          />
         </div>
       </div>
 
       <div className="glass-card p-6">
         <div className="flex flex-col lg:flex-row items-center gap-8">
           <div className="flex items-center gap-6">
-            <HealthGauge score={healthScore.overall} label="总体健康度" />
+            <HealthGauge
+              score={healthScore.overall}
+              label={t.dashboard.overallHealth}
+            />
             <div className="hidden sm:flex flex-col gap-2">
               <div className="flex items-center gap-2">
                 <div className="w-16 h-1.5 bg-soft rounded-full overflow-hidden">
@@ -612,7 +674,8 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                   />
                 </div>
                 <span className="text-xs text-[var(--text-muted)]">
-                  可用性 {Math.round(healthScore.availability)}%
+                  {t.dashboard.availability}{" "}
+                  {Math.round(healthScore.availability)}%
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -623,7 +686,8 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                   />
                 </div>
                 <span className="text-xs text-[var(--text-muted)]">
-                  性能 {Math.round(healthScore.performance)}%
+                  {t.dashboard.performance}{" "}
+                  {Math.round(healthScore.performance)}%
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -634,7 +698,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                   />
                 </div>
                 <span className="text-xs text-[var(--text-muted)]">
-                  配额 {Math.round(healthScore.quota)}%
+                  {t.dashboard.quotaHealth} {Math.round(healthScore.quota)}%
                 </span>
               </div>
             </div>
@@ -648,7 +712,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                 {stats.successRate.toFixed(1)}%
               </div>
               <div className="text-xs text-[var(--text-muted)] mt-1">
-                成功率
+                {t.dashboard.successRateLabel}
               </div>
             </div>
             <div className="text-center">
@@ -656,7 +720,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                 {stats.requestsPerMinute}
               </div>
               <div className="text-xs text-[var(--text-muted)] mt-1">
-                请求/分钟
+                {t.dashboard.requestsPerMinute}
               </div>
             </div>
             <div className="text-center">
@@ -665,7 +729,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                 <span className="text-base font-normal">ms</span>
               </div>
               <div className="text-xs text-[var(--text-muted)] mt-1">
-                平均延迟
+                {t.dashboard.avgLatencyLabel}
               </div>
             </div>
             <div className="text-center">
@@ -673,7 +737,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                 {formatTokens(stats.totalTokens)}
               </div>
               <div className="text-xs text-[var(--text-muted)] mt-1">
-                总 Tokens
+                {t.dashboard.totalTokensLabel}
               </div>
             </div>
           </div>
@@ -683,30 +747,39 @@ export function Dashboard({ onNavigate }: DashboardProps) {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
           icon={<Activity className="w-5 h-5 text-[var(--accent-primary)]" />}
-          title="总请求数"
+          title={t.dashboard.totalRequests}
           value={stats.totalRequests.toLocaleString()}
           accent
         />
         <MetricCard
           icon={<CheckCircle className="w-5 h-5 text-green-500" />}
-          title="成功请求"
+          title={t.dashboard.successRequests}
           value={stats.successCount.toLocaleString()}
-          subtitle={`错误: ${stats.errorCount}`}
+          subtitle={t.dashboard.errorCount.replace(
+            "{count}",
+            String(stats.errorCount),
+          )}
         />
         <MetricCard
           icon={<Clock className="w-5 h-5 text-[var(--accent-secondary)]" />}
-          title="P95 延迟"
+          title={t.dashboard.p95Latency}
           value={formatLatency(stats.p95Latency)}
           unit="ms"
-          subtitle={`P99: ${formatLatency(stats.p99Latency)}ms`}
+          subtitle={t.dashboard.p99Latency.replace(
+            "{value}",
+            formatLatency(stats.p99Latency),
+          )}
         />
         <MetricCard
           icon={<Database className="w-5 h-5 text-[var(--accent-tertiary)]" />}
-          title="Token 消耗"
+          title={t.dashboard.tokenConsumption}
           value={formatTokens(stats.totalTokens)}
           subtitle={
             stats.totalRequests > 0
-              ? `${(stats.totalTokens / stats.totalRequests).toFixed(0)} /请求`
+              ? t.dashboard.perRequest.replace(
+                  "{count}",
+                  (stats.totalTokens / stats.totalRequests).toFixed(0),
+                )
               : undefined
           }
         />
@@ -717,11 +790,11 @@ export function Dashboard({ onNavigate }: DashboardProps) {
           <div className="flex items-center justify-between mb-4">
             <div>
               <div className="text-xs tracking-wider text-[var(--text-dim)] uppercase">
-                配额使用
+                {t.dashboard.quotaUsage}
               </div>
               <div className="flex items-center gap-2 mt-1">
                 <h3 className="text-lg font-semibold text-[var(--text-primary)]">
-                  Provider 配额
+                  {t.dashboard.providerQuotaTitle}
                 </h3>
                 <div className="group relative flex items-center justify-center cursor-help">
                   <Info className="w-3.5 h-3.5 text-[var(--text-dim)] hover:text-[var(--accent-primary)] transition-colors" />
@@ -749,11 +822,12 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                   key={q.provider}
                   {...q}
                   action={
-                    q.provider.includes("自定义") && customProviderCount > 1 ? (
+                    q.provider.includes(t.dashboard.customPrefix) &&
+                    customProviderCount > 1 ? (
                       <button
                         onClick={() => setIsCustomModalOpen(true)}
                         className="p-1 rounded-md bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] opacity-0 group-hover/quota:opacity-100 transition-all hover:bg-[var(--accent-primary)]/20 active:scale-90"
-                        title="切换自定义提供商"
+                        title={t.dashboard.switchCustomProvider}
                       >
                         <RefreshCw className="w-3 h-3" />
                       </button>
@@ -764,26 +838,52 @@ export function Dashboard({ onNavigate }: DashboardProps) {
             </div>
           ) : (
             <div className="text-center py-8 text-[var(--text-muted)]">
-              暂无配额数据
+              {t.dashboard.noQuotaData}
             </div>
           )}
         </div>
 
         <div className="space-y-4">
-          <AccountStatusCard accounts={accountStatus} />
+          <AccountStatusCard
+            accounts={accountStatus}
+            labels={{
+              accountStatus: t.dashboard.accountStatus,
+              accountsCount: t.dashboard.accountsCount,
+              active: t.dashboard.active,
+              cooling: t.dashboard.cooling,
+              error: t.dashboard.error,
+            }}
+          />
 
-          <TokenBreakdownCard breakdown={tokenBreakdown} />
+          <TokenBreakdownCard
+            breakdown={tokenBreakdown}
+            labels={{
+              title: t.dashboard.tokenBreakdown,
+              noData: t.dashboard.noTokenData,
+              input: t.dashboard.input,
+              output: t.dashboard.output,
+              reasoning: t.dashboard.reasoning,
+              cached: t.dashboard.cached,
+              total: t.dashboard.total,
+            }}
+          />
 
           <div className="glass-card p-4">
             <div className="flex items-center justify-between mb-3">
               <span className="text-sm font-medium text-[var(--text-primary)]">
-                请求趋势
+                {t.dashboard.requestTrend}
               </span>
               <span className="text-xs text-[var(--text-dim)]">
-                过去 12 小时
+                {t.dashboard.past12Hours}
               </span>
             </div>
-            <TrendChart data={trendData} />
+            <TrendChart
+              data={trendData}
+              labels={{
+                noTrendData: t.dashboard.noTrendData,
+                tooltip: t.dashboard.trendTooltip,
+              }}
+            />
           </div>
         </div>
       </div>
@@ -792,15 +892,25 @@ export function Dashboard({ onNavigate }: DashboardProps) {
         <div className="flex items-center justify-between mb-4">
           <div>
             <div className="text-xs tracking-wider text-[var(--text-dim)] uppercase">
-              性能分析
+              {t.dashboard.performanceAnalysis}
             </div>
             <h3 className="text-lg font-semibold text-[var(--text-primary)] mt-1">
-              Provider 效率
+              {t.dashboard.providerEfficiency}
             </h3>
           </div>
           <Zap className="w-5 h-5 text-[var(--accent-tertiary)]" />
         </div>
-        <ProviderTable providers={providerStats} />
+        <ProviderTable
+          providers={providerStats}
+          labels={{
+            noData: t.dashboard.noData,
+            provider: t.dashboard.providerColumn,
+            requests: t.dashboard.requestsColumn,
+            tokens: t.dashboard.tokensColumn,
+            successRate: t.dashboard.successRateLabel,
+            latency: t.dashboard.latencyColumn,
+          }}
+        />
       </div>
 
       {(stats.successRate < 95 || healthScore.overall < 80) && (
@@ -809,13 +919,16 @@ export function Dashboard({ onNavigate }: DashboardProps) {
             <AlertTriangle className="w-5 h-5 text-amber-500" />
             <div>
               <div className="font-medium text-[var(--text-primary)]">
-                需要关注
+                {t.dashboard.needsAttention}
               </div>
               <div className="text-sm text-[var(--text-muted)] mt-1">
                 {stats.successRate < 95 &&
-                  `成功率 (${stats.successRate.toFixed(1)}%) 低于 95% 阈值。`}
+                  t.dashboard.successRateLow.replace(
+                    "{rate}",
+                    stats.successRate.toFixed(1),
+                  )}
                 {healthScore.overall < 80 &&
-                  ` 总体健康度 (${healthScore.overall}) 低于 80 分。`}
+                  ` ${t.dashboard.healthScoreLow.replace("{score}", String(healthScore.overall))}`}
               </div>
             </div>
           </div>
@@ -830,7 +943,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
             <div className="p-2 rounded-lg bg-[var(--accent-primary)]/10 text-[var(--accent-primary)]">
               <Database className="w-5 h-5" />
             </div>
-            <span>自定义提供商配额</span>
+            <span>{t.dashboard.customProviderQuota}</span>
           </div>
         }
         maxWidth="max-w-2xl"
@@ -866,7 +979,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                       : "0%"}
                   </div>
                   <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">
-                    已使用
+                    {t.dashboard.used}
                   </div>
                 </div>
               </div>
@@ -881,7 +994,8 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                 <div className="flex items-center gap-1.5">
                   <Clock className="w-3 h-3 text-[var(--text-dim)]" />
                   <span className="text-[10px] text-[var(--text-dim)] font-medium">
-                    更新于 {option.resetAt || "刚刚"}
+                    {t.dashboard.updatedAt}{" "}
+                    {option.resetAt || t.dashboard.justNow}
                   </span>
                 </div>
                 <button
@@ -895,7 +1009,9 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                       : "bg-[var(--text-primary)]/5 text-[var(--text-muted)] hover:bg-[var(--text-primary)]/10 hover:text-[var(--text-primary)]"
                   }`}
                 >
-                  {selectedCustomProvider === option.id ? "展示中" : "设为首选"}
+                  {selectedCustomProvider === option.id
+                    ? t.dashboard.showing
+                    : t.dashboard.setPreferred}
                 </button>
               </div>
             </div>
