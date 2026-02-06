@@ -82,7 +82,7 @@ export function About() {
 
           <div className="space-y-2 z-10">
             <h1 className="text-4xl font-bold tracking-tight text-[var(--text-primary)]">
-              霖君111
+              {t.app.introName}
             </h1>
             <p className="text-[var(--text-muted)] font-medium max-w-sm mx-auto">
               {t.about.tagline}
@@ -257,7 +257,9 @@ export function About() {
             {t.about.builtWith}
           </p>
           <p className="text-[10px] text-[var(--text-dim)] font-mono">
-            © 2026 霖君 • MIT License
+            {t.app.copyright
+              .replace("{year}", new Date().getFullYear().toString())
+              .replace("{name}", t.app.name)}
           </p>
         </div>
       </div>

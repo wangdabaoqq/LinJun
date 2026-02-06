@@ -14,8 +14,12 @@ export const en = {
   app: {
     introName: "LinJun",
     topbarName: "CLI-to-API Bridge",
-    name: "CLI-to-API",
+    name: "LinJun",
     systemActive: "SYSTEM ACTIVE",
+    trayTooltip: "LinJun - AI Proxy Manager",
+    trayQuit: "Quit LinJun",
+    logoAlt: "LinJun Logo",
+    copyright: "© {year} {name} • MIT License",
   },
   topbar: {
     successRate: "Success",

@@ -10,6 +10,7 @@ import {
 import path from "path";
 import { proxyManager } from "../proxy/manager";
 import { TrayWindow } from "./TrayWindow";
+import { APP_NAME_ZH } from "../../shared/constants";
 
 const isWindows = process.platform === "win32";
 
@@ -45,7 +46,7 @@ export class TrayManager {
       .resize({ width: 22, height: 22 });
 
     this.tray = new Tray(icon);
-    this.tray.setToolTip("霖君 - AI Proxy Manager");
+    this.tray.setToolTip(`${APP_NAME_ZH} - AI Proxy Manager`);
 
     this.setupEventHandlers();
     this.updateContextMenu();
@@ -133,7 +134,7 @@ export class TrayManager {
         click: () => this.openDashboard(),
       },
       {
-        label: isWindows ? "退出霖君" : "Quit LinJun",
+        label: isWindows ? `退出${APP_NAME_ZH}` : "Quit LinJun",
         click: () => {
           this.destroy();
           app.quit();

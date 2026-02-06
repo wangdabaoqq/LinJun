@@ -14,9 +14,13 @@ export const zh: Translations = {
   },
   app: {
     introName: "霖君",
-    topbarName: "CLI-to-API Bridge",
-    name: "CLI-to-API 桥接器",
+    topbarName: "CLI-to-API 桥接器",
+    name: "霖君",
     systemActive: "系统运行中",
+    trayTooltip: "霖君 - AI Proxy Manager",
+    trayQuit: "退出霖君",
+    logoAlt: "霖君 Logo",
+    copyright: "© {year} {name} • MIT License",
   },
   topbar: {
     successRate: "成功率",

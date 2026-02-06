@@ -188,7 +188,7 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
       >
         <img
           src={appIconUrl}
-          alt="霖君 Logo"
+          alt={t.app.logoAlt}
           className="w-8 h-8 object-contain"
         />
         <div
@@ -197,10 +197,10 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
           }`}
         >
           <div className="text-lg font-bold text-[var(--text-primary)] whitespace-nowrap">
-            霖君
+            {t.app.topbarName}
           </div>
           <div className="text-xs text-[var(--text-dim)] whitespace-nowrap">
-            Proxy Manager
+            {t.app.name}
           </div>
         </div>
       </div>
