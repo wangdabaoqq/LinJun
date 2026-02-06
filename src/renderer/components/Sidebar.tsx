@@ -197,10 +197,10 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
           }`}
         >
           <div className="text-lg font-bold text-[var(--text-primary)] whitespace-nowrap">
-            {t.app.topbarName}
+            {t.app.sidebarTitle}
           </div>
           <div className="text-xs text-[var(--text-dim)] whitespace-nowrap">
-            {t.app.name}
+            {t.app.sidebarSubtitle}
           </div>
         </div>
       </div>

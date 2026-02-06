@@ -15,6 +15,8 @@ export const en = {
     introName: "LinJun",
     topbarName: "CLI-to-API Bridge",
     name: "LinJun",
+    sidebarTitle: "LinJun",
+    sidebarSubtitle: "Proxy Manager",
     systemActive: "SYSTEM ACTIVE",
     trayTooltip: "LinJun - AI Proxy Manager",
     trayQuit: "Quit LinJun",
