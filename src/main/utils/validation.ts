@@ -82,6 +82,9 @@ const ALLOWED_SETTINGS = [
   "switchPreviewModel",
   "language",
   "theme",
+  "uptimeCheckEnabled",
+  "uptimeCheckInterval",
+  "uptimeAlertThreshold",
 ] as const;
 
 export type AllowedSettingKey = (typeof ALLOWED_SETTINGS)[number];

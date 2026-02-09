@@ -210,6 +210,16 @@ function getConfigPaths(toolName: string): {
     OpenCode: {
       configPath: path.join(homeDir, ".opencode", "config.json"),
     },
+    "Amp CLI": {
+      configPath: path.join(homeDir, ".config", "amp", "settings.json"),
+      authPath: path.join(homeDir, ".local", "share", "amp", "secrets.json"),
+    },
+    "Droid CLI": {
+      configPath: path.join(homeDir, ".factory", "config.json"),
+    },
+    "iFlow CLI": {
+      configPath: path.join(homeDir, ".iflow", "settings.json"),
+    },
   };
 
   return pathMap[toolName] || {};
@@ -312,6 +322,9 @@ export async function detectAllCLITools(): Promise<CLIToolInfo[]> {
     { name: "Codex CLI", command: "codex" },
     { name: "Gemini CLI", command: "gemini" },
     { name: "OpenCode", command: "opencode" },
+    { name: "Amp CLI", command: "amp" },
+    { name: "Droid CLI", command: "droid" },
+    { name: "iFlow CLI", command: "iflow" },
   ];
 
   const results = await Promise.all(

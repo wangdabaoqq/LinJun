@@ -79,6 +79,23 @@ interface ElectronAPI {
       }[]
     >;
   };
+  uptime: {
+    getStatus: () => Promise<{
+      entities: UptimeEntitySummary[];
+      overallStatus: "online" | "offline" | "degraded";
+      lastUpdated: number;
+    }>;
+    getHistory: (
+      entityId: string,
+      hours?: number,
+    ) => Promise<{
+      data: {
+        timestamp: number;
+        status: "online" | "offline" | "degraded";
+        responseTime?: number;
+      }[];
+    }>;
+  };
   customProviders: {
     import: (
       data: {
@@ -196,6 +213,14 @@ declare global {
   interface UsageResponse {
     usage: UsageData;
     failed_requests: number;
+  }
+
+  interface UptimeEntitySummary {
+    id: string;
+    name: string;
+    status: "online" | "offline" | "degraded";
+    uptimePercent: number;
+    lastChecked: number;
   }
 
   interface Window {

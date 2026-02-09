@@ -125,6 +125,12 @@ const PROVIDER_MODEL_MAP: Record<string, ProviderModels> = {
       options: { reasoning: { effort: "medium" } },
       reasoning: true,
     },
+    "gpt-5.3-codex": {
+      limit: { context: 400000, output: 32768 },
+      name: "Gpt 5.3 Codex",
+      options: { reasoning: { effort: "medium" } },
+      reasoning: true,
+    },
   },
   kiro: {
     "kiro-claude-haiku-4-5": {
@@ -268,10 +274,16 @@ function ConfigModal({ tool, onClose }: ConfigModalProps) {
   const hasConfigFiles =
     tool.name === "Codex CLI" ||
     tool.name === "Claude Code" ||
-    tool.name === "OpenCode";
-  const hasAuthFile = tool.name === "Codex CLI";
+    tool.name === "OpenCode" ||
+    tool.name === "Amp CLI" ||
+    tool.name === "Droid CLI" ||
+    tool.name === "iFlow CLI";
+  const hasAuthFile = tool.name === "Codex CLI" || tool.name === "Amp CLI";
   const hasEnvConfig =
-    tool.name === "Claude Code" || tool.name === "Gemini CLI";
+    tool.name === "Claude Code" ||
+    tool.name === "Gemini CLI" ||
+    tool.name === "Amp CLI" ||
+    tool.name === "iFlow CLI";
 
   const tabItems = useMemo(() => {
     const items: Array<{
@@ -288,9 +300,11 @@ function ConfigModal({ tool, onClose }: ConfigModalProps) {
       items.push({
         id: "config",
         label:
-          tool.name === "Claude Code"
+          tool.name === "Claude Code" ||
+          tool.name === "Amp CLI" ||
+          tool.name === "iFlow CLI"
             ? t.agents.tabSettings
-            : tool.name === "OpenCode"
+            : tool.name === "OpenCode" || tool.name === "Droid CLI"
               ? t.agents.tabConfigJson
               : t.agents.tabConfigToml,
       });
@@ -299,7 +313,7 @@ function ConfigModal({ tool, onClose }: ConfigModalProps) {
     if (hasAuthFile) {
       items.push({
         id: "auth",
-        label: t.agents.tabAuth,
+        label: tool.name === "Amp CLI" ? t.agents.tabSecrets : t.agents.tabAuth,
       });
     }
 
@@ -440,6 +454,98 @@ export CODE_ASSIST_ENDPOINT="${proxyUrl}"
 export GEMINI_MODEL="gemini-3-pro-preview"`;
   };
 
+  const getDefaultAmpConfig = () => {
+    return JSON.stringify(
+      {
+        "amp.url": proxyUrl,
+      },
+      null,
+      2,
+    );
+  };
+
+  const getDefaultAmpSecrets = () => {
+    return JSON.stringify(
+      {
+        [`apiKey@${proxyUrl}`]: apiKey || "your-api-key",
+      },
+      null,
+      2,
+    );
+  };
+
+  const getDefaultAmpEnv = () => {
+    return `# ${t.agents.configAmpHeader}
+export AMP_URL="${proxyUrl}"
+export AMP_API_KEY="${apiKey}"`;
+  };
+
+  const getDefaultDroidConfig = () => {
+    const DROID_PROVIDER_MAP: Record<string, string> = {
+      claude: "anthropic",
+      codex: "openai",
+      gemini: "generic-chat-completion-api",
+      kiro: "anthropic",
+      antigravity: "generic-chat-completion-api",
+    };
+
+    const models: Array<{
+      provider: string;
+      name: string;
+      apiKey: string;
+      displayName: string;
+      baseUrl: string;
+    }> = [];
+
+    for (const providerId of activeProviders) {
+      const providerModels = PROVIDER_MODEL_MAP[providerId];
+      if (!providerModels) continue;
+      const droidProvider =
+        DROID_PROVIDER_MAP[providerId] || "generic-chat-completion-api";
+
+      for (const [modelId, modelInfo] of Object.entries(providerModels)) {
+        models.push({
+          provider: droidProvider,
+          name: modelId,
+          apiKey: apiKey || "your-api-key",
+          displayName: modelInfo.name,
+          baseUrl: `${proxyUrl}/v1`,
+        });
+      }
+    }
+
+    if (models.length === 0) {
+      models.push({
+        provider: "anthropic",
+        name: "claude-sonnet-4-5",
+        apiKey: apiKey || "your-api-key",
+        displayName: "Claude Sonnet 4.5",
+        baseUrl: `${proxyUrl}/v1`,
+      });
+    }
+
+    return JSON.stringify({ models }, null, 2);
+  };
+
+  const getDefaultIFlowConfig = () => {
+    return JSON.stringify(
+      {
+        apiKey: apiKey || "your-api-key",
+        baseUrl: `${proxyUrl}/v1`,
+        modelName: "claude-sonnet-4-5",
+      },
+      null,
+      2,
+    );
+  };
+
+  const getDefaultIFlowEnv = () => {
+    return `# ${t.agents.configIFlowHeader}
+export IFLOW_apiKey="${apiKey}"
+export IFLOW_baseUrl="${proxyUrl}/v1"
+export IFLOW_modelName="claude-sonnet-4-5"`;
+  };
+
   const getDefaultOpenCodeConfig = () => {
     const models: ProviderModels = {};
     for (const providerId of activeProviders) {
@@ -472,11 +578,25 @@ export GEMINI_MODEL="gemini-3-pro-preview"`;
       ? getDefaultClaudeConfig()
       : tool.name === "OpenCode"
         ? getDefaultOpenCodeConfig()
-        : getDefaultCodexConfig(),
+        : tool.name === "Amp CLI"
+          ? getDefaultAmpConfig()
+          : tool.name === "Droid CLI"
+            ? getDefaultDroidConfig()
+            : tool.name === "iFlow CLI"
+              ? getDefaultIFlowConfig()
+              : getDefaultCodexConfig(),
   );
-  const [authContent, setAuthContent] = useState(getDefaultCodexAuth());
+  const [authContent, setAuthContent] = useState(
+    tool.name === "Amp CLI" ? getDefaultAmpSecrets() : getDefaultCodexAuth(),
+  );
   const [envContent, setEnvContent] = useState(
-    tool.name === "Claude Code" ? getDefaultClaudeEnv() : getDefaultGeminiEnv(),
+    tool.name === "Claude Code"
+      ? getDefaultClaudeEnv()
+      : tool.name === "Amp CLI"
+        ? getDefaultAmpEnv()
+        : tool.name === "iFlow CLI"
+          ? getDefaultIFlowEnv()
+          : getDefaultGeminiEnv(),
   );
 
   useEffect(() => {
@@ -487,10 +607,21 @@ export GEMINI_MODEL="gemini-3-pro-preview"`;
       setEnvContent(getDefaultGeminiEnv());
     } else if (tool.name === "OpenCode") {
       setConfigContent(getDefaultOpenCodeConfig());
+    } else if (tool.name === "Amp CLI") {
+      setConfigContent(getDefaultAmpConfig());
+      setAuthContent(getDefaultAmpSecrets());
+      setEnvContent(getDefaultAmpEnv());
+    } else if (tool.name === "Droid CLI") {
+      setConfigContent(getDefaultDroidConfig());
+    } else if (tool.name === "iFlow CLI") {
+      setConfigContent(getDefaultIFlowConfig());
+      setEnvContent(getDefaultIFlowEnv());
     } else {
       setConfigContent(getDefaultCodexConfig());
     }
-    setAuthContent(getDefaultCodexAuth());
+    if (tool.name !== "Amp CLI") {
+      setAuthContent(getDefaultCodexAuth());
+    }
   }, [proxyUrl, apiKey, activeProviders]);
 
   const handleTestConnection = async () => {
@@ -882,7 +1013,13 @@ export GEMINI_MODEL="gemini-3-pro-preview"`;
                     ? `~/.claude/${t.agents.tabSettings}`
                     : tool.name === "OpenCode"
                       ? `~/.config/opencode/${t.agents.tabConfigJson}`
-                      : `~/.codex/${t.agents.tabConfigToml}`}
+                      : tool.name === "Amp CLI"
+                        ? `~/.config/amp/${t.agents.tabSettings}`
+                        : tool.name === "Droid CLI"
+                          ? `~/.factory/${t.agents.tabConfigJson}`
+                          : tool.name === "iFlow CLI"
+                            ? `~/.iflow/${t.agents.tabSettings}`
+                            : `~/.codex/${t.agents.tabConfigToml}`}
                 </span>
                 <button
                   onClick={() => handleCopyToClipboard(configContent)}
@@ -935,7 +1072,9 @@ export GEMINI_MODEL="gemini-3-pro-preview"`;
             >
               <div className="flex items-center justify-between mb-2 px-1">
                 <span className="text-xs font-bold text-[var(--text-dim)] font-mono">
-                  ~/.codex/{t.agents.tabAuth}
+                  {tool.name === "Amp CLI"
+                    ? `~/.local/share/amp/${t.agents.tabSecrets}`
+                    : `~/.codex/${t.agents.tabAuth}`}
                 </span>
                 <button
                   onClick={() => handleCopyToClipboard(authContent)}
@@ -1167,15 +1306,18 @@ export function Agents() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4 flex-shrink-0">
                   {agent.version && (
-                    <span className="text-xs terminal-text text-[var(--text-muted)]">
+                    <span
+                      className="text-xs terminal-text text-[var(--text-muted)] max-w-[180px] truncate"
+                      title={agent.version}
+                    >
                       {agent.version}
                     </span>
                   )}
                   {agent.status === "installed" ? (
                     <button
-                      className="glass-btn glass-btn-primary text-xs py-1 px-4 flex items-center gap-1.5 group active:scale-95 transition-all"
+                      className="glass-btn glass-btn-primary text-xs py-1 px-4 flex items-center gap-1.5 group active:scale-95 transition-all flex-shrink-0"
                       onClick={() => setSelectedTool(agent)}
                     >
                       <Box className="w-3 h-3 group-hover:scale-110 transition-transform" />

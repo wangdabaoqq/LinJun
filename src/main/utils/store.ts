@@ -12,6 +12,9 @@ interface StoreSchema {
   requestRetry: number;
   maxRetryInterval: number;
   loggingToFile: boolean;
+  uptimeCheckEnabled: boolean;
+  uptimeCheckInterval: number;
+  uptimeAlertThreshold: number;
 }
 
 export const store = new Store<StoreSchema>({
@@ -26,5 +29,8 @@ export const store = new Store<StoreSchema>({
     requestRetry: 3,
     maxRetryInterval: 30,
     loggingToFile: false,
+    uptimeCheckEnabled: true,
+    uptimeCheckInterval: 60,
+    uptimeAlertThreshold: 95,
   },
 });
