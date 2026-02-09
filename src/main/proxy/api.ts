@@ -122,6 +122,53 @@ class ManagementAPI {
     }
   }
 
+  async getKiroAuthUrl(params?: {
+    method?: string;
+    startUrl?: string;
+    region?: string;
+  }): Promise<QwenAuthUrlResponse> {
+    try {
+      const res = await this.client.get(
+        `${this.baseURL}/v0/management/kiro-auth-url`,
+        {
+          params: {
+            is_webui: true,
+            method: params?.method,
+            startUrl: params?.startUrl,
+            region: params?.region,
+          },
+          headers: this.getAuthHeaders(),
+        },
+      );
+      return res.data;
+    } catch (error) {
+      log.warn("[ManagementAPI] Kiro management auth URL unavailable:", error);
+      return { status: "error", url: "", state: "" };
+    }
+  }
+
+  async getKiroAuthStatus(state: string): Promise<{
+    status: "wait" | "device_code" | "auth_url" | "error";
+    verification_url?: string;
+    user_code?: string;
+    url?: string;
+    error?: string;
+  }> {
+    try {
+      const res = await this.client.get(
+        `${this.baseURL}/v0/management/get-auth-status`,
+        {
+          params: { state },
+          headers: this.getAuthHeaders(),
+        },
+      );
+      return res.data;
+    } catch (error) {
+      log.error("[ManagementAPI] Failed to get Kiro auth status:", error);
+      return { status: "error", error: "auth status failed" };
+    }
+  }
+
   async getCopilotAuthUrl(): Promise<CopilotAuthUrlResponse> {
     try {
       const res = await this.client.get(

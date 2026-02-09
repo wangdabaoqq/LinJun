@@ -51,6 +51,36 @@ interface ElectronAPI {
     }>;
     getPlatform: () => Promise<{ success: boolean; platform: string }>;
   };
+  kiro: {
+    getAuthUrl: (params?: {
+      method?: string;
+      startUrl?: string;
+      region?: string;
+    }) => Promise<{ status: string; url?: string; state?: string }>;
+    getAuthStatus: (state: string) => Promise<{
+      status: string;
+      verification_url?: string;
+      user_code?: string;
+      url?: string;
+      error?: string;
+    }>;
+    importToken: () => Promise<{
+      success: boolean;
+      filePath?: string;
+      error?: string;
+    }>;
+    importFromToken: (tokenJson: string) => Promise<{
+      success: boolean;
+      filePath?: string;
+      error?: string;
+    }>;
+    refreshToken: (filePath: string) => Promise<{
+      success: boolean;
+      accessToken?: string;
+      expiresAt?: string;
+      error?: string;
+    }>;
+  };
   apiKeys: {
     getAll: () => Promise<{ success: boolean; keys: string[]; error?: string }>;
     add: (

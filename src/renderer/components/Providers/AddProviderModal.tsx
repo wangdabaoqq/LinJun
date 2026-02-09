@@ -1,4 +1,4 @@
-import { memo } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 
 import { useTranslations } from "../../stores/settings";
@@ -15,15 +15,38 @@ export const AddProviderModal = memo(function AddProviderModal({
   onSelectProvider,
 }: AddProviderModalProps) {
   const t = useTranslations();
+  const [isClosing, setIsClosing] = useState(false);
+  const closeTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (closeTimerRef.current !== null) {
+        window.clearTimeout(closeTimerRef.current);
+      }
+    };
+  }, []);
+
+  const runCloseAnimation = (callback: () => void) => {
+    if (isClosing) {
+      return;
+    }
+    setIsClosing(true);
+    closeTimerRef.current = window.setTimeout(() => {
+      callback();
+    }, 180);
+  };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div
+      className={`fixed inset-0 z-50 flex items-center justify-center p-4 ${isClosing ? "pointer-events-none" : ""}`}
+    >
       <div
-        className="fixed inset-0 bg-[var(--overlay-bg)] backdrop-blur-xl animate-fade-in"
+        className={`fixed inset-0 bg-[var(--overlay-bg)] backdrop-blur-xl ${isClosing ? "animate-fade-out" : "animate-fade-in"}`}
         style={{ WebkitBackdropFilter: "blur(24px)" }}
-        onClick={onClose}
       />
-      <div className="relative w-full max-w-[820px] max-h-[85vh] flex flex-col overflow-hidden animate-scale-in shadow-soft-xl border border-[var(--glass-border)] rounded-3xl isolation-isolate">
+      <div
+        className={`relative w-full max-w-[820px] max-h-[85vh] flex flex-col overflow-hidden ${isClosing ? "animate-scale-out" : "animate-scale-in"} shadow-soft-xl border border-[var(--glass-border)] rounded-3xl isolation-isolate`}
+      >
         <div className="absolute inset-0 glass-modal-bg z-0" />
         <div className="absolute inset-0 bg-gradient-to-br from-[var(--accent-primary)]/5 via-transparent to-transparent z-0" />
 
@@ -32,7 +55,7 @@ export const AddProviderModal = memo(function AddProviderModal({
             {t.providers.addProvider}
           </h2>
           <button
-            onClick={onClose}
+            onClick={() => runCloseAnimation(onClose)}
             className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-[var(--text-primary)]/5 text-[var(--text-dim)] hover:text-[var(--text-primary)] transition-all active:scale-95"
           >
             <X className="w-5 h-5" />
@@ -45,8 +68,10 @@ export const AddProviderModal = memo(function AddProviderModal({
               return (
                 <div
                   key={provider.id}
-                  className="group relative p-6 cursor-pointer transition-all duration-300 rounded-2xl glass-card border-[var(--glass-border)] bg-[var(--text-primary)]/[0.01] hover:bg-[var(--text-primary)]/[0.03] hover:border-[var(--accent-primary)]/20 hover:shadow-soft-md"
-                  onClick={() => onSelectProvider(provider)}
+                  className="group relative p-6 cursor-pointer transition-all duration-300 rounded-2xl glass-card border-[var(--glass-border)] bg-[var(--text-primary)]/[0.01] hover:bg-[var(--text-primary)]/[0.03] hover:border-[var(--accent-primary)]/20 hover:shadow-soft-md active:scale-[0.99]"
+                  onClick={() =>
+                    runCloseAnimation(() => onSelectProvider(provider))
+                  }
                 >
                   <div className="flex flex-col gap-6">
                     <div className="text-4xl transition-transform duration-300 group-hover:scale-105">

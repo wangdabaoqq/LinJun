@@ -164,6 +164,40 @@ export const en = {
       "Open the GitHub device login page and enter the code above.",
     copilotDeviceOpen: "Open Login Page",
     copilotDeviceError: "Failed to get GitHub Copilot login code",
+    antigravityAuthTitle: "Antigravity",
+    antigravityAuthSubtitle: "OAuth Authorization",
+    antigravityCallbackLabel: "Callback URL",
+    antigravityAuthInstructions:
+      "The default browser will open for Google login authorization to automatically retrieve and save the token.",
+    antigravityAuthOpen: "Start OAuth Authorization",
+    oauthProgressGoogle: "Google authorization in progress...",
+    oauthProgressGeneric: "OAuth authorization in progress...",
+    oauthStarted: "Authorization initiated",
+    oauthHintGoogle:
+      "Please complete Google sign-in in your browser. We will automatically capture the token and finish setup.",
+    oauthHintGeneric:
+      "Please complete authorization sign-in in your browser. We will automatically capture the token and finish setup.",
+    kiroAuthModeLabel: "Authorization Mode",
+    kiroAuthModeCurrent: "Import Method",
+    kiroAuthModeOauth: "OAuth Login",
+    kiroAuthModeToken: "Token Import",
+    kiroAuthModeBuilder: "AWS Builder ID Login",
+    kiroAuthModeIdc: "AWS IDC Login",
+    kiroTokenImportDescription:
+      "Paste a Kiro token JSON to import (must include accessToken and refreshToken).",
+    kiroTokenInputPlaceholder:
+      '{"accessToken":"...","refreshToken":"...","expiresAt":"2026-12-31T00:00:00Z"}',
+    kiroTokenImportAction: "Import Token",
+    kiroBuilderIdLogin: "AWS Builder ID Login",
+    kiroIdcLogin: "AWS IDC Login",
+    kiroIdcDescription:
+      "Use AWS Identity Center login. Fill Start URL and Region before authorization.",
+    kiroIdcStartUrlPlaceholder: "https://your-org.awsapps.com/start",
+    kiroIdcRegionPlaceholder: "us-east-1",
+    kiroIdcStartUrlRequired: "AWS Identity Center Start URL is required",
+    kiroAuthUrlFailed: "Failed to get Kiro authorization URL",
+    kiroVerificationUrlLabel: "Verification URL",
+    kiroUserCodeLabel: "User Code",
     customProvider: "Custom Provider",
     customProviderDesc:
       "Configure OpenAI / Claude / Gemini / Codex compatible endpoints",

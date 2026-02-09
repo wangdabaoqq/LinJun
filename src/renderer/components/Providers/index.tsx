@@ -412,7 +412,14 @@ export function Providers() {
     if (
       providerInfo.authType === "apikey" ||
       providerInfo.authType === "import" ||
-      providerInfo.authType === "oauth-project"
+      providerInfo.authType === "oauth-project" ||
+      providerInfo.id === "antigravity" ||
+      providerInfo.id === "codex" ||
+      providerInfo.id === "claude" ||
+      providerInfo.id === "gemini" ||
+      providerInfo.id === "qwen" ||
+      providerInfo.id === "iflow" ||
+      providerInfo.id === "kiro"
     ) {
       setAddAccountProvider(providerInfo);
     } else {

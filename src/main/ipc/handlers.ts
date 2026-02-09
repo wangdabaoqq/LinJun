@@ -976,9 +976,6 @@ export function setupIpcHandlers(): void {
   ipcMain.handle("qwen:getAuthUrl", async () => {
     try {
       const result = await managementAPI.getQwenAuthUrl();
-      if (result.status === "ok" && result.url) {
-        await shell.openExternal(result.url);
-      }
       return result;
     } catch (error) {
       log.error("[IPC] Failed to get Qwen auth URL:", error);
@@ -989,9 +986,6 @@ export function setupIpcHandlers(): void {
   ipcMain.handle("antigravity:getAuthUrl", async () => {
     try {
       const result = await managementAPI.getAntigravityAuthUrl();
-      if (result.status === "ok" && result.url) {
-        await shell.openExternal(result.url);
-      }
       return result;
     } catch (error) {
       log.error("[IPC] Failed to get Antigravity auth URL:", error);
@@ -1002,9 +996,6 @@ export function setupIpcHandlers(): void {
   ipcMain.handle("iflow:getAuthUrl", async () => {
     try {
       const result = await managementAPI.getIFlowAuthUrl();
-      if (result.status === "ok" && result.url) {
-        await shell.openExternal(result.url);
-      }
       return result;
     } catch (error) {
       log.error("[IPC] Failed to get iFlow auth URL:", error);
@@ -1015,9 +1006,6 @@ export function setupIpcHandlers(): void {
   ipcMain.handle("claude:getAuthUrl", async () => {
     try {
       const result = await managementAPI.getClaudeAuthUrl();
-      if (result.status === "ok" && result.url) {
-        await shell.openExternal(result.url);
-      }
       return result;
     } catch (error) {
       log.error("[IPC] Failed to get Claude auth URL:", error);
@@ -1028,9 +1016,6 @@ export function setupIpcHandlers(): void {
   ipcMain.handle("gemini:getAuthUrl", async (_event, projectId?: string) => {
     try {
       const result = await managementAPI.getGeminiAuthUrl(projectId);
-      if (result.status === "ok" && result.url) {
-        await shell.openExternal(result.url);
-      }
       return result;
     } catch (error) {
       log.error("[IPC] Failed to get Gemini auth URL:", error);
@@ -1041,9 +1026,6 @@ export function setupIpcHandlers(): void {
   ipcMain.handle("codex:getAuthUrl", async () => {
     try {
       const result = await managementAPI.getCodexAuthUrl();
-      if (result.status === "ok" && result.url) {
-        await shell.openExternal(result.url);
-      }
       return result;
     } catch (error) {
       log.error("[IPC] Failed to get Codex auth URL:", error);
@@ -1063,6 +1045,31 @@ export function setupIpcHandlers(): void {
         user_code: "",
         verification_uri: "",
       };
+    }
+  });
+
+  ipcMain.handle(
+    "kiro:getAuthUrl",
+    async (
+      _event,
+      params?: { method?: string; startUrl?: string; region?: string },
+    ) => {
+      try {
+        const result = await managementAPI.getKiroAuthUrl(params);
+        return result;
+      } catch (error) {
+        log.error("[IPC] Failed to get Kiro auth URL:", error);
+        return { status: "error", url: "", state: "" };
+      }
+    },
+  );
+
+  ipcMain.handle("kiro:getAuthStatus", async (_event, state: string) => {
+    try {
+      return await managementAPI.getKiroAuthStatus(state);
+    } catch (error) {
+      log.error("[IPC] Failed to get Kiro auth status:", error);
+      return { status: "error" };
     }
   });
 
@@ -1103,6 +1110,115 @@ export function setupIpcHandlers(): void {
       return { success: true, filePath: destPath };
     } catch (error) {
       log.error("[IPC] Failed to import Kiro token:", error);
+      return { success: false, error: String(error) };
+    }
+  });
+
+  ipcMain.handle("kiro:importFromToken", async (_event, tokenJson: string) => {
+    try {
+      if (!tokenJson || !tokenJson.trim()) {
+        return { success: false, error: "Token JSON is required" };
+      }
+
+      let parsed: Record<string, unknown>;
+      try {
+        parsed = JSON.parse(tokenJson);
+      } catch {
+        return { success: false, error: "Invalid token JSON" };
+      }
+
+      const nestedToken =
+        parsed.token && typeof parsed.token === "object"
+          ? (parsed.token as Record<string, unknown>)
+          : undefined;
+
+      const accessToken =
+        (typeof parsed.accessToken === "string" ? parsed.accessToken : "") ||
+        (typeof parsed.access_token === "string" ? parsed.access_token : "") ||
+        (nestedToken && typeof nestedToken.access_token === "string"
+          ? nestedToken.access_token
+          : "");
+
+      const refreshToken =
+        (typeof parsed.refreshToken === "string" ? parsed.refreshToken : "") ||
+        (typeof parsed.refresh_token === "string"
+          ? parsed.refresh_token
+          : "") ||
+        (nestedToken && typeof nestedToken.refresh_token === "string"
+          ? nestedToken.refresh_token
+          : "");
+
+      if (!accessToken || !refreshToken) {
+        return {
+          success: false,
+          error: "Token JSON must include accessToken and refreshToken",
+        };
+      }
+
+      const authMethodRaw =
+        (typeof parsed.authMethod === "string" ? parsed.authMethod : "") ||
+        (typeof parsed.auth_method === "string" ? parsed.auth_method : "") ||
+        "builder-id";
+      const authMethod = authMethodRaw.toLowerCase();
+      const safeAuthMethod =
+        authMethod.replace(/[^a-z0-9-]/g, "") || "builder-id";
+
+      const expiresAt =
+        (typeof parsed.expiresAt === "string" ? parsed.expiresAt : "") ||
+        (typeof parsed.expired === "string" ? parsed.expired : "") ||
+        (nestedToken && typeof nestedToken.expiry === "string"
+          ? nestedToken.expiry
+          : "") ||
+        new Date(Date.now() + 60 * 60 * 1000).toISOString();
+
+      const email =
+        (typeof parsed.email === "string" ? parsed.email : "") ||
+        (typeof parsed.username === "string" ? parsed.username : "");
+      const safeEmail = email
+        ? email.toLowerCase().replace(/[^a-z0-9._-]/g, "-")
+        : "";
+
+      const authDir = proxyManager.getAuthDir();
+      if (!fs.existsSync(authDir)) {
+        fs.mkdirSync(authDir, { recursive: true });
+      }
+
+      const randomId = crypto.randomBytes(8).toString("hex").toUpperCase();
+      const destFilename = safeEmail
+        ? `kiro-${safeAuthMethod}-${safeEmail}.json`
+        : `kiro-${safeAuthMethod}-${randomId}.json`;
+      const destPath = path.join(authDir, destFilename);
+
+      const tokenData = {
+        accessToken,
+        refreshToken,
+        profileArn:
+          typeof parsed.profileArn === "string" ? parsed.profileArn : "",
+        expiresAt,
+        authMethod,
+        provider: typeof parsed.provider === "string" ? parsed.provider : "AWS",
+        clientId:
+          typeof parsed.clientId === "string" ? parsed.clientId : undefined,
+        clientSecret:
+          typeof parsed.clientSecret === "string"
+            ? parsed.clientSecret
+            : undefined,
+        clientIdHash:
+          typeof parsed.clientIdHash === "string"
+            ? parsed.clientIdHash
+            : undefined,
+        startUrl:
+          typeof parsed.startUrl === "string" ? parsed.startUrl : undefined,
+        region: typeof parsed.region === "string" ? parsed.region : undefined,
+        email: safeEmail || undefined,
+      };
+
+      fs.writeFileSync(destPath, JSON.stringify(tokenData, null, 2), "utf-8");
+      log.info(`[IPC] Kiro token imported from input: ${destPath}`);
+
+      return { success: true, filePath: destPath };
+    } catch (error) {
+      log.error("[IPC] Failed to import Kiro token from input:", error);
       return { success: false, error: String(error) };
     }
   });
