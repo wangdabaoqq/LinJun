@@ -3,6 +3,43 @@ interface ElectronAPI {
     start: () => Promise<{ success: boolean }>;
     stop: () => Promise<{ success: boolean }>;
     status: () => Promise<{ running: boolean; port: number }>;
+    getBinaryVersion: () => Promise<{
+      success: boolean;
+      version: string;
+      error?: string;
+    }>;
+    checkBinaryUpdate: () => Promise<{
+      hasUpdate: boolean;
+      currentVersion: string;
+      latestVersion: string;
+      releaseUrl?: string;
+      error?: string;
+    }>;
+    updateBinary: () => Promise<{
+      success: boolean;
+      updated: boolean;
+      restarted: boolean;
+      hasUpdate: boolean;
+      currentVersion: string;
+      latestVersion: string;
+      releaseUrl?: string;
+      error?: string;
+    }>;
+    onUpdateBinaryProgress: (
+      callback: (progress: {
+        stage:
+          | "preparing"
+          | "downloading"
+          | "extracting"
+          | "installing"
+          | "restarting"
+          | "completed";
+        percent: number;
+        message?: string;
+        downloadedBytes?: number;
+        totalBytes?: number;
+      }) => void,
+    ) => () => void;
   };
   api: {
     cliLogin: (

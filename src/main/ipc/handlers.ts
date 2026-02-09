@@ -10,6 +10,11 @@ import { managementAPI } from "../proxy/api";
 import { store } from "../utils/store";
 import { setAutoLaunch } from "../utils/autoLaunch";
 import { checkForUpdates } from "../update/checker";
+import {
+  checkProxyBinaryUpdate,
+  getProxyBinaryVersion,
+  updateProxyBinaryAndRestart,
+} from "../proxy/updater";
 import { readRecentRequestLogs, deleteAllLogs } from "../logging";
 import {
   detectAllCLITools,
@@ -58,6 +63,20 @@ export function setupIpcHandlers(): void {
       running: proxyManager.isRunning(),
       port: proxyManager.getPort(),
     };
+  });
+
+  ipcMain.handle("proxy:checkBinaryUpdate", async () => {
+    return await checkProxyBinaryUpdate();
+  });
+
+  ipcMain.handle("proxy:getBinaryVersion", () => {
+    return getProxyBinaryVersion();
+  });
+
+  ipcMain.handle("proxy:updateBinary", async (event) => {
+    return await updateProxyBinaryAndRestart((progress) => {
+      event.sender.send("proxy:updateBinaryProgress", progress);
+    });
   });
 
   ipcMain.handle("logs:request", (_event, limit: number = 30) => {

@@ -328,6 +328,11 @@ class ProxyManager extends EventEmitter {
   }
 
   getBinaryPath(): string {
+    const managedBinaryPath = this.getManagedBinaryPath();
+    if (fs.existsSync(managedBinaryPath)) {
+      return managedBinaryPath;
+    }
+
     const platform = process.platform;
     const arch = process.arch;
     const binaryName = platform === "win32" ? "cliproxy.exe" : "cliproxy";
@@ -345,6 +350,17 @@ class ProxyManager extends EventEmitter {
       app.getAppPath(),
       "resources/binaries",
       `${platform}-${arch}`,
+      binaryName,
+    );
+  }
+
+  getManagedBinaryPath(): string {
+    const binaryName =
+      process.platform === "win32" ? "cliproxy.exe" : "cliproxy";
+    return path.join(
+      this.getConfigDir(),
+      "bin",
+      `${process.platform}-${process.arch}`,
       binaryName,
     );
   }

@@ -16,6 +16,45 @@ const electronAPI = {
     start: () => ipcRenderer.invoke("proxy:start"),
     stop: () => ipcRenderer.invoke("proxy:stop"),
     status: () => ipcRenderer.invoke("proxy:status"),
+    checkBinaryUpdate: () => ipcRenderer.invoke("proxy:checkBinaryUpdate"),
+    getBinaryVersion: () => ipcRenderer.invoke("proxy:getBinaryVersion"),
+    updateBinary: () => ipcRenderer.invoke("proxy:updateBinary"),
+    onUpdateBinaryProgress: (
+      callback: (progress: {
+        stage:
+          | "preparing"
+          | "downloading"
+          | "extracting"
+          | "installing"
+          | "restarting"
+          | "completed";
+        percent: number;
+        message?: string;
+        downloadedBytes?: number;
+        totalBytes?: number;
+      }) => void,
+    ) => {
+      const handler = (
+        _event: unknown,
+        progress: {
+          stage:
+            | "preparing"
+            | "downloading"
+            | "extracting"
+            | "installing"
+            | "restarting"
+            | "completed";
+          percent: number;
+          message?: string;
+          downloadedBytes?: number;
+          totalBytes?: number;
+        },
+      ) => callback(progress);
+
+      ipcRenderer.on("proxy:updateBinaryProgress", handler);
+      return () =>
+        ipcRenderer.removeListener("proxy:updateBinaryProgress", handler);
+    },
     onStatusChange: (callback: (running: boolean) => void) => {
       const handler = (_event: unknown, running: boolean) => callback(running);
       ipcRenderer.on("proxy:statusChanged", handler);

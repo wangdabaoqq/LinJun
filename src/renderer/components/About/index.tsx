@@ -18,13 +18,32 @@ interface UpdateInfo {
   hasUpdate: boolean;
   currentVersion: string;
   latestVersion: string;
+  updated?: boolean;
+  restarted?: boolean;
+  success?: boolean;
   releaseUrl?: string;
   error?: string;
+}
+
+interface UpdateProgress {
+  stage:
+    | "preparing"
+    | "downloading"
+    | "extracting"
+    | "installing"
+    | "restarting"
+    | "completed";
+  percent: number;
+  message?: string;
+  downloadedBytes?: number;
+  totalBytes?: number;
 }
 
 export function About() {
   const t = useTranslations();
   const [appVersion, setAppVersion] = useState<string>("1.0.0");
+  const appReleaseFallbackUrl =
+    "https://g-proxy.940703.xyz/https://github.com/wangdabaoqq/LinJun/releases";
 
   useEffect(() => {
     window.electronAPI?.app.getVersion().then((v) => {
@@ -32,27 +51,209 @@ export function About() {
     });
   }, []);
 
-  const [updateStatus, setUpdateStatus] = useState<{
+  const [appUpdateStatus, setAppUpdateStatus] = useState<{
     checking: boolean;
     result?: UpdateInfo;
   }>({ checking: false });
 
-  const handleCheckUpdate = async () => {
-    setUpdateStatus({ checking: true });
+  const [proxyUpdateStatus, setProxyUpdateStatus] = useState<{
+    checking: boolean;
+    updating: boolean;
+    result?: UpdateInfo;
+  }>({ checking: false, updating: false });
+  const [proxyUpdateProgress, setProxyUpdateProgress] =
+    useState<UpdateProgress | null>(null);
+  const [proxyRestartPromptVisible, setProxyRestartPromptVisible] =
+    useState(false);
+  const [proxyRestarting, setProxyRestarting] = useState(false);
+  const [proxyRestartError, setProxyRestartError] = useState<string | null>(
+    null,
+  );
+  const [proxyRestartDone, setProxyRestartDone] = useState(false);
+
+  const formatBytes = (bytes: number): string => {
+    if (!Number.isFinite(bytes) || bytes <= 0) {
+      return "0 B";
+    }
+
+    const units = ["B", "KB", "MB", "GB"];
+    let value = bytes;
+    let unitIndex = 0;
+
+    while (value >= 1024 && unitIndex < units.length - 1) {
+      value /= 1024;
+      unitIndex += 1;
+    }
+
+    const precision = unitIndex === 0 ? 0 : 1;
+    return `${value.toFixed(precision)} ${units[unitIndex]}`;
+  };
+
+  useEffect(() => {
+    window.electronAPI?.proxy.getBinaryVersion().then((result) => {
+      if (!result) {
+        return;
+      }
+
+      setProxyUpdateStatus((prev) => ({
+        ...prev,
+        result: {
+          hasUpdate: prev.result?.hasUpdate || false,
+          currentVersion: result.version || "unknown",
+          latestVersion:
+            prev.result?.latestVersion || result.version || "unknown",
+          error: result.success ? undefined : result.error,
+          updated: prev.result?.updated,
+          restarted: prev.result?.restarted,
+          success: result.success,
+          releaseUrl: prev.result?.releaseUrl,
+        },
+      }));
+    });
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = window.electronAPI?.proxy.onUpdateBinaryProgress(
+      (progress) => {
+        setProxyUpdateProgress(progress);
+      },
+    );
+
+    return () => {
+      unsubscribe?.();
+    };
+  }, []);
+
+  const handleCheckAppUpdate = async () => {
+    setAppUpdateStatus({ checking: true });
     try {
       const result = await window.electronAPI?.app.checkForUpdates();
-      setUpdateStatus({ checking: false, result });
+      if (!result) {
+        throw new Error("Update check API is unavailable");
+      }
+      setAppUpdateStatus({ checking: false, result });
     } catch (error) {
-      setUpdateStatus({
+      setAppUpdateStatus({
         checking: false,
         result: {
           hasUpdate: false,
-          currentVersion: "1.0.0",
-          latestVersion: "1.0.0",
+          currentVersion: appVersion,
+          latestVersion: appVersion,
           error: String(error),
         },
       });
     }
+  };
+
+  const handleCheckProxyUpdate = async () => {
+    setProxyUpdateStatus((prev) => ({ ...prev, checking: true }));
+    try {
+      const result = await window.electronAPI?.proxy.checkBinaryUpdate();
+      if (!result) {
+        throw new Error("Update check API is unavailable");
+      }
+      setProxyUpdateStatus({ checking: false, updating: false, result });
+    } catch (error) {
+      setProxyUpdateStatus({
+        checking: false,
+        updating: false,
+        result: {
+          hasUpdate: false,
+          currentVersion: "unknown",
+          latestVersion: "unknown",
+          error: String(error),
+        },
+      });
+    }
+  };
+
+  const handleUpdateProxyBinary = async () => {
+    setProxyUpdateProgress({ stage: "preparing", percent: 0 });
+    setProxyRestartPromptVisible(false);
+    setProxyRestartError(null);
+    setProxyRestartDone(false);
+    setProxyUpdateStatus((prev) => ({ ...prev, updating: true }));
+    try {
+      const result = await window.electronAPI?.proxy.updateBinary();
+      if (!result) {
+        throw new Error("Binary update API is unavailable");
+      }
+      setProxyUpdateStatus({
+        checking: false,
+        updating: false,
+        result,
+      });
+
+      if (result.updated) {
+        setProxyRestartPromptVisible(true);
+      }
+
+      setProxyUpdateProgress((prev) =>
+        prev ? { ...prev, stage: "completed", percent: 100 } : null,
+      );
+    } catch (error) {
+      setProxyUpdateStatus((prev) => ({
+        checking: false,
+        updating: false,
+        result: {
+          hasUpdate: true,
+          currentVersion: prev.result?.currentVersion || "unknown",
+          latestVersion: prev.result?.latestVersion || "unknown",
+          error: String(error),
+        },
+      }));
+      setProxyUpdateProgress(null);
+    }
+  };
+
+  const handleRestartProxyService = async () => {
+    setProxyRestarting(true);
+    setProxyRestartError(null);
+
+    try {
+      const status = await window.electronAPI?.proxy.status();
+      if (!status) {
+        throw new Error("Proxy status API unavailable");
+      }
+
+      if (status.running) {
+        const stopResult = await window.electronAPI?.proxy.stop();
+        if (!stopResult?.success) {
+          throw new Error("Failed to stop proxy service");
+        }
+      }
+
+      const startResult = await window.electronAPI?.proxy.start();
+      if (!startResult?.success) {
+        throw new Error("Failed to start proxy service");
+      }
+
+      setProxyRestartPromptVisible(false);
+      setProxyRestartDone(true);
+      setProxyUpdateStatus((prev) => {
+        if (!prev.result) {
+          return prev;
+        }
+
+        return {
+          ...prev,
+          result: {
+            ...prev.result,
+            restarted: true,
+          },
+        };
+      });
+    } catch (error) {
+      setProxyRestartError(String(error));
+    } finally {
+      setProxyRestarting(false);
+    }
+  };
+
+  const handleDownloadAppUpdate = () => {
+    handleOpenExternal(
+      appUpdateStatus.result?.releaseUrl || appReleaseFallbackUrl,
+    );
   };
 
   const handleOpenExternal = (url: string) => {
@@ -152,19 +353,19 @@ export function About() {
             <div className="space-y-1">
               <h3 className="text-sm font-bold text-[var(--text-primary)] flex items-center gap-2">
                 <Zap className="w-4 h-4 text-[var(--accent-primary)]" />
-                {t.settings.updates}
+                {t.about.appUpdates}
               </h3>
               <p className="text-xs text-[var(--text-muted)]">
                 {t.settings.currentVersion}:{" "}
                 <span className="text-[var(--text-primary)] font-mono ml-1">
-                  {updateStatus.result?.currentVersion || appVersion}
+                  {appUpdateStatus.result?.currentVersion || appVersion}
                 </span>
               </p>
             </div>
 
             <div className="flex items-center gap-3">
               <AnimatePresence mode="wait">
-                {updateStatus.checking ? (
+                {appUpdateStatus.checking ? (
                   <motion.div
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -176,9 +377,9 @@ export function About() {
                       {t.settings.checking}
                     </span>
                   </motion.div>
-                ) : updateStatus.result &&
-                  !updateStatus.result.error &&
-                  updateStatus.result.hasUpdate ? (
+                ) : appUpdateStatus.result &&
+                  !appUpdateStatus.result.error &&
+                  appUpdateStatus.result.hasUpdate ? (
                   <motion.div
                     initial={{ opacity: 0, x: 10 }}
                     animate={{ opacity: 1, x: 0 }}
@@ -190,16 +391,11 @@ export function About() {
                         <span className="relative inline-flex rounded-full h-2 w-2 bg-[var(--success)]"></span>
                       </span>
                       <span className="text-xs font-medium text-[var(--success)]">
-                        v{updateStatus.result.latestVersion}
+                        v{appUpdateStatus.result.latestVersion}
                       </span>
                     </div>
                     <button
-                      onClick={() =>
-                        handleOpenExternal(
-                          updateStatus.result!.releaseUrl ||
-                            "https://g-proxy.940703.xyz/https://github.com/wangdabaoqq/LinJun/releases",
-                        )
-                      }
+                      onClick={handleDownloadAppUpdate}
                       className="px-4 py-2 bg-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/90 text-white text-sm font-medium rounded-full transition-colors flex items-center gap-2 shadow-lg shadow-[var(--accent-primary)]/20"
                     >
                       <Download className="w-4 h-4" />
@@ -208,7 +404,7 @@ export function About() {
                   </motion.div>
                 ) : (
                   <button
-                    onClick={handleCheckUpdate}
+                    onClick={handleCheckAppUpdate}
                     className="px-4 py-2 bg-[var(--glass-bg)] hover:bg-[var(--glass-bg-hover)] border border-[var(--glass-border)] hover:border-[var(--glass-border-hover)] rounded-full text-sm text-[var(--text-primary)] font-medium transition-all duration-200 flex items-center gap-2"
                   >
                     <Globe className="h-4 w-4 text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors" />
@@ -220,7 +416,7 @@ export function About() {
           </div>
 
           <AnimatePresence>
-            {updateStatus.result && !updateStatus.checking && (
+            {appUpdateStatus.result && !appUpdateStatus.checking && (
               <motion.div
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: "auto", opacity: 1 }}
@@ -228,14 +424,14 @@ export function About() {
                 className="overflow-hidden"
               >
                 <div className="mt-4 pt-4 border-t border-[var(--glass-border)]">
-                  {updateStatus.result.error ? (
+                  {appUpdateStatus.result.error ? (
                     <div className="flex items-center gap-2 text-[var(--accent-error)]">
                       <AlertCircle className="w-4 h-4" />
                       <span className="text-sm font-medium">
                         {t.settings.checkFailed}
                       </span>
                     </div>
-                  ) : !updateStatus.result.hasUpdate ? (
+                  ) : !appUpdateStatus.result.hasUpdate ? (
                     <div className="flex items-center gap-2 text-[var(--accent-success)]">
                       <CheckCircle2 className="w-4 h-4" />
                       <span className="text-sm font-medium">
@@ -246,6 +442,191 @@ export function About() {
                 </div>
               </motion.div>
             )}
+          </AnimatePresence>
+        </div>
+
+        <div className="glass-card p-6 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-[var(--accent-primary)]/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none transition-opacity opacity-50 group-hover:opacity-100" />
+
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 relative z-10">
+            <div className="space-y-1">
+              <h3 className="text-sm font-bold text-[var(--text-primary)] flex items-center gap-2">
+                <Zap className="w-4 h-4 text-[var(--accent-primary)]" />
+                {t.about.proxyUpdates}
+              </h3>
+              <p className="text-xs text-[var(--text-muted)]">
+                {t.about.currentProxyVersion}:{" "}
+                <span className="text-[var(--text-primary)] font-mono ml-1">
+                  {proxyUpdateStatus.result?.currentVersion || "unknown"}
+                </span>
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <AnimatePresence mode="wait">
+                {proxyUpdateStatus.checking || proxyUpdateStatus.updating ? (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    className="flex items-center gap-2 px-4 py-2 rounded-full bg-[var(--glass-bg)] border border-[var(--glass-border)] text-[var(--text-muted)]"
+                  >
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span className="text-sm font-medium">
+                      {proxyUpdateStatus.updating
+                        ? `${t.about.updatingProxy}${proxyUpdateProgress ? ` ${proxyUpdateProgress.percent}%` : ""}`
+                        : t.settings.checking}
+                    </span>
+                  </motion.div>
+                ) : proxyUpdateStatus.result &&
+                  !proxyUpdateStatus.result.error &&
+                  proxyUpdateStatus.result.hasUpdate ? (
+                  <motion.div
+                    initial={{ opacity: 0, x: 10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className="flex items-center gap-3"
+                  >
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--success)]/10 shadow-[0_0_8px_var(--success)]">
+                      <span className="relative flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--success)] opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-[var(--success)]"></span>
+                      </span>
+                      <span className="text-xs font-medium text-[var(--success)]">
+                        v{proxyUpdateStatus.result.latestVersion}
+                      </span>
+                    </div>
+                    <button
+                      onClick={handleUpdateProxyBinary}
+                      className="px-4 py-2 bg-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/90 text-white text-sm font-medium rounded-full transition-colors flex items-center gap-2 shadow-lg shadow-[var(--accent-primary)]/20"
+                    >
+                      <Download className="w-4 h-4" />
+                      {t.about.updateAndRestartProxy}
+                    </button>
+                  </motion.div>
+                ) : (
+                  <button
+                    onClick={handleCheckProxyUpdate}
+                    className="px-4 py-2 bg-[var(--glass-bg)] hover:bg-[var(--glass-bg-hover)] border border-[var(--glass-border)] hover:border-[var(--glass-border-hover)] rounded-full text-sm text-[var(--text-primary)] font-medium transition-all duration-200 flex items-center gap-2"
+                  >
+                    <Globe className="h-4 w-4 text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors" />
+                    {t.settings.checkUpdate}
+                  </button>
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
+
+          <AnimatePresence>
+            {proxyUpdateStatus.updating && proxyUpdateProgress ? (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="mt-4 pt-4 border-t border-[var(--glass-border)] space-y-2">
+                  <div className="h-2 w-full rounded-full bg-[var(--bg-tertiary)]/60 overflow-hidden">
+                    <div
+                      className="h-full bg-[var(--accent-primary)] transition-all duration-300"
+                      style={{ width: `${proxyUpdateProgress.percent}%` }}
+                    />
+                  </div>
+                  <div className="text-xs text-[var(--text-muted)]">
+                    {proxyUpdateProgress.downloadedBytes &&
+                    proxyUpdateProgress.totalBytes
+                      ? `${formatBytes(proxyUpdateProgress.downloadedBytes)} / ${formatBytes(proxyUpdateProgress.totalBytes)}`
+                      : `${proxyUpdateProgress.percent}%`}
+                  </div>
+                </div>
+              </motion.div>
+            ) : null}
+
+            {proxyRestartPromptVisible && !proxyUpdateStatus.updating ? (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="mt-4 pt-4 border-t border-[var(--glass-border)] space-y-3">
+                  <p className="text-sm text-[var(--text-primary)]">
+                    {t.about.restartServiceQuestion}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handleRestartProxyService}
+                      disabled={proxyRestarting}
+                      className="px-3 py-1.5 rounded-full bg-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/90 disabled:opacity-60 text-white text-xs font-medium transition-colors"
+                    >
+                      {proxyRestarting
+                        ? t.about.restartingService
+                        : t.settings.restartNow}
+                    </button>
+                    <button
+                      onClick={() => setProxyRestartPromptVisible(false)}
+                      disabled={proxyRestarting}
+                      className="px-3 py-1.5 rounded-full bg-[var(--glass-bg)] border border-[var(--glass-border)] hover:bg-[var(--glass-bg-hover)] disabled:opacity-60 text-xs font-medium text-[var(--text-primary)] transition-colors"
+                    >
+                      {t.settings.restartLater}
+                    </button>
+                  </div>
+                  {proxyRestartError ? (
+                    <p className="text-xs text-[var(--accent-error)]">
+                      {proxyRestartError}
+                    </p>
+                  ) : null}
+                </div>
+              </motion.div>
+            ) : null}
+
+            {proxyRestartDone && !proxyUpdateStatus.updating ? (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="mt-4 pt-4 border-t border-[var(--glass-border)]">
+                  <div className="flex items-center gap-2 text-[var(--accent-success)]">
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span className="text-sm font-medium">
+                      {t.about.serviceRestarted}
+                    </span>
+                  </div>
+                </div>
+              </motion.div>
+            ) : null}
+
+            {proxyUpdateStatus.result &&
+            !proxyUpdateStatus.checking &&
+            !proxyUpdateStatus.updating ? (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="mt-4 pt-4 border-t border-[var(--glass-border)]">
+                  {proxyUpdateStatus.result.error ? (
+                    <div className="flex items-center gap-2 text-[var(--accent-error)]">
+                      <AlertCircle className="w-4 h-4" />
+                      <span className="text-sm font-medium">
+                        {t.settings.checkFailed}
+                      </span>
+                    </div>
+                  ) : !proxyUpdateStatus.result.hasUpdate ? (
+                    <div className="flex items-center gap-2 text-[var(--accent-success)]">
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span className="text-sm font-medium">
+                        {proxyUpdateStatus.result.updated
+                          ? t.about.proxyUpdated
+                          : t.settings.upToDate}
+                      </span>
+                    </div>
+                  ) : null}
+                </div>
+              </motion.div>
+            ) : null}
           </AnimatePresence>
         </div>
 
