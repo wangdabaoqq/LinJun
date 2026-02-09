@@ -304,9 +304,11 @@ function ConfigModal({ tool, onClose }: ConfigModalProps) {
           tool.name === "Amp CLI" ||
           tool.name === "iFlow CLI"
             ? t.agents.tabSettings
-            : tool.name === "OpenCode" || tool.name === "Droid CLI"
-              ? t.agents.tabConfigJson
-              : t.agents.tabConfigToml,
+            : tool.name === "OpenCode"
+              ? "opencode.json"
+              : tool.name === "Droid CLI"
+                ? t.agents.tabConfigJson
+                : t.agents.tabConfigToml,
       });
     }
 
@@ -379,23 +381,28 @@ function ConfigModal({ tool, onClose }: ConfigModalProps) {
     loadApiKey();
   }, []);
 
-  useEffect(() => {
-    const loadProviders = async () => {
-      try {
-        const result = await window.electronAPI?.providers.getAccounts();
-        if (result?.success && result.accounts) {
-          const providerIds = [
-            ...new Set(
-              result.accounts.map((acc: { provider: string }) => acc.provider),
-            ),
-          ] as string[];
-          setActiveProviders(providerIds);
-        }
-      } catch (error) {
-        log.error("Failed to load providers:", error);
+  const loadActiveProviders = async (): Promise<string[]> => {
+    try {
+      const result = await window.electronAPI?.providers.getAccounts();
+      if (result?.success && result.accounts) {
+        const providerIds = [
+          ...new Set(
+            result.accounts.map((acc: { provider: string }) => acc.provider),
+          ),
+        ] as string[];
+        setActiveProviders(providerIds);
+        return providerIds;
       }
-    };
-    loadProviders();
+    } catch (error) {
+      log.error("Failed to load providers:", error);
+    }
+
+    setActiveProviders([]);
+    return [];
+  };
+
+  useEffect(() => {
+    void loadActiveProviders();
   }, []);
 
   const getDefaultClaudeConfig = () => {
@@ -546,14 +553,22 @@ export IFLOW_baseUrl="${proxyUrl}/v1"
 export IFLOW_modelName="claude-sonnet-4-5"`;
   };
 
-  const getDefaultOpenCodeConfig = () => {
+  const buildOpenCodeModels = (providerIds: string[]): ProviderModels => {
     const models: ProviderModels = {};
-    for (const providerId of activeProviders) {
+    for (const providerId of providerIds) {
       const providerModels = PROVIDER_MODEL_MAP[providerId];
       if (providerModels) {
         Object.assign(models, providerModels);
       }
     }
+
+    return models;
+  };
+
+  const getDefaultOpenCodeConfig = (
+    providerIds: string[] = activeProviders,
+  ) => {
+    const models = buildOpenCodeModels(providerIds);
 
     const config: Record<string, unknown> = {
       $schema: "https://opencode.ai/config.json",
@@ -571,6 +586,58 @@ export IFLOW_modelName="claude-sonnet-4-5"`;
     };
 
     return JSON.stringify(config, null, 2);
+  };
+
+  const syncOpenCodeConfigModels = (
+    rawConfig: string,
+    providerIds: string[],
+  ): string => {
+    const models = buildOpenCodeModels(providerIds);
+
+    try {
+      const parsed = JSON.parse(rawConfig);
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+        return getDefaultOpenCodeConfig(providerIds);
+      }
+
+      const config = parsed as Record<string, unknown>;
+      const provider =
+        config.provider &&
+        typeof config.provider === "object" &&
+        !Array.isArray(config.provider)
+          ? (config.provider as Record<string, unknown>)
+          : {};
+      const existingLinjun =
+        provider.linjun &&
+        typeof provider.linjun === "object" &&
+        !Array.isArray(provider.linjun)
+          ? (provider.linjun as Record<string, unknown>)
+          : {};
+
+      const linjun: Record<string, unknown> = {
+        name: t.agents.linjunProxy,
+        npm: "@ai-sdk/anthropic",
+        options: {
+          apiKey: apiKey || "your-api-key",
+          baseURL: `${proxyUrl}/v1`,
+        },
+        ...existingLinjun,
+      };
+
+      if (Object.keys(models).length > 0) {
+        linjun.models = models;
+      } else {
+        delete linjun.models;
+      }
+
+      provider.linjun = linjun;
+      config.provider = provider;
+
+      return JSON.stringify(config, null, 2);
+    } catch (error) {
+      log.error("[Agents] Failed to sync OpenCode models:", error);
+      return getDefaultOpenCodeConfig(providerIds);
+    }
   };
 
   const [configContent, setConfigContent] = useState(
@@ -667,6 +734,16 @@ export IFLOW_modelName="claude-sonnet-4-5"`;
     setSaving(true);
     setSaveMessage(null);
     try {
+      let contentToSave = configContent;
+      if (tool.name === "OpenCode") {
+        const latestProviderIds = await loadActiveProviders();
+        contentToSave = syncOpenCodeConfigModels(
+          configContent,
+          latestProviderIds,
+        );
+        setConfigContent(contentToSave);
+      }
+
       const configResult = await window.electronAPI?.cli.readConfig(tool.name);
       const configPath = configResult?.config?.configPath;
       if (!configResult?.success || !configPath) {
@@ -682,7 +759,7 @@ export IFLOW_modelName="claude-sonnet-4-5"`;
 
       const result = await window.electronAPI?.cli.writeConfig(
         configPath,
-        configContent,
+        contentToSave,
         true,
       );
       if (result?.success) {
@@ -1012,7 +1089,7 @@ export IFLOW_modelName="claude-sonnet-4-5"`;
                   {tool.name === "Claude Code"
                     ? `~/.claude/${t.agents.tabSettings}`
                     : tool.name === "OpenCode"
-                      ? `~/.config/opencode/${t.agents.tabConfigJson}`
+                      ? "~/.config/opencode/opencode.json"
                       : tool.name === "Amp CLI"
                         ? `~/.config/amp/${t.agents.tabSettings}`
                         : tool.name === "Droid CLI"

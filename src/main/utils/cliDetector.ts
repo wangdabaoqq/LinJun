@@ -208,7 +208,7 @@ function getConfigPaths(toolName: string): {
       authPath: path.join(homeDir, ".codex", "auth.json"),
     },
     OpenCode: {
-      configPath: path.join(homeDir, ".opencode", "config.json"),
+      configPath: path.join(homeDir, ".config", "opencode", "opencode.json"),
     },
     "Amp CLI": {
       configPath: path.join(homeDir, ".config", "amp", "settings.json"),
