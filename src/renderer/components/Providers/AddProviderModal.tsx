@@ -33,7 +33,7 @@ export const AddProviderModal = memo(function AddProviderModal({
     setIsClosing(true);
     closeTimerRef.current = window.setTimeout(() => {
       callback();
-    }, 180);
+    }, 240);
   };
 
   return (

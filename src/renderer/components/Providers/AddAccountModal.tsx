@@ -1,4 +1,4 @@
-import { useState, memo, useEffect } from "react";
+import { useState, memo, useEffect, useRef } from "react";
 import { X, Plus, Loader2, Copy, Check, ExternalLink } from "lucide-react";
 import log from "@renderer/utils/logger";
 
@@ -34,6 +34,8 @@ export const AddAccountModal = memo(function AddAccountModal({
   const [kiroTokenInput, setKiroTokenInput] = useState("");
   const [kiroIdcStartUrl, setKiroIdcStartUrl] = useState("");
   const [kiroIdcRegion, setKiroIdcRegion] = useState("us-east-1");
+  const [isClosing, setIsClosing] = useState(false);
+  const closeTimerRef = useRef<number | null>(null);
 
   const isAntigravity = provider.id === "antigravity";
   const isKiro = provider.id === "kiro";
@@ -131,6 +133,24 @@ export const AddAccountModal = memo(function AddAccountModal({
 
   const isCustomProvider = provider.id === "custom";
 
+  useEffect(() => {
+    return () => {
+      if (closeTimerRef.current !== null) {
+        window.clearTimeout(closeTimerRef.current);
+      }
+    };
+  }, []);
+
+  const runCloseAnimation = (action: () => void) => {
+    if (isClosing) {
+      return;
+    }
+    setIsClosing(true);
+    closeTimerRef.current = window.setTimeout(() => {
+      action();
+    }, 240);
+  };
+
   const handleOAuthConnect = async () => {
     if (isAuthUrlModalProvider && antigravityAuthUrl) {
       setIsAntigravityAuthenticating(true);
@@ -148,9 +168,11 @@ export const AddAccountModal = memo(function AddAccountModal({
         provider.id as any,
       );
       if (result?.success) {
-        onAdd({
-          email: `oauth-${provider.id}@pending`,
-          nickname: undefined,
+        runCloseAnimation(() => {
+          onAdd({
+            email: `oauth-${provider.id}@pending`,
+            nickname: undefined,
+          });
         });
       } else {
         setError(result?.error || "Authentication failed");
@@ -168,9 +190,11 @@ export const AddAccountModal = memo(function AddAccountModal({
     try {
       const result = await (window as any).electronAPI?.kiro?.importToken();
       if (result?.success) {
-        onAdd({
-          email: `import-${provider.id}@scanning`,
-          nickname: undefined,
+        runCloseAnimation(() => {
+          onAdd({
+            email: `import-${provider.id}@scanning`,
+            nickname: undefined,
+          });
         });
       } else {
         setError(result?.error || "Failed to import Kiro token");
@@ -195,9 +219,11 @@ export const AddAccountModal = memo(function AddAccountModal({
         kiroTokenInput.trim(),
       );
       if (result?.success) {
-        onAdd({
-          email: `import-${provider.id}@token`,
-          nickname: undefined,
+        runCloseAnimation(() => {
+          onAdd({
+            email: `import-${provider.id}@token`,
+            nickname: undefined,
+          });
         });
       } else {
         setError(result?.error || "Failed to import Kiro token");
@@ -252,9 +278,11 @@ export const AddAccountModal = memo(function AddAccountModal({
         projectId.trim() || undefined,
       );
       if (result?.status === "ok") {
-        onAdd({
-          email: `oauth-${provider.id}@pending`,
-          nickname: undefined,
+        runCloseAnimation(() => {
+          onAdd({
+            email: `oauth-${provider.id}@pending`,
+            nickname: undefined,
+          });
         });
       } else {
         setError("Failed to get Gemini authentication URL");
@@ -270,9 +298,11 @@ export const AddAccountModal = memo(function AddAccountModal({
     setIsLoading(true);
     setError(null);
     try {
-      onAdd({
-        email: `import-${provider.id}@scanning`,
-        nickname: undefined,
+      runCloseAnimation(() => {
+        onAdd({
+          email: `import-${provider.id}@scanning`,
+          nickname: undefined,
+        });
       });
     } catch (err) {
       setError(String(err));
@@ -295,11 +325,13 @@ export const AddAccountModal = memo(function AddAccountModal({
         apiKey,
       );
       if (result?.valid) {
-        onAdd({
-          email:
-            result.email ||
-            (isCustomProvider ? endpoint : `apikey-${Date.now()}@local`),
-          nickname: undefined,
+        runCloseAnimation(() => {
+          onAdd({
+            email:
+              result.email ||
+              (isCustomProvider ? endpoint : `apikey-${Date.now()}@local`),
+            nickname: undefined,
+          });
         });
       } else {
         setError(result?.error || "Invalid API key");
@@ -322,13 +354,15 @@ export const AddAccountModal = memo(function AddAccountModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div
+      className={`fixed inset-0 z-50 flex items-center justify-center p-4 ${isClosing ? "pointer-events-none" : ""}`}
+    >
       <div
-        className="fixed inset-0 bg-[var(--overlay-bg)] backdrop-blur-xl animate-fade-in"
+        className={`fixed inset-0 bg-[var(--overlay-bg)] backdrop-blur-xl ${isClosing ? "animate-fade-out" : "animate-fade-in"}`}
         style={{ WebkitBackdropFilter: "blur(24px)" }}
       />
       <div
-        className={`relative w-full ${isKiro ? "max-w-[560px]" : "max-w-[420px]"} overflow-hidden animate-scale-in shadow-soft-xl border border-[var(--glass-border)] rounded-3xl flex flex-col isolation-isolate bg-[var(--bg-primary)] transition-all duration-300`}
+        className={`relative w-full ${isKiro ? "max-w-[560px]" : "max-w-[420px]"} overflow-hidden ${isClosing ? "animate-scale-out" : "animate-scale-in"} shadow-soft-xl border border-[var(--glass-border)] rounded-3xl flex flex-col isolation-isolate bg-[var(--bg-primary)] transition-all duration-300`}
       >
         <div className="absolute inset-0 glass-modal-bg z-0" />
         <div className="absolute inset-0 bg-gradient-to-br from-[var(--accent-primary)]/5 via-transparent to-transparent z-0" />
@@ -351,7 +385,7 @@ export const AddAccountModal = memo(function AddAccountModal({
           </div>
           {!isAntigravityAuthenticating && (
             <button
-              onClick={onClose}
+              onClick={() => runCloseAnimation(onClose)}
               className="w-10 h-10 flex items-center justify-center rounded-xl text-[var(--text-dim)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 transition-all active:scale-95"
             >
               <X className="w-5 h-5" />

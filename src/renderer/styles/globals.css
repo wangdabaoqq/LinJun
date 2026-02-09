@@ -886,7 +886,7 @@ body {
   }
   to {
     opacity: 0;
-    transform: scale(0.97) translateY(8px);
+    transform: scale(0.95) translateY(10px);
   }
 }
 
@@ -906,7 +906,7 @@ body {
 }
 
 .animate-fade-out {
-  animation: fade-out 0.18s ease-in forwards;
+  animation: fade-out 0.24s ease-in forwards;
 }
 
 .animate-scale-in {
@@ -914,7 +914,7 @@ body {
 }
 
 .animate-scale-out {
-  animation: scale-out 0.18s cubic-bezier(0.4, 0, 1, 1) forwards;
+  animation: scale-out 0.24s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
 .animate-slide-fade-in {
