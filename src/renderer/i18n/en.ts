@@ -424,7 +424,7 @@ export const en = {
     configDroidSettingsPath: "Edit ~/.factory/settings.json to configure",
     configDroidConfigPath: "Edit ~/.factory/config.json to configure",
     configIFlowHeader: "CLIProxyAPI Configuration for iFlow CLI",
-    linjunProxy: "LinJun Proxy",
+    linjunProxy: "linjun-proxy",
     ms: "ms",
   },
   logs: {

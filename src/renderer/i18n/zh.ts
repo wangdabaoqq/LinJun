@@ -413,7 +413,7 @@ export const zh: Translations = {
     configDroidSettingsPath: "编辑 ~/.factory/settings.json 进行配置",
     configDroidConfigPath: "编辑 ~/.factory/config.json 进行配置",
     configIFlowHeader: "iFlow CLI 的 CLIProxyAPI 配置",
-    linjunProxy: "霖君代理",
+    linjunProxy: "linjun-proxy",
     ms: "ms",
   },
   logs: {
