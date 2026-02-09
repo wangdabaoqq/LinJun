@@ -41,6 +41,14 @@ interface ProviderModels {
   };
 }
 
+interface DroidModelConfig {
+  provider: string;
+  name: string;
+  apiKey: string;
+  displayName: string;
+  baseUrl: string;
+}
+
 const PROVIDER_MODEL_MAP: Record<string, ProviderModels> = {
   claude: {
     "claude-sonnet-4-5": {
@@ -208,6 +216,14 @@ const PROVIDER_MODEL_MAP: Record<string, ProviderModels> = {
       reasoning: true,
     },
   },
+};
+
+const DROID_PROVIDER_MAP: Record<string, string> = {
+  claude: "anthropic",
+  codex: "openai",
+  gemini: "generic-chat-completion-api",
+  kiro: "anthropic",
+  antigravity: "generic-chat-completion-api",
 };
 
 const CACHE_KEY = "cli_tools_cache";
@@ -487,24 +503,10 @@ export AMP_URL="${proxyUrl}"
 export AMP_API_KEY="${apiKey}"`;
   };
 
-  const getDefaultDroidConfig = () => {
-    const DROID_PROVIDER_MAP: Record<string, string> = {
-      claude: "anthropic",
-      codex: "openai",
-      gemini: "generic-chat-completion-api",
-      kiro: "anthropic",
-      antigravity: "generic-chat-completion-api",
-    };
+  const buildDroidModels = (providerIds: string[]): DroidModelConfig[] => {
+    const models: DroidModelConfig[] = [];
 
-    const models: Array<{
-      provider: string;
-      name: string;
-      apiKey: string;
-      displayName: string;
-      baseUrl: string;
-    }> = [];
-
-    for (const providerId of activeProviders) {
+    for (const providerId of providerIds) {
       const providerModels = PROVIDER_MODEL_MAP[providerId];
       if (!providerModels) continue;
       const droidProvider =
@@ -531,6 +533,11 @@ export AMP_API_KEY="${apiKey}"`;
       });
     }
 
+    return models;
+  };
+
+  const getDefaultDroidConfig = (providerIds: string[] = activeProviders) => {
+    const models = buildDroidModels(providerIds);
     return JSON.stringify({ models }, null, 2);
   };
 
@@ -640,6 +647,28 @@ export IFLOW_modelName="claude-sonnet-4-5"`;
     }
   };
 
+  const syncDroidConfigModels = (
+    rawConfig: string,
+    providerIds: string[],
+  ): string => {
+    const models = buildDroidModels(providerIds);
+
+    try {
+      const parsed = JSON.parse(rawConfig);
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+        return getDefaultDroidConfig(providerIds);
+      }
+
+      const config = parsed as Record<string, unknown>;
+      config.models = models;
+
+      return JSON.stringify(config, null, 2);
+    } catch (error) {
+      log.error("[Agents] Failed to sync Droid models:", error);
+      return getDefaultDroidConfig(providerIds);
+    }
+  };
+
   const [configContent, setConfigContent] = useState(
     tool.name === "Claude Code"
       ? getDefaultClaudeConfig()
@@ -735,12 +764,12 @@ export IFLOW_modelName="claude-sonnet-4-5"`;
     setSaveMessage(null);
     try {
       let contentToSave = configContent;
-      if (tool.name === "OpenCode") {
+      if (tool.name === "OpenCode" || tool.name === "Droid CLI") {
         const latestProviderIds = await loadActiveProviders();
-        contentToSave = syncOpenCodeConfigModels(
-          configContent,
-          latestProviderIds,
-        );
+        contentToSave =
+          tool.name === "OpenCode"
+            ? syncOpenCodeConfigModels(configContent, latestProviderIds)
+            : syncDroidConfigModels(configContent, latestProviderIds);
         setConfigContent(contentToSave);
       }
 
