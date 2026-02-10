@@ -307,6 +307,26 @@ class ProxyManager extends EventEmitter {
       } as ProxyConfig["remote-management"];
     }
 
+    // Fix legacy Windows auth-dir paths with unescaped backslashes (pre-v1.0.5)
+    const authDir = parsedConfig["auth-dir"];
+    if (authDir && typeof authDir === "string") {
+      const isWindowsPath = /^[A-Za-z]:[\\/]/.test(authDir);
+      if (isWindowsPath) {
+        const authDirLineMatch = content.match(/^auth-dir:\s*"([^"]*)"/m);
+        if (authDirLineMatch) {
+          const rawValue = authDirLineMatch[1];
+          const hasUnescapedBackslash =
+            rawValue.includes("\\") && !rawValue.includes("\\\\");
+          if (hasUnescapedBackslash) {
+            updates["auth-dir"] = authDir;
+            log.info(
+              "[ProxyManager] Migrating auth-dir: fixing unescaped backslashes",
+            );
+          }
+        }
+      }
+    }
+
     if (Object.keys(updates).length > 0) {
       const success = this.updateConfigYaml(updates);
       if (success) {
