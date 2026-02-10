@@ -1,8 +1,10 @@
-import { app, ipcMain, shell } from "electron";
-import path from "path";
-import fs from "fs";
+import { spawn } from "child_process";
 import crypto from "crypto";
+import fs from "fs";
 import type { IncomingMessage } from "http";
+import path from "path";
+
+import { app, ipcMain, shell } from "electron";
 
 import log from "../utils/logger";
 import { proxyManager } from "../proxy/manager";
@@ -1142,7 +1144,8 @@ export function setupIpcHandlers(): void {
     try {
       const homeDir = app.getPath("home");
       const ssoDir = path.join(homeDir, ".aws", "sso", "cache");
-      const authDir = proxyManager.getAuthDir();
+      // Keep this precheck for a clear user-facing error message.
+      // The actual import is done by the managed cliproxy binary.
 
       if (!fs.existsSync(ssoDir)) {
         return { success: false, error: "AWS SSO cache directory not found" };
@@ -1156,14 +1159,72 @@ export function setupIpcHandlers(): void {
         };
       }
 
-      const randomId = crypto.randomBytes(8).toString("hex").toUpperCase();
-      const destFilename = `kiro-google-${randomId}.json`;
-      const destPath = path.join(authDir, destFilename);
+      proxyManager.ensureConfig();
+      const binaryPath = proxyManager.getBinaryPath();
+      const configPath = proxyManager.getConfigPath();
 
-      fs.copyFileSync(kiroFile, destPath);
-      log.info(`[IPC] Kiro token imported: ${destPath}`);
+      if (!fs.existsSync(binaryPath)) {
+        return {
+          success: false,
+          error:
+            "Proxy binary not found. Please download/install CLIProxyAPIPlus first.",
+        };
+      }
+      if (!fs.existsSync(configPath)) {
+        return {
+          success: false,
+          error:
+            "Proxy config not found. Please start proxy once to initialize config.",
+        };
+      }
 
-      return { success: true, filePath: destPath };
+      const result = await new Promise<{
+        success: boolean;
+        filePath?: string;
+        error?: string;
+      }>((resolve) => {
+        const child = spawn(
+          binaryPath,
+          ["--config", configPath, "--kiro-import"],
+          {
+            stdio: ["ignore", "pipe", "pipe"],
+            windowsHide: true,
+          },
+        );
+
+        let stdout = "";
+        let stderr = "";
+
+        child.stdout?.on("data", (data) => {
+          stdout += data.toString();
+        });
+        child.stderr?.on("data", (data) => {
+          stderr += data.toString();
+        });
+
+        child.once("error", (error) => {
+          resolve({ success: false, error: String(error) });
+        });
+
+        child.once("exit", (code) => {
+          if (code === 0) {
+            const match = stdout.match(/Authentication saved to\s+(.+)\s*/);
+            const filePath = match?.[1]?.trim();
+            if (filePath) {
+              log.info(`[IPC] Kiro token imported via cliproxy: ${filePath}`);
+            } else {
+              log.info("[IPC] Kiro token imported via cliproxy");
+            }
+            resolve({ success: true, filePath });
+            return;
+          }
+
+          const message = (stderr || stdout).trim() || `Exit code ${code}`;
+          resolve({ success: false, error: message });
+        });
+      });
+
+      return result;
     } catch (error) {
       log.error("[IPC] Failed to import Kiro token:", error);
       return { success: false, error: String(error) };
@@ -1245,36 +1306,47 @@ export function setupIpcHandlers(): void {
         : `kiro-${safeAuthMethod}-${randomId}.json`;
       const destPath = path.join(authDir, destFilename);
 
-      const tokenData = {
-        accessToken,
-        refreshToken,
-        profileArn:
-          typeof parsed.profileArn === "string" ? parsed.profileArn : "",
-        expiresAt,
-        authMethod,
-        provider: typeof parsed.provider === "string" ? parsed.provider : "AWS",
-        clientId:
-          typeof parsed.clientId === "string" ? parsed.clientId : undefined,
-        clientSecret:
-          typeof parsed.clientSecret === "string"
-            ? parsed.clientSecret
-            : undefined,
-        clientIdHash:
-          typeof parsed.clientIdHash === "string"
-            ? parsed.clientIdHash
-            : undefined,
-        startUrl:
-          typeof parsed.startUrl === "string" ? parsed.startUrl : undefined,
-        region: typeof parsed.region === "string" ? parsed.region : undefined,
-        email: safeEmail || undefined,
+      const profileArn =
+        (typeof parsed.profileArn === "string" ? parsed.profileArn : "") ||
+        (typeof parsed.profile_arn === "string" ? parsed.profile_arn : "");
+      const providerName =
+        typeof parsed.provider === "string" ? parsed.provider : "AWS";
+
+      // Write in cliproxy-compatible schema (snake_case + type=kiro)
+      // so that the proxy can route `kiro-*` models correctly.
+      const tokenData: Record<string, unknown> = {
+        type: "kiro",
+        provider: providerName,
+        auth_method: authMethod,
+        profile_arn: profileArn,
+        access_token: accessToken,
+        refresh_token: refreshToken,
+        expires_at: expiresAt,
+        disabled: false,
       };
+
+      if (safeEmail) tokenData.email = safeEmail;
+      if (typeof parsed.clientId === "string")
+        tokenData.client_id = parsed.clientId;
+      if (typeof parsed.clientSecret === "string") {
+        tokenData.client_secret = parsed.clientSecret;
+      }
+      if (typeof parsed.clientIdHash === "string") {
+        tokenData.client_id_hash = parsed.clientIdHash;
+      }
+      if (typeof parsed.startUrl === "string")
+        tokenData.start_url = parsed.startUrl;
+      if (typeof parsed.region === "string") tokenData.region = parsed.region;
 
       fs.writeFileSync(destPath, JSON.stringify(tokenData, null, 2), "utf-8");
       log.info(`[IPC] Kiro token imported from input: ${destPath}`);
 
       return { success: true, filePath: destPath };
     } catch (error) {
-      log.error("[IPC] Failed to import Kiro token from input:", error);
+      log.error(
+        "[IPC] Failed to import Kiro token from input:",
+        error instanceof Error ? error.message : String(error),
+      );
       return { success: false, error: String(error) };
     }
   });
@@ -1305,7 +1377,10 @@ export function setupIpcHandlers(): void {
 
       return await refreshKiroTokenManually(token);
     } catch (error) {
-      log.error("[IPC] Failed to refresh Kiro token:", error);
+      log.error(
+        "[IPC] Failed to refresh Kiro token:",
+        error instanceof Error ? error.message : String(error),
+      );
       return { success: false, error: String(error) };
     }
   });

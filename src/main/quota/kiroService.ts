@@ -12,6 +12,38 @@ const KIRO_USER_AGENT =
 const KIRO_AMZ_USER_AGENT = "aws-sdk-js/3.0.0";
 const KIRO_REFRESH_MAX_ATTEMPTS = 3;
 const KIRO_REFRESH_WINDOW_MS = 10 * 60 * 1000;
+const KIRO_ACCESS_TOKEN_TTL_MS = 60 * 60 * 1000;
+
+function formatKiroErrorForLog(error: unknown): string {
+  if (axios.isAxiosError(error)) {
+    const status = error.response?.status;
+    const parts: string[] = [];
+    if (status) parts.push(`HTTP ${status}`);
+    parts.push(error.message);
+
+    const data = error.response?.data;
+    const serverMessage =
+      typeof data === "string"
+        ? data
+        : typeof data === "object" && data && "message" in data
+          ? (data as { message?: unknown }).message
+          : undefined;
+
+    if (typeof serverMessage === "string" && serverMessage.trim()) {
+      parts.push(serverMessage.trim());
+    }
+
+    return parts.join(": ");
+  }
+  if (error instanceof Error) {
+    return `${error.name}: ${error.message}`;
+  }
+  return String(error);
+}
+
+function getAssumedKiroExpiresAt(): string {
+  return new Date(Date.now() + KIRO_ACCESS_TOKEN_TTL_MS).toISOString();
+}
 
 const kiroRefreshAttempts = new Map<
   string,
@@ -136,11 +168,17 @@ export async function getKiroUsage(
           throw new Error("Failed to refresh Kiro access token");
         }
 
-        updateTokenFile(token.filePath, {
-          accessToken: newAccessToken,
-        });
-
         const usage = await fetchKiroUsage(newAccessToken);
+        const expiresAt = getAssumedKiroExpiresAt();
+
+        updateTokenFile(token.filePath, {
+          // Keep both schemas in sync (cliproxy uses snake_case;
+          // older imports and our UI may still produce camelCase).
+          access_token: newAccessToken,
+          accessToken: newAccessToken,
+          expires_at: expiresAt,
+          expiresAt: expiresAt,
+        });
         recordKiroRefreshAttempt(token.filePath, true);
         return usage;
       } catch (refreshError) {
@@ -172,14 +210,26 @@ export async function isKiroTokenValid(
       }
       try {
         const newAccessToken = await refreshKiroToken(token.refreshToken);
-        if (newAccessToken) {
-          updateTokenFile(token.filePath, { accessToken: newAccessToken });
-          recordKiroRefreshAttempt(token.filePath, true);
-          return true;
+        if (!newAccessToken) {
+          recordKiroRefreshAttempt(token.filePath, false);
+          return false;
         }
+
+        await fetchKiroUsage(newAccessToken);
+        const expiresAt = getAssumedKiroExpiresAt();
+        updateTokenFile(token.filePath, {
+          access_token: newAccessToken,
+          accessToken: newAccessToken,
+          expires_at: expiresAt,
+          expiresAt: expiresAt,
+        });
+        recordKiroRefreshAttempt(token.filePath, true);
+        return true;
+      } catch (refreshError) {
         recordKiroRefreshAttempt(token.filePath, false);
-      } catch {
-        recordKiroRefreshAttempt(token.filePath, false);
+        log.warn(
+          `[Kiro] Validation refresh failed for ${token.filePath}: ${formatKiroErrorForLog(refreshError)}`,
+        );
         return false;
       }
     }
@@ -199,19 +249,19 @@ export async function refreshKiroTokenManually(
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
 
     updateTokenFile(token.filePath, {
+      access_token: newAccessToken,
       accessToken: newAccessToken,
+      expires_at: expiresAt,
       expiresAt: expiresAt,
     });
 
     log.info(`[Kiro] Token refreshed successfully: ${token.filePath}`);
     return { success: true, accessToken: newAccessToken, expiresAt };
   } catch (error) {
-    log.error("[Kiro] Failed to refresh token:", error);
+    log.error("[Kiro] Failed to refresh token:", formatKiroErrorForLog(error));
     return {
       success: false,
-      error: axios.isAxiosError(error)
-        ? error.response?.data?.message || error.message
-        : String(error),
+      error: formatKiroErrorForLog(error),
     };
   }
 }

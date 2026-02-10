@@ -616,8 +616,8 @@ export async function getQuotaByProvider(
         );
       } catch (error) {
         log.error(
-          `[QuotaManager] Skipping expired Kiro account ${token.filePath}:`,
-          error,
+          `[QuotaManager] Skipping Kiro account ${token.filePath}:`,
+          error instanceof Error ? error.message : String(error),
         );
       }
     } else {
