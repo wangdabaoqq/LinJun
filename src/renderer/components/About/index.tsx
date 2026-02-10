@@ -70,6 +70,7 @@ export function About() {
     null,
   );
   const [proxyRestartDone, setProxyRestartDone] = useState(false);
+  const [proxyAutoRestarted, setProxyAutoRestarted] = useState(false);
 
   const formatBytes = (bytes: number): string => {
     if (!Number.isFinite(bytes) || bytes <= 0) {
@@ -172,6 +173,7 @@ export function About() {
     setProxyRestartPromptVisible(false);
     setProxyRestartError(null);
     setProxyRestartDone(false);
+    setProxyAutoRestarted(false);
     setProxyUpdateStatus((prev) => ({ ...prev, updating: true }));
     try {
       const result = await window.electronAPI?.proxy.updateBinary();
@@ -185,7 +187,11 @@ export function About() {
       });
 
       if (result.updated) {
-        setProxyRestartPromptVisible(true);
+        if (result.restarted) {
+          setProxyAutoRestarted(true);
+        } else {
+          setProxyRestartPromptVisible(true);
+        }
       }
 
       setProxyUpdateProgress((prev) =>
@@ -575,6 +581,24 @@ export function About() {
                       {proxyRestartError}
                     </p>
                   ) : null}
+                </div>
+              </motion.div>
+            ) : null}
+
+            {proxyAutoRestarted && !proxyUpdateStatus.updating ? (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="mt-4 pt-4 border-t border-[var(--glass-border)]">
+                  <div className="flex items-center gap-2 text-[var(--accent-success)]">
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span className="text-sm font-medium">
+                      {t.about.proxyAutoRestarted}
+                    </span>
+                  </div>
                 </div>
               </motion.div>
             ) : null}

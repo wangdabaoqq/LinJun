@@ -799,6 +799,16 @@ export async function updateProxyBinaryAndRestart(
 
     await downloadLatestBinary(onProgress);
 
+    if (wasRunning) {
+      reportProgress(onProgress, {
+        stage: "restarting",
+        percent: 97,
+        message: "Restarting CLIProxyAPIPlus",
+      });
+
+      await proxyManager.start();
+    }
+
     const latestInfo = await checkProxyBinaryUpdate();
     reportProgress(onProgress, {
       stage: "completed",
@@ -808,9 +818,10 @@ export async function updateProxyBinaryAndRestart(
 
     return {
       ...latestInfo,
+      hasUpdate: false,
       success: true,
       updated: true,
-      restarted: false,
+      restarted: wasRunning,
     };
   } catch (error) {
     try {
