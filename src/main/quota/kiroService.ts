@@ -136,11 +136,14 @@ export async function getKiroUsage(
           throw new Error("Failed to refresh Kiro access token");
         }
 
-        updateTokenFile(token.filePath, {
-          accessToken: newAccessToken,
-        });
-
         const usage = await fetchKiroUsage(newAccessToken);
+        const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+        updateTokenFile(token.filePath, {
+          access_token: newAccessToken,
+          accessToken: newAccessToken,
+          expires_at: expiresAt,
+          expiresAt,
+        });
         recordKiroRefreshAttempt(token.filePath, true);
         return usage;
       } catch (refreshError) {
@@ -173,7 +176,14 @@ export async function isKiroTokenValid(
       try {
         const newAccessToken = await refreshKiroToken(token.refreshToken);
         if (newAccessToken) {
-          updateTokenFile(token.filePath, { accessToken: newAccessToken });
+          await fetchKiroUsage(newAccessToken);
+          const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+          updateTokenFile(token.filePath, {
+            access_token: newAccessToken,
+            accessToken: newAccessToken,
+            expires_at: expiresAt,
+            expiresAt,
+          });
           recordKiroRefreshAttempt(token.filePath, true);
           return true;
         }
@@ -191,21 +201,30 @@ export async function refreshKiroTokenManually(
   token: TokenReadResult,
 ): Promise<KiroRefreshResult> {
   try {
+    if (!canAttemptKiroRefresh(token.filePath)) {
+      return { success: false, error: "Kiro refresh retry limit reached" };
+    }
+
     const newAccessToken = await refreshKiroToken(token.refreshToken);
     if (!newAccessToken) {
+      recordKiroRefreshAttempt(token.filePath, false);
       return { success: false, error: "Failed to get new access token" };
     }
 
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
 
     updateTokenFile(token.filePath, {
+      access_token: newAccessToken,
       accessToken: newAccessToken,
+      expires_at: expiresAt,
       expiresAt: expiresAt,
     });
 
+    recordKiroRefreshAttempt(token.filePath, true);
     log.info(`[Kiro] Token refreshed successfully: ${token.filePath}`);
     return { success: true, accessToken: newAccessToken, expiresAt };
   } catch (error) {
+    recordKiroRefreshAttempt(token.filePath, false);
     log.error("[Kiro] Failed to refresh token:", error);
     return {
       success: false,

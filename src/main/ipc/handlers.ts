@@ -1,7 +1,7 @@
 import { app, ipcMain, shell } from "electron";
+import { spawn } from "child_process";
 import path from "path";
 import fs from "fs";
-import crypto from "crypto";
 import type { IncomingMessage } from "http";
 
 import log from "../utils/logger";
@@ -1079,7 +1079,8 @@ export function setupIpcHandlers(): void {
     try {
       const homeDir = app.getPath("home");
       const ssoDir = path.join(homeDir, ".aws", "sso", "cache");
-      const authDir = proxyManager.getAuthDir();
+      // Keep this precheck for a clear user-facing error message.
+      // The actual import is performed by the managed cliproxy binary.
 
       if (!fs.existsSync(ssoDir)) {
         return { success: false, error: "AWS SSO cache directory not found" };
@@ -1093,14 +1094,65 @@ export function setupIpcHandlers(): void {
         };
       }
 
-      const randomId = crypto.randomBytes(8).toString("hex").toUpperCase();
-      const destFilename = `kiro-google-${randomId}.json`;
-      const destPath = path.join(authDir, destFilename);
+      proxyManager.ensureConfig();
+      const binaryPath = proxyManager.getBinaryPath();
+      const configPath = proxyManager.getConfigPath();
 
-      fs.copyFileSync(kiroFile, destPath);
-      log.info(`[IPC] Kiro token imported: ${destPath}`);
+      if (!fs.existsSync(binaryPath)) {
+        return {
+          success: false,
+          error:
+            "Proxy binary not found. Please download/install CLIProxyAPIPlus first.",
+        };
+      }
+      if (!fs.existsSync(configPath)) {
+        return {
+          success: false,
+          error:
+            "Proxy config not found. Please start proxy once to initialize config.",
+        };
+      }
 
-      return { success: true, filePath: destPath };
+      return await new Promise<{
+        success: boolean;
+        filePath?: string;
+        error?: string;
+      }>((resolve) => {
+        const child = spawn(
+          binaryPath,
+          ["--config", configPath, "--kiro-import"],
+          {
+            stdio: ["ignore", "pipe", "pipe"],
+            windowsHide: true,
+          },
+        );
+
+        let stdout = "";
+        let stderr = "";
+
+        child.stdout?.on("data", (data) => {
+          stdout += data.toString();
+        });
+        child.stderr?.on("data", (data) => {
+          stderr += data.toString();
+        });
+
+        child.once("error", (error) => {
+          resolve({ success: false, error: String(error) });
+        });
+
+        child.once("exit", (code) => {
+          if (code === 0) {
+            const match = stdout.match(/Authentication saved to\s+(.+)\s*/);
+            const filePath = match?.[1]?.trim();
+            resolve({ success: true, filePath });
+            return;
+          }
+
+          const message = (stderr || stdout).trim() || `Exit code ${code}`;
+          resolve({ success: false, error: message });
+        });
+      });
     } catch (error) {
       log.error("[IPC] Failed to import Kiro token:", error);
       return { success: false, error: String(error) };

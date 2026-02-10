@@ -29,6 +29,7 @@ export interface TokenFile {
   refresh_token?: string;
   email?: string;
   expired?: string;
+  expires_at?: string;
   type?: ProviderType | "github-copilot";
 
   // Gemini
@@ -152,7 +153,8 @@ function readTokenFile(filePath: string): TokenReadResult | null {
       data.access_token || data.token?.access_token || data.accessToken;
     const refreshToken =
       data.refresh_token || data.token?.refresh_token || data.refreshToken;
-    const expiredStr = data.expired || data.token?.expiry || data.expiresAt;
+    const expiredStr =
+      data.expired || data.expires_at || data.token?.expiry || data.expiresAt;
 
     const isCopilot = provider === "copilot";
     if (!provider || !accessToken || (!refreshToken && !isCopilot)) {
