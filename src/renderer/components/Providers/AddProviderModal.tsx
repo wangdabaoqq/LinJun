@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { X } from "lucide-react";
 
 import { useTranslations } from "../../stores/settings";
@@ -17,6 +17,15 @@ export const AddProviderModal = memo(function AddProviderModal({
   const t = useTranslations();
   const [isClosing, setIsClosing] = useState(false);
   const closeTimerRef = useRef<number | null>(null);
+  const orderedProviders = useMemo(() => {
+    const customProvider = allProviders.filter(
+      (provider) => provider.id === "custom",
+    );
+    const otherProviders = allProviders.filter(
+      (provider) => provider.id !== "custom",
+    );
+    return [...otherProviders, ...customProvider];
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -63,8 +72,8 @@ export const AddProviderModal = memo(function AddProviderModal({
         </div>
 
         <div className="relative z-10 p-8 overflow-y-auto custom-scrollbar">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            {allProviders.map((provider) => {
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {orderedProviders.map((provider) => {
               return (
                 <div
                   key={provider.id}

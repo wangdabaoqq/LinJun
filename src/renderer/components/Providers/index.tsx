@@ -31,6 +31,7 @@ import {
   ClaudeCompatProvider,
   GeminiCompatProvider,
   CodexCompatProvider,
+  AmpcodeCompatProvider,
 } from "./types";
 import { allProviders } from "./providerDefinitions";
 import { useProviderAuth } from "./hooks/useProviderAuth";
@@ -38,6 +39,7 @@ import { AddAccountModal } from "./AddAccountModal";
 import { AddProviderModal } from "./AddProviderModal";
 import { ProviderCard } from "./ProviderCard";
 import { CopilotAuthModal } from "./CopilotAuthModal";
+import { AmpcodeSettingsModal } from "./AmpcodeSettingsModal";
 
 export function Providers() {
   const t = useTranslations();
@@ -87,6 +89,7 @@ export function Providers() {
   const [officialExpanded, setOfficialExpanded] = useState(false);
   const [customExpanded, setCustomExpanded] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [showAmpcodeSettings, setShowAmpcodeSettings] = useState(false);
   const [importStatus, setImportStatus] = useState<{
     type: "success" | "error";
     message: string;
@@ -105,6 +108,8 @@ export function Providers() {
   const [codexProviders, setCodexProviders] = useState<CodexCompatProvider[]>(
     [],
   );
+  const [ampcodeProvider, setAmpcodeProvider] =
+    useState<AmpcodeCompatProvider | null>(null);
 
   const loadCustomProviders = useCallback(async () => {
     try {
@@ -171,6 +176,13 @@ export function Providers() {
         });
       }
 
+      const ampcodeResult = await window.electronAPI?.ampcodeCompat?.getAll();
+      if (ampcodeResult?.success && ampcodeResult.provider) {
+        setAmpcodeProvider(ampcodeResult.provider);
+      } else {
+        setAmpcodeProvider(null);
+      }
+
       setCustomProviders(allProviders);
     } catch (err) {
       log.error("[Providers] Failed to load custom providers:", err);
@@ -193,6 +205,13 @@ export function Providers() {
 
     return { totalProviders, totalAccounts, activeAccounts, customCount };
   }, [providerAccounts, customProviders]);
+
+  const ampcodeMappedKeyCount = useMemo(() => {
+    const mappings = ampcodeProvider?.["upstream-api-keys"] || [];
+    return mappings.reduce((count, mapping) => {
+      return count + (mapping["api-keys"]?.length || 0);
+    }, 0);
+  }, [ampcodeProvider]);
 
   const handleDeleteCustomProvider = async (
     type: CustomProviderType,
@@ -407,6 +426,10 @@ export function Providers() {
     if (providerInfo.id === "custom") {
       setEditingCustomProvider(null);
       setShowCustomProviderForm(true);
+      return;
+    }
+    if (providerInfo.id === "ampcode") {
+      setShowAmpcodeSettings(true);
       return;
     }
     if (
@@ -699,33 +722,83 @@ export function Providers() {
                 <ChevronDown className="w-3.5 h-3.5" />
               </div>
             </div>
-            {providersWithAccounts.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                {providersWithAccounts.map((provider) => (
-                  <ProviderCard
-                    key={provider.id}
-                    provider={provider}
-                    isExpanded={officialExpanded}
-                    onRemoveAccount={handleRemoveAccount}
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="py-20 text-center border border-dashed border-[var(--glass-border)] rounded-3xl group hover:border-[var(--glass-border-hover)] transition-colors bg-[var(--text-primary)]/[0.01]">
-                <div className="text-4xl mb-4 opacity-10 group-hover:opacity-20 transition-opacity text-[var(--text-primary)]">
-                  ◈
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+              <div className="group/card relative flex flex-col p-6 rounded-3xl glass-card transition-all duration-300 border border-[rgba(255,255,255,0.04)]">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    <div className="text-3xl">
+                      {getCustomProviderIcon("ampcode")}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-bold text-base text-[var(--text-primary)] leading-tight">
+                          {t.providers.ampcodeSettingsTitle}
+                        </h4>
+                        <span className="px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider rounded bg-[var(--text-primary)]/5 text-[var(--text-dim)]">
+                          official
+                        </span>
+                      </div>
+                      <p className="text-[10px] font-mono text-[var(--text-dim)] mt-1 tracking-tighter opacity-70">
+                        {ampcodeProvider?.["upstream-url"] ||
+                          "https://ampcode.com"}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-end gap-2">
+                    <span
+                      className={`text-[10px] font-bold uppercase tracking-wider ${
+                        ampcodeProvider
+                          ? "text-emerald-500"
+                          : "text-[var(--text-dim)]"
+                      }`}
+                    >
+                      {ampcodeProvider
+                        ? t.providers.ampcodeConfigured
+                        : t.providers.ampcodeNotConfigured}
+                    </span>
+                    <button
+                      onClick={() => setShowAmpcodeSettings(true)}
+                      className="px-4 py-2 bg-[var(--glass-bg)] hover:bg-[var(--glass-bg-hover)] border border-[var(--glass-border)] rounded-full text-xs text-[var(--text-primary)] font-bold tracking-wider transition-all duration-200"
+                    >
+                      {t.providers.ampcodeConfigure}
+                    </button>
+                  </div>
                 </div>
-                <p className="text-[var(--text-dim)] font-bold tracking-tight uppercase text-[10px] mb-8">
-                  {t.providers.noProviders}
-                </p>
-                <button
-                  className="px-8 py-2.5 rounded-xl border border-[var(--glass-border)] text-[var(--text-primary)] text-xs font-bold tracking-widest hover:bg-[var(--text-primary)]/5 transition-all"
-                  onClick={() => setShowAddModal(true)}
-                >
-                  {t.providers.addProvider}
-                </button>
+
+                {officialExpanded && (
+                  <div className="flex items-center gap-6 mt-6 pt-5 border-t border-[var(--text-primary)]/5 animate-in fade-in slide-in-from-top-1 duration-200">
+                    <div className="space-y-0.5">
+                      <p className="text-[9px] font-bold text-[var(--text-dim)] uppercase tracking-wider">
+                        Keys
+                      </p>
+                      <p className="text-sm font-bold text-[var(--text-primary)] font-mono">
+                        {ampcodeMappedKeyCount +
+                          (ampcodeProvider?.["upstream-api-key"] ? 1 : 0)}
+                      </p>
+                    </div>
+                    <div className="w-px h-6 bg-[var(--text-primary)]/5" />
+                    <div className="space-y-0.5">
+                      <p className="text-[9px] font-bold text-[var(--text-dim)] uppercase tracking-wider">
+                        Models
+                      </p>
+                      <p className="text-sm font-bold text-[var(--text-primary)] font-mono">
+                        {ampcodeProvider?.["model-mappings"]?.length || 0}
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
+
+              {providersWithAccounts.map((provider) => (
+                <ProviderCard
+                  key={provider.id}
+                  provider={provider}
+                  isExpanded={officialExpanded}
+                  onRemoveAccount={handleRemoveAccount}
+                />
+              ))}
+            </div>
           </section>
 
           <section>
@@ -936,6 +1009,13 @@ export function Providers() {
               ? (editingCustomProvider.rawData as CodexCompatProvider)
               : undefined
           }
+        />
+      )}
+      {showAmpcodeSettings && (
+        <AmpcodeSettingsModal
+          provider={ampcodeProvider}
+          onClose={() => setShowAmpcodeSettings(false)}
+          onSaved={() => loadCustomProviders()}
         />
       )}
       {copilotAuthInfo && (

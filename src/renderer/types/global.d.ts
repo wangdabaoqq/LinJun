@@ -224,6 +224,36 @@ interface ElectronAPI {
       serviceType?: "new-api" | "openrouter";
     }>;
   };
+  ampcodeCompat: {
+    getAll: () => Promise<{
+      success: boolean;
+      provider?: {
+        "upstream-url": string;
+        "upstream-api-key"?: string;
+        "upstream-api-keys"?: {
+          "upstream-api-key": string;
+          "api-keys": string[];
+        }[];
+        "restrict-management-to-localhost"?: boolean;
+        "force-model-mappings"?: boolean;
+        "model-mappings"?: { from: string; to: string }[];
+      } | null;
+      error?: string;
+    }>;
+    save: (
+      provider: {
+        "upstream-url": string;
+        "upstream-api-key"?: string;
+        "upstream-api-keys"?: {
+          "upstream-api-key": string;
+          "api-keys": string[];
+        }[];
+        "restrict-management-to-localhost"?: boolean;
+        "force-model-mappings"?: boolean;
+        "model-mappings"?: { from: string; to: string }[];
+      } | null,
+    ) => Promise<{ success: boolean; error?: string }>;
+  };
 }
 
 declare module "*.svg" {

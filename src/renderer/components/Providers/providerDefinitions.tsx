@@ -87,4 +87,12 @@ export const allProviders: Omit<Provider, "accounts">[] = [
     description: "Custom OpenAI-compatible endpoint",
     authType: "apikey",
   },
+  {
+    id: "ampcode",
+    name: "AmpCode",
+    icon: <CustomIcon />,
+    color: "indigo",
+    description: "AmpCode upstream and model-mapping settings",
+    authType: "apikey",
+  },
 ];

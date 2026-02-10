@@ -283,6 +283,8 @@ export function getCustomProviderIcon(
     case "codex":
       const OpenAIIcon2 = (OpenAI as any).Color || OpenAI;
       return <OpenAIIcon2 size={size} />;
+    case "ampcode":
+      return <CustomIcon className={className} />;
     default:
       return <CustomIcon className={className} />;
   }

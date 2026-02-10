@@ -118,6 +118,25 @@ export interface CodexApiKeyEntry {
   models?: ModelEntry[];
 }
 
+export interface AmpcodeApiKeyMappingEntry {
+  "upstream-api-key": string;
+  "api-keys": string[];
+}
+
+export interface AmpcodeModelMappingEntry {
+  from: string;
+  to: string;
+}
+
+export interface AmpcodeProvider {
+  "upstream-url": string;
+  "upstream-api-key"?: string;
+  "upstream-api-keys"?: AmpcodeApiKeyMappingEntry[];
+  "restrict-management-to-localhost"?: boolean;
+  "force-model-mappings"?: boolean;
+  "model-mappings"?: AmpcodeModelMappingEntry[];
+}
+
 export interface OpenAIProviderData {
   name: string;
   "base-url": string;

@@ -797,6 +797,43 @@ export function setupIpcHandlers(): void {
     },
   );
 
+  ipcMain.handle("ampcodeCompat:getAll", () => {
+    try {
+      const config = proxyManager.loadConfigFromYaml();
+      const provider = config?.ampcode || null;
+      return { success: true, provider };
+    } catch (error) {
+      log.error("[IPC] Failed to get Ampcode provider:", error);
+      return { success: false, provider: null, error: String(error) };
+    }
+  });
+
+  ipcMain.handle(
+    "ampcodeCompat:save",
+    (
+      _event,
+      provider: {
+        "upstream-url": string;
+        "upstream-api-key"?: string;
+        "upstream-api-keys"?: {
+          "upstream-api-key": string;
+          "api-keys": string[];
+        }[];
+        "restrict-management-to-localhost"?: boolean;
+        "force-model-mappings"?: boolean;
+        "model-mappings"?: { from: string; to: string }[];
+      } | null,
+    ) => {
+      try {
+        const success = proxyManager.updateConfigYaml({ ampcode: provider });
+        return { success };
+      } catch (error) {
+        log.error("[IPC] Failed to save Ampcode provider:", error);
+        return { success: false, error: String(error) };
+      }
+    },
+  );
+
   ipcMain.handle("cli:detectAll", async () => {
     try {
       const tools = await detectAllCLITools();

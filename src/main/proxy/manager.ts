@@ -79,6 +79,25 @@ export interface CodexApiKeyEntry {
   models?: OpenAICompatibilityModel[];
 }
 
+export interface AmpcodeUpstreamApiKeysEntry {
+  "upstream-api-key": string;
+  "api-keys": string[];
+}
+
+export interface AmpcodeModelMappingEntry {
+  from: string;
+  to: string;
+}
+
+export interface AmpcodeProvider {
+  "upstream-url": string;
+  "upstream-api-key"?: string;
+  "upstream-api-keys"?: AmpcodeUpstreamApiKeysEntry[];
+  "restrict-management-to-localhost"?: boolean;
+  "force-model-mappings"?: boolean;
+  "model-mappings"?: AmpcodeModelMappingEntry[];
+}
+
 export interface OpenAICompatibilityProvider {
   name: string;
   "base-url": string;
@@ -117,6 +136,7 @@ export interface ProxyConfig {
   "claude-api-key"?: ClaudeApiKeyEntry[];
   "gemini-api-key"?: GeminiApiKeyEntry[];
   "codex-api-key"?: CodexApiKeyEntry[];
+  ampcode?: AmpcodeProvider | null;
   "incognito-browser"?: boolean;
   "request-log"?: boolean;
 }

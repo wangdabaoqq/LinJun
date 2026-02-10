@@ -282,6 +282,22 @@ const electronAPI = {
       }[],
     ) => ipcRenderer.invoke("codexCompat:save", entries),
   },
+  ampcodeCompat: {
+    getAll: () => ipcRenderer.invoke("ampcodeCompat:getAll"),
+    save: (
+      provider: {
+        "upstream-url": string;
+        "upstream-api-key"?: string;
+        "upstream-api-keys"?: {
+          "upstream-api-key": string;
+          "api-keys": string[];
+        }[];
+        "restrict-management-to-localhost"?: boolean;
+        "force-model-mappings"?: boolean;
+        "model-mappings"?: { from: string; to: string }[];
+      } | null,
+    ) => ipcRenderer.invoke("ampcodeCompat:save", provider),
+  },
   customProvider: {
     testConnection: (params: {
       protocol: "openai" | "claude" | "gemini" | "codex";

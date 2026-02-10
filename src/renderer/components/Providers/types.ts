@@ -41,6 +41,18 @@ export interface CodexCompatProvider {
   models?: { name: string; alias?: string }[];
 }
 
+export interface AmpcodeCompatProvider {
+  "upstream-url": string;
+  "upstream-api-key"?: string;
+  "upstream-api-keys"?: {
+    "upstream-api-key": string;
+    "api-keys": string[];
+  }[];
+  "restrict-management-to-localhost"?: boolean;
+  "force-model-mappings"?: boolean;
+  "model-mappings"?: { from: string; to: string }[];
+}
+
 export type CustomProviderType = "openai" | "claude" | "gemini" | "codex";
 
 export interface CustomProviderDisplay {
