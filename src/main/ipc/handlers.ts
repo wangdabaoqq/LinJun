@@ -966,6 +966,16 @@ export function setupIpcHandlers(): void {
     }
   });
 
+  ipcMain.handle("models:fetch", async () => {
+    try {
+      const models = await managementAPI.fetchModels();
+      return { success: true, models };
+    } catch (error) {
+      log.error("[IPC] Failed to fetch models:", error);
+      return { success: false, models: [], error: String(error) };
+    }
+  });
+
   // ═══════════════════════════════════════════════════════════════════════════════
   // Provider Accounts Management - Token-based account listing
   // ═══════════════════════════════════════════════════════════════════════════════

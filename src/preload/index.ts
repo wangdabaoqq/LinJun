@@ -137,6 +137,9 @@ const electronAPI = {
       ipcRenderer.invoke("quota:refresh", accountId),
     refreshAll: () => ipcRenderer.invoke("quota:refreshAll"),
   },
+  models: {
+    fetch: () => ipcRenderer.invoke("models:fetch"),
+  },
   providers: {
     getAccounts: () => ipcRenderer.invoke("providers:getAccounts"),
     removeAccount: (filePath: string) =>

@@ -10,6 +10,7 @@ import {
   X,
   LayoutGrid,
   List,
+  Loader2,
 } from "lucide-react";
 import { Modal } from "../ui/Modal";
 import { QuotaWindowBar } from "./QuotaWindowBar";
@@ -18,6 +19,21 @@ import { getProviderIcon } from "../icons/ProviderIcons";
 import { useTranslations } from "../../stores/settings";
 import { sortModelsByDisplayOrder } from "./modelOrder";
 import { VirtualList } from "../shared/VirtualList";
+
+interface ProviderFilterConfig {
+  ownedBy?: string[];
+  idPrefix?: string[];
+}
+
+const PROVIDER_FILTER_CONFIG: Record<string, ProviderFilterConfig> = {
+  copilot: { ownedBy: ["github-copilot"] },
+  codex: { ownedBy: ["github-copilot"] },
+  claude: { idPrefix: ["claude-"] },
+  gemini: { idPrefix: ["gemini-"] },
+  qwen: { idPrefix: ["qwen"] },
+  kiro: { ownedBy: ["aws"] },
+  iflow: { idPrefix: ["iflow"] },
+};
 
 interface ModelQuotaModalProps {
   isOpen: boolean;
@@ -195,6 +211,86 @@ export function ModelQuotaModal({
   const [listHeight, setListHeight] = useState(500);
 
   const isCustomProvider = providerId === "custom";
+  const isAntigravity = providerId === "antigravity";
+  const isApiModelProvider = !isCustomProvider && !isAntigravity;
+  const isCodexProvider = providerId?.toLowerCase() === "codex";
+
+  const [apiModels, setApiModels] = useState<
+    { id: string; object: string; created: number; owned_by: string }[]
+  >([]);
+  const [isLoadingModels, setIsLoadingModels] = useState(false);
+  const [modelsError, setModelsError] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen || !isApiModelProvider) return;
+    let cancelled = false;
+    setIsLoadingModels(true);
+    setModelsError(false);
+
+    window.electronAPI?.models
+      ?.fetch()
+      .then((result) => {
+        if (cancelled) return;
+        if (result?.success) {
+          const filtered = (result.models || []).filter(
+            (m: { owned_by: string }) => m.owned_by !== "antigravity",
+          );
+          log.info(
+            `[ModelQuotaModal] Fetched ${result.models?.length ?? 0} models, after filter: ${filtered.length}, providerId: ${providerId}`,
+          );
+          setApiModels(filtered);
+        } else {
+          log.warn("[ModelQuotaModal] API returned failure:", result?.error);
+          setModelsError(true);
+        }
+      })
+      .catch((err) => {
+        log.error("[ModelQuotaModal] Failed to fetch models:", err);
+        if (!cancelled) setModelsError(true);
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingModels(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, isApiModelProvider]);
+
+  const providerApiModels = useMemo(() => {
+    if (!isApiModelProvider) return [];
+    if (!providerId) return apiModels;
+    const providerLower = providerId.toLowerCase();
+
+    if (providerLower === "codex") {
+      return apiModels.filter((m) => {
+        const idLower = m.id.toLowerCase();
+        const ownedLower = m.owned_by.toLowerCase();
+        return ownedLower === "github-copilot" && idLower.includes("codex");
+      });
+    }
+
+    const config = PROVIDER_FILTER_CONFIG[providerId.toLowerCase()];
+    if (config) {
+      return apiModels.filter((m) => {
+        const idLower = m.id.toLowerCase();
+        const ownedLower = m.owned_by.toLowerCase();
+        if (config.ownedBy?.some((v) => v === ownedLower)) return true;
+        if (config.idPrefix?.some((p) => idLower.startsWith(p))) return true;
+        return false;
+      });
+    }
+
+    return apiModels.filter((m) => {
+      const idLower = m.id.toLowerCase();
+      const ownedLower = m.owned_by.toLowerCase();
+      return (
+        idLower.startsWith(providerLower) ||
+        ownedLower.includes(providerLower) ||
+        providerLower.includes(ownedLower)
+      );
+    });
+  }, [apiModels, providerId, isApiModelProvider]);
 
   const allModels: QuotaWindow[] = useMemo(() => {
     const list: QuotaWindow[] = [];
@@ -378,7 +474,7 @@ export function ModelQuotaModal({
         {email}
       </span>
       <span className="text-xs text-[var(--text-muted)]">
-        {t.quota.allModelsQuota}
+        {isApiModelProvider ? t.quota.availableModels : t.quota.allModelsQuota}
       </span>
     </div>
   );
@@ -688,7 +784,7 @@ export function ModelQuotaModal({
               )}
             </div>
           </div>
-        ) : (
+        ) : isAntigravity ? (
           <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {allModels.map((model) => (
@@ -728,6 +824,85 @@ export function ModelQuotaModal({
                 </div>
               ))}
             </div>
+          </div>
+        ) : (
+          <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
+            {isLoadingModels ? (
+              <div className="h-full flex flex-col items-center justify-center gap-3 text-[var(--text-muted)] min-h-[200px]">
+                <Loader2 size={32} className="animate-spin opacity-40" />
+                <p className="text-sm">{t.quota.loadingModels}</p>
+              </div>
+            ) : modelsError ? (
+              <div className="h-full flex flex-col items-center justify-center gap-3 text-[var(--text-muted)] min-h-[200px]">
+                <AlertCircle size={32} className="opacity-30 text-red-400" />
+                <p className="text-sm">{t.quota.loadModelsFailed}</p>
+              </div>
+            ) : providerApiModels.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center gap-3 text-[var(--text-muted)] min-h-[200px]">
+                <Search size={32} className="opacity-20" />
+                <p className="text-sm">{t.quota.noModelsFound}</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 px-1 mb-4">
+                  <Info size={14} className="text-[var(--accent-primary)]" />
+                  <span className="text-xs text-[var(--text-muted)]">
+                    {t.quota.availableModelsDesc}
+                  </span>
+                  <span className="ml-auto text-xs font-mono font-bold text-[var(--text-primary)] bg-[var(--bg-secondary)]/30 px-2.5 py-1 rounded-full border border-[var(--glass-border)]">
+                    {providerApiModels.length}
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {providerApiModels.map((model) => {
+                    const ownerLabel = isCodexProvider
+                      ? "codex"
+                      : model.owned_by;
+
+                    return (
+                      <div
+                        key={model.id}
+                        className="relative p-4 rounded-2xl border bg-[var(--bg-secondary)]/30 hover:bg-[var(--bg-secondary)]/50 border-[var(--glass-border)] hover:border-[var(--accent-primary)]/30 transition-all duration-300 group"
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className="w-10 h-10 shrink-0 flex items-center justify-center rounded-xl bg-white/5 border border-white/5 shadow-sm group-hover:scale-110 transition-transform duration-500">
+                            <div className="scale-125">
+                              {getProviderIcon(model.id) ||
+                                getProviderIcon(ownerLabel)}
+                            </div>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h3
+                              className="text-sm font-bold text-[var(--text-primary)] truncate"
+                              title={model.id}
+                            >
+                              {model.id}
+                            </h3>
+                            <p className="text-[10px] text-[var(--text-dim)] mt-0.5">
+                              {ownerLabel}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => handleCopyModelId(model.id)}
+                            className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--accent-primary)] opacity-0 group-hover:opacity-100 transition-all shrink-0"
+                            title={`${t.quota.copyModelId}: ${model.id}`}
+                          >
+                            {copiedModelId === model.id ? (
+                              <Check
+                                size={12}
+                                className="text-green-500 stroke-[3px]"
+                              />
+                            ) : (
+                              <Copy size={12} className="opacity-70" />
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

@@ -384,6 +384,10 @@ export const en = {
       "Authentication failed (401). Check system-access-token and new-api-user.",
     customProviderTip:
       "New API / One API services can enable Usage Query in provider settings to view balance and models",
+    availableModels: "Available Models",
+    availableModelsDesc: "Models available for this provider",
+    loadingModels: "Loading models...",
+    loadModelsFailed: "Failed to load models",
   },
   agents: {
     title: "AGENTS",

@@ -72,8 +72,13 @@ export function AccountQuotaCard({
   const modelsToShow = sortedModels.slice(0, displayCount);
   const hasMoreModels = sortedModels.length > displayCount;
   const customAdditionalCount = rateLimits.additional?.length ?? 0;
-  const showAllModelsButton =
-    providerId === "custom" ? customAdditionalCount > 0 : hasMoreModels;
+  const isApiModelProvider =
+    providerId !== "custom" && providerId !== "antigravity";
+  const showAllModelsButton = isApiModelProvider
+    ? true
+    : providerId === "custom"
+      ? customAdditionalCount > 0
+      : hasMoreModels;
 
   const getStatusColor = () => {
     switch (status) {

@@ -151,6 +151,18 @@ interface ElectronAPI {
     >;
     deleteAll: () => Promise<{ success: boolean; error?: string }>;
   };
+  models: {
+    fetch: () => Promise<{
+      success: boolean;
+      models: {
+        id: string;
+        object: string;
+        created: number;
+        owned_by: string;
+      }[];
+      error?: string;
+    }>;
+  };
   uptime: {
     getStatus: () => Promise<{
       entities: UptimeEntitySummary[];

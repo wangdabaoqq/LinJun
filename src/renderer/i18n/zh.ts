@@ -372,6 +372,10 @@ export const zh: Translations = {
       "认证失败（401），请检查 system-access-token 与 new-api-user 是否正确。",
     customProviderTip:
       "New API / One API 服务可在提供商设置中启用用量查询，以查看余额和模型列表",
+    availableModels: "可用模型",
+    availableModelsDesc: "该提供商的可用模型列表",
+    loadingModels: "正在加载模型...",
+    loadModelsFailed: "模型加载失败",
   },
   agents: {
     title: "代理",

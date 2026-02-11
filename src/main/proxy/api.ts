@@ -26,6 +26,17 @@ class ManagementAPI {
     return {};
   }
 
+  private getModelAuthHeaders(): Record<string, string> {
+    const config = proxyManager.loadConfigFromYaml();
+    const apiKey = config?.["api-keys"]?.find((key) => key.trim().length > 0);
+
+    if (apiKey) {
+      return { Authorization: `Bearer ${apiKey}` };
+    }
+
+    return this.getAuthHeaders();
+  }
+
   async getQwenAuthUrl(): Promise<QwenAuthUrlResponse> {
     try {
       const res = await this.client.get(
@@ -206,6 +217,21 @@ class ManagementAPI {
     }
   }
 
+  async fetchModels(): Promise<ModelEntry[]> {
+    try {
+      const res = await this.client.get(`${this.baseURL}/v1/models`, {
+        params: { is_webui: true },
+        headers: this.getModelAuthHeaders(),
+      });
+      const models = res.data?.data ?? [];
+      log.info(`[ManagementAPI] Fetched ${models.length} models`);
+      return models;
+    } catch (error) {
+      log.error("[ManagementAPI] Failed to fetch models:", error);
+      throw error;
+    }
+  }
+
   async getUsage(): Promise<UsageResponse> {
     try {
       const res = await this.client.get(`${this.baseURL}/v0/management/usage`, {
@@ -244,6 +270,13 @@ export type Provider =
   | "copilot"
   | "kiro"
   | "custom";
+
+export interface ModelEntry {
+  id: string;
+  object: string;
+  created: number;
+  owned_by: string;
+}
 
 export interface QwenAuthUrlResponse {
   status: "ok" | "error";
