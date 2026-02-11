@@ -84,7 +84,7 @@ export function AccountQuotaCard({
       case "error":
         return "bg-neon-red shadow-[0_0_8px_rgba(239,68,68,0.5)]";
       case "refreshing":
-        return "bg-neon-blue animate-pulse";
+        return "bg-[var(--accent-primary)] animate-pulse";
       default:
         return "bg-white/20";
     }

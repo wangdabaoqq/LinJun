@@ -635,7 +635,7 @@ export function Providers() {
               label: t.providers.official,
               value: stats.totalProviders,
               icon: ShieldCheck,
-              color: "text-neon-blue",
+              color: "text-[var(--accent-primary)]",
             },
             {
               label: t.providers.connected,
