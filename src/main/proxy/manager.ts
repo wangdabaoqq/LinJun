@@ -166,6 +166,51 @@ function getDefaultConfig(authDir: string, secret: string): string {
   return `# CLIProxyAPIPlus Configuration (managed by linjun)\n${yamlContent}`;
 }
 
+function extractQuotedAuthDir(content: string): string | null {
+  const match = content.match(/^auth-dir:\s*"([^"]*)"(?:\s+#.*)?$/m);
+  return match ? match[1] : null;
+}
+
+function hasOddBackslashRun(value: string): boolean {
+  let runLength = 0;
+
+  for (const char of value) {
+    if (char === "\\") {
+      runLength += 1;
+      continue;
+    }
+
+    if (runLength > 0) {
+      if (runLength % 2 !== 0) {
+        return true;
+      }
+      runLength = 0;
+    }
+  }
+
+  return runLength > 0 && runLength % 2 !== 0;
+}
+
+function shouldMigrateLegacyWindowsAuthDir(
+  content: string,
+  authDir: unknown,
+): authDir is string {
+  if (typeof authDir !== "string") {
+    return false;
+  }
+
+  if (!/^[A-Za-z]:[\\/]/.test(authDir)) {
+    return false;
+  }
+
+  const rawQuotedAuthDir = extractQuotedAuthDir(content);
+  if (!rawQuotedAuthDir) {
+    return false;
+  }
+
+  return hasOddBackslashRun(rawQuotedAuthDir);
+}
+
 class ProxyManager extends EventEmitter {
   private process: ChildProcess | null = null;
   private port: number = DEFAULT_PORT;
@@ -327,6 +372,14 @@ class ProxyManager extends EventEmitter {
       } as ProxyConfig["remote-management"];
     }
 
+    const shouldMigrateAuthDir = shouldMigrateLegacyWindowsAuthDir(
+      content,
+      parsedConfig["auth-dir"],
+    );
+    if (shouldMigrateAuthDir) {
+      updates["auth-dir"] = parsedConfig["auth-dir"];
+    }
+
     if (Object.keys(updates).length > 0) {
       const success = this.updateConfigYaml(updates);
       if (success) {
@@ -336,6 +389,9 @@ class ProxyManager extends EventEmitter {
         }
         if (!hasAllowRemote) {
           addedKeys.push("remote-management.allow-remote");
+        }
+        if (shouldMigrateAuthDir) {
+          addedKeys.push("auth-dir");
         }
         if (addedKeys.length > 0) {
           log.info(
