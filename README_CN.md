@@ -17,7 +17,7 @@
 </p>
 
 <p align="center">
-  <strong>跨平台 AI 代理管理工具，支持 Claude、Gemini、OpenAI、Qwen 等。</strong>
+  <strong>跨平台 AI 代理管理工具，支持 Claude、Gemini、Codex、Copilot、Qwen、Droid CLI、Kiro 等。</strong>
 </p>
 
 <p align="center">
@@ -26,8 +26,10 @@
 
 ## ✨ 功能特性
 
-- 🔌 **多服务商支持**：通过 OAuth 或 API Key 连接 Claude、Gemini、OpenAI Codex、Qwen、Antigravity、iFlow、Kiro、Vertex AI、GitHub Copilot 等账户
-- 📊 **实时配额追踪**：自动刷新，监控每个账户的使用情况
+- 🔌 **扩展服务商支持**：支持 Claude、Gemini、Codex、Qwen、Antigravity、Droid CLI、GitHub Copilot、Kiro、自定义服务商、AmpCode
+- 📊 **配额 + 模型可见性**：可在配额页通过 **查看全部模型** 查看 `/v1/models?is_webui=true` 返回的服务商模型列表
+- 🧠 **服务商感知模型过滤**：配额模型列表会按当前服务商上下文过滤（如 Codex/Copilot/Kiro）
+- ⚡ **大体量日志性能优化**：日志页已支持虚拟列表与增量轮询，大数据量下保持流畅
 - 🚀 **一键配置 Agent**：自动检测并配置 Claude Code、OpenCode、Gemini CLI 等工具
 - 📈 **实时仪表盘**：监控请求流量、Token 使用量和成功率
 - 🔀 **智能路由**：支持轮询（Round Robin）和填充优先（Fill First）故障转移策略
@@ -46,11 +48,11 @@
 | OpenAI Codex   | OAuth          |
 | Qwen Code      | OAuth          |
 | Antigravity    | OAuth (Google) |
-| iFlow          | OAuth          |
+| Droid CLI      | OAuth          |
 | GitHub Copilot | OAuth          |
 | Kiro           | OAuth          |
-| Vertex AI      | OAuth          |
 | 自定义服务商   | API Key        |
+| AmpCode        | API Key        |
 
 ### 兼容的 CLI Agent
 
@@ -85,7 +87,7 @@ LinJun 可以自动配置以下工具使用你的集中代理：
 ```bash
 # 克隆仓库
 git clone https://github.com/wangdabaoqq/LinJun.git
-cd L-jun
+cd LinJun
 
 # 安装依赖
 bun install
@@ -123,7 +125,7 @@ bun run build:all      # 所有平台
 ### 4. 监控使用情况
 
 - **Dashboard**：整体健康状况和流量
-- **Quota**：每个账户的使用明细
+- **Quota**：每个账户的使用明细，以及按服务商查看完整模型目录（查看全部模型）
 - **Logs**：原始请求日志，用于调试
 
 ## 📸 截图

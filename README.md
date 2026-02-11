@@ -17,7 +17,7 @@
 </p>
 
 <p align="center">
-  <strong>Cross-platform AI proxy management for Claude, Gemini, OpenAI, Qwen, and more.</strong>
+  <strong>Cross-platform AI proxy management for Claude, Gemini, Codex, Copilot, Qwen, Droid CLI, Kiro, and more.</strong>
 </p>
 
 <p align="center">
@@ -26,8 +26,10 @@
 
 ## ✨ Features
 
-- 🔌 **Multi-Provider Support**: Connect accounts from Claude, Gemini, OpenAI Codex, Qwen, Antigravity, iFlow, Kiro, GitHub Copilot via OAuth or API keys
-- 📊 **Real-time Quota Tracking**: Monitor usage per account with automatic refresh
+- 🔌 **Expanded Provider Support**: Connect Claude, Gemini, Codex, Qwen, Antigravity, Droid CLI, GitHub Copilot, Kiro, Custom Provider, and AmpCode
+- 📊 **Quota + Model Visibility**: Track account usage and open **View All Models** to see provider-scoped models from `/v1/models?is_webui=true`
+- 🧠 **Provider-Aware Model Filtering**: Quota model list is filtered by provider context (for example Codex/Copilot/Kiro-specific views)
+- ⚡ **Large Log Performance**: Virtualized log table and incremental polling keep the Logs page responsive for large datasets
 - 🚀 **One-Click Agent Configuration**: Auto-detect and configure Claude Code, OpenCode, Gemini CLI, and more
 - 📈 **Live Dashboard**: Monitor request traffic, token usage, and success rates
 - 🔀 **Smart Routing**: Round Robin and Fill First failover strategies
@@ -46,10 +48,11 @@
 | OpenAI Codex    | OAuth          |
 | Qwen Code       | OAuth          |
 | Antigravity     | OAuth (Google) |
-| iFlow           | OAuth          |
+| Droid CLI       | OAuth          |
 | GitHub Copilot  | OAuth          |
 | Kiro            | OAuth          |
 | Custom Provider | API Key        |
+| AmpCode         | API Key        |
 
 ### Compatible CLI Agents
 
@@ -84,7 +87,7 @@ Download the latest release from [GitHub Releases](https://github.com/wangdabaoq
 ```bash
 # Clone the repository
 git clone https://github.com/wangdabaoqq/LinJun.git
-cd L-jun
+cd LinJun
 
 # Install dependencies
 bun install
@@ -122,7 +125,7 @@ Go to **Agents** tab → Select detected agent → Configure to use local proxy.
 ### 4. Monitor Usage
 
 - **Dashboard**: Overall health and traffic
-- **Quota**: Per-account usage breakdown
+- **Quota**: Per-account usage breakdown and provider-scoped model catalog via **View All Models**
 - **Logs**: Raw request logs for debugging
 
 ## 📸 Screenshots
