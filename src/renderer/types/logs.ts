@@ -9,5 +9,6 @@ export interface RequestLogEntry {
   provider?: string;
   model?: string;
   account?: string;
+  userInput?: string;
   requestBody?: string;
 }

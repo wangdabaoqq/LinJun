@@ -139,7 +139,7 @@ export function CoreSection() {
                       onClick={handleCopy}
                       className={`p-2 rounded-lg transition-colors ${
                         copied
-                          ? "text-green-500 bg-green-500/10"
+                          ? "text-green-500"
                           : "text-[var(--text-muted)] hover:text-[var(--accent-primary)]"
                       }`}
                       title={t.settings.copy}

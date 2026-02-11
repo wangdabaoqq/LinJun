@@ -9,6 +9,7 @@ import {
   FileText,
   Bug,
   Zap,
+  RefreshCw,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useTranslations } from "../../stores/settings";
@@ -457,7 +458,7 @@ export function About() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 relative z-10">
             <div className="space-y-1">
               <h3 className="text-sm font-bold text-[var(--text-primary)] flex items-center gap-2">
-                <Zap className="w-4 h-4 text-[var(--accent-primary)]" />
+                <RefreshCw className="w-4 h-4 text-[var(--accent-primary)]" />
                 {t.about.proxyUpdates}
               </h3>
               <p className="text-xs text-[var(--text-muted)]">
