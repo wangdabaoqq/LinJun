@@ -18,6 +18,7 @@ export interface RequestLogEntry {
   provider?: string;
   model?: string;
   account?: string;
+  userInput?: string;
   requestBody?: string;
   duration?: number;
 }
@@ -111,6 +112,7 @@ function parseLogFile(
       apiRequestMap.provider || inferProviderFromUrl(apiRequestMap.upstreamUrl);
     const account = apiRequestMap.account;
     const duration = calculateDuration(apiRequestSection, apiResponseSection);
+    const userInput = extractUserInput(requestBodySection);
 
     let model: string | undefined;
     if (requestBodySection) {
@@ -146,6 +148,7 @@ function parseLogFile(
       provider,
       model,
       account,
+      userInput,
       requestBody: requestBodySection || undefined,
       duration,
     };
@@ -316,6 +319,102 @@ function inferModelFromText(text: string): string | undefined {
   if (!text) return undefined;
   const match = text.match(/"model"\s*:\s*"([^"]+)"/);
   return match ? match[1] : undefined;
+}
+
+function extractUserInput(requestBody: string): string | undefined {
+  if (!requestBody) return undefined;
+
+  try {
+    const parsed = JSON.parse(requestBody) as Record<string, unknown>;
+    const candidates: string[] = [];
+
+    collectUserInputFromMessages(parsed.input, candidates);
+    collectUserInputFromMessages(parsed.messages, candidates);
+
+    if (typeof parsed.prompt === "string") {
+      const normalizedPrompt = normalizeInputText(parsed.prompt);
+      if (normalizedPrompt) {
+        candidates.push(normalizedPrompt);
+      }
+    }
+
+    if (candidates.length === 0) {
+      return undefined;
+    }
+
+    const latestInput = candidates[candidates.length - 1];
+    return truncateUserInput(latestInput, 200);
+  } catch {
+    return undefined;
+  }
+}
+
+function collectUserInputFromMessages(
+  messages: unknown,
+  candidates: string[],
+): void {
+  if (!Array.isArray(messages)) return;
+
+  for (const message of messages) {
+    if (!message || typeof message !== "object") continue;
+
+    const messageRecord = message as Record<string, unknown>;
+    if (messageRecord.role !== "user") continue;
+
+    collectUserInputFromContent(messageRecord.content, candidates);
+  }
+}
+
+function collectUserInputFromContent(
+  content: unknown,
+  candidates: string[],
+): void {
+  if (typeof content === "string") {
+    const normalized = normalizeInputText(content);
+    if (normalized) {
+      candidates.push(normalized);
+    }
+    return;
+  }
+
+  if (!Array.isArray(content)) return;
+
+  for (const item of content) {
+    if (typeof item === "string") {
+      const normalized = normalizeInputText(item);
+      if (normalized) {
+        candidates.push(normalized);
+      }
+      continue;
+    }
+
+    if (!item || typeof item !== "object") continue;
+
+    const contentRecord = item as Record<string, unknown>;
+    const contentType =
+      typeof contentRecord.type === "string" ? contentRecord.type : "";
+
+    if (contentType !== "input_text" && contentType !== "text") continue;
+
+    if (typeof contentRecord.text === "string") {
+      const normalized = normalizeInputText(contentRecord.text);
+      if (normalized) {
+        candidates.push(normalized);
+      }
+    }
+  }
+}
+
+function normalizeInputText(value: string): string {
+  return value.replace(/\s+/g, " ").trim();
+}
+
+function truncateUserInput(value: string, maxLength: number): string {
+  if (value.length <= maxLength) {
+    return value;
+  }
+
+  return `${value.slice(0, maxLength).trimEnd()}...`;
 }
 
 function extractStatusCode(
