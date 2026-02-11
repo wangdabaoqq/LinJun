@@ -435,8 +435,7 @@ win:
   target:
     - target: nsis
       arch: [x64]
-    - target: portable
-      arch: [x64]
+    # portable target removed; Windows builds ship NSIS installer only
 
 linux:
   icon: resources/icon.png

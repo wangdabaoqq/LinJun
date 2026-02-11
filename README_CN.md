@@ -101,7 +101,7 @@ bun dev
 
 ```bash
 bun run build:mac      # macOS (dmg, zip)
-bun run build:win      # Windows (nsis, portable)
+bun run build:win      # Windows (nsis)
 bun run build:linux    # Linux (AppImage, deb)
 bun run build:all      # 所有平台
 ```
