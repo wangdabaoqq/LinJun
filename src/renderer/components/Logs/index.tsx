@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback, memo } from "react";
 import log from "@renderer/utils/logger";
 import { createPortal } from "react-dom";
 import {
@@ -13,6 +13,7 @@ import {
   Code,
   Download,
 } from "lucide-react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { useTranslations } from "../../stores/settings";
 import { getProviderIcon } from "../icons/ProviderIcons";
 import { useRequestLogs } from "../../hooks/useRequestLogs";
@@ -112,6 +113,129 @@ const JsonViewer = ({ data }: { data: string }) => {
   );
 };
 
+const ROW_HEIGHT = 56;
+const MAX_ANIMATION_INDEX = 10;
+
+function formatTimestamp(timestamp: string): string {
+  if (!timestamp) return "-";
+  try {
+    const date = new Date(timestamp);
+    if (isNaN(date.getTime())) return timestamp;
+
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const hours = String(date.getHours()).padStart(2, "0");
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+    const seconds = String(date.getSeconds()).padStart(2, "0");
+
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+  } catch {
+    return timestamp;
+  }
+}
+
+function getStatusColor(statusCode: number): string {
+  if (statusCode >= 200 && statusCode < 300)
+    return "text-green-600 bg-green-500/10 border-green-500/20 dark:text-green-400 dark:bg-green-500/10 dark:border-green-500/20";
+  if (statusCode >= 400)
+    return "text-red-600 bg-red-500/10 border-red-500/20 dark:text-red-400 dark:bg-red-500/10 dark:border-red-500/20";
+  return "text-amber-600 bg-amber-500/10 border-amber-500/20 dark:text-amber-400 dark:bg-amber-500/10 dark:border-amber-500/20";
+}
+
+function StatusBadge({ statusCode }: { statusCode: number }) {
+  const isSuccess = statusCode >= 200 && statusCode < 300;
+  const isError = statusCode >= 400;
+
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold border transition-all duration-300 ${getStatusColor(statusCode)}`}
+    >
+      <span
+        className={`w-1.5 h-1.5 rounded-full ${isSuccess ? "bg-[var(--success)] animate-pulse" : isError ? "bg-[var(--error)]" : "bg-[var(--warning)]"}`}
+      ></span>
+      {statusCode}
+    </span>
+  );
+}
+
+interface LogRowProps {
+  entry: RequestLogEntry;
+  index: number;
+  onClick: (entry: RequestLogEntry) => void;
+}
+
+const LogRow = memo(function LogRow({ entry, index, onClick }: LogRowProps) {
+  const formattedTime = useMemo(
+    () => formatTimestamp(entry.time),
+    [entry.time],
+  );
+  const timeParts = useMemo(() => formattedTime.split(" "), [formattedTime]);
+  const animDelay = index < MAX_ANIMATION_INDEX ? `${index * 30}ms` : "0ms";
+
+  const handleClick = useCallback(() => {
+    onClick(entry);
+  }, [entry, onClick]);
+
+  return (
+    <div
+      onClick={handleClick}
+      className="group grid grid-cols-[160px_120px_1fr_1fr_1.4fr_100px] gap-4 px-6 py-4 hover:bg-white/[0.03] transition-all duration-300 ease-out cursor-pointer items-center text-xs relative overflow-hidden border-b border-[var(--glass-border)]/50"
+      style={{ animationDelay: animDelay }}
+    >
+      <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-[var(--accent-primary)] transform -translate-x-full group-hover:translate-x-0 transition-transform duration-300 shadow-[0_0_8px_var(--accent-primary)]" />
+
+      <div className="flex flex-col gap-0.5">
+        <span className="font-mono text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors">
+          {timeParts[1]}
+        </span>
+        <span className="text-[10px] text-[var(--text-dim)] font-mono opacity-60">
+          {timeParts[0]}
+        </span>
+      </div>
+
+      <div className="flex items-center gap-2 min-w-0">
+        {entry.provider ? (
+          <span className="w-5 h-5 flex items-center justify-center text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors flex-shrink-0 opacity-80">
+            {getProviderIcon(entry.provider, "w-4 h-4")}
+          </span>
+        ) : null}
+        <span
+          className="truncate font-medium text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors"
+          title={entry.provider}
+        >
+          {entry.provider || "-"}
+        </span>
+      </div>
+
+      <div
+        className="truncate font-mono text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors opacity-90"
+        title={entry.account}
+      >
+        {entry.account || "-"}
+      </div>
+
+      <div
+        className="truncate font-medium text-[var(--accent-primary)] opacity-80 group-hover:opacity-100 transition-opacity"
+        title={entry.model}
+      >
+        {entry.model || "-"}
+      </div>
+
+      <div
+        className="truncate text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors"
+        title={entry.userInput}
+      >
+        {entry.userInput || "-"}
+      </div>
+
+      <div className="flex justify-end">
+        <StatusBadge statusCode={entry.statusCode} />
+      </div>
+    </div>
+  );
+});
+
 export function Logs() {
   const t = useTranslations();
   const [filter, setFilter] = useState<"all" | "success" | "error">("all");
@@ -128,11 +252,36 @@ export function Logs() {
     left: 0,
     width: 0,
   });
-  const { logs, refresh } = useRequestLogs(100);
+  const { logs, refresh } = useRequestLogs(200);
+  const scrollParentRef = useRef<HTMLDivElement>(null);
 
-  const uniqueProviders = Array.from(
-    new Set(logs.map((log) => log.provider).filter((p): p is string => !!p)),
-  ).sort();
+  const uniqueProviders = useMemo(
+    () =>
+      Array.from(
+        new Set(logs.map((l) => l.provider).filter((p): p is string => !!p)),
+      ).sort(),
+    [logs],
+  );
+
+  const filteredLogs = useMemo(() => {
+    return logs.filter((l) => {
+      if (filter !== "all" && l.status !== filter) return false;
+      if (providerFilter !== "all" && l.provider !== providerFilter)
+        return false;
+      return true;
+    });
+  }, [logs, filter, providerFilter]);
+
+  const rowVirtualizer = useVirtualizer({
+    count: filteredLogs.length,
+    getScrollElement: () => scrollParentRef.current,
+    estimateSize: () => ROW_HEIGHT,
+    overscan: 10,
+  });
+
+  const handleSelectLog = useCallback((entry: RequestLogEntry) => {
+    setSelectedLog(entry);
+  }, []);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -173,13 +322,6 @@ export function Logs() {
       });
     }
   };
-
-  const filteredLogs = logs.filter((log) => {
-    if (filter !== "all" && log.status !== filter) return false;
-    if (providerFilter !== "all" && log.provider !== providerFilter)
-      return false;
-    return true;
-  });
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -226,49 +368,6 @@ export function Logs() {
       URL.revokeObjectURL(url);
     } catch (error) {
       log.error("Export failed:", error);
-    }
-  };
-
-  const getStatusColor = (statusCode: number) => {
-    if (statusCode >= 200 && statusCode < 300)
-      return "text-green-600 bg-green-500/10 border-green-500/20 dark:text-green-400 dark:bg-green-500/10 dark:border-green-500/20";
-    if (statusCode >= 400)
-      return "text-red-600 bg-red-500/10 border-red-500/20 dark:text-red-400 dark:bg-red-500/10 dark:border-red-500/20";
-    return "text-amber-600 bg-amber-500/10 border-amber-500/20 dark:text-amber-400 dark:bg-amber-500/10 dark:border-amber-500/20";
-  };
-
-  const getStatusBadge = (statusCode: number) => {
-    const isSuccess = statusCode >= 200 && statusCode < 300;
-    const isError = statusCode >= 400;
-
-    return (
-      <span
-        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold border transition-all duration-300 ${getStatusColor(statusCode)}`}
-      >
-        <span
-          className={`w-1.5 h-1.5 rounded-full ${isSuccess ? "bg-[var(--success)] animate-pulse" : isError ? "bg-[var(--error)]" : "bg-[var(--warning)]"}`}
-        ></span>
-        {statusCode}
-      </span>
-    );
-  };
-
-  const formatTimestamp = (timestamp: string) => {
-    if (!timestamp) return "-";
-    try {
-      const date = new Date(timestamp);
-      if (isNaN(date.getTime())) return timestamp;
-
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, "0");
-      const day = String(date.getDate()).padStart(2, "0");
-      const hours = String(date.getHours()).padStart(2, "0");
-      const minutes = String(date.getMinutes()).padStart(2, "0");
-      const seconds = String(date.getSeconds()).padStart(2, "0");
-
-      return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-    } catch {
-      return timestamp;
     }
   };
 
@@ -473,6 +572,7 @@ export function Logs() {
         </div>
 
         <div
+          ref={scrollParentRef}
           className={`flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-[var(--glass-border)] hover:scrollbar-thumb-[var(--accent-primary)]/30 scrollbar-track-transparent ${
             filteredLogs.length === 0 ? "flex flex-col" : ""
           }`}
@@ -495,65 +595,35 @@ export function Logs() {
               </div>
             </div>
           ) : (
-            <div className="divide-y divide-[var(--glass-border)]/50">
-              {filteredLogs.map((log, index) => (
-                <div
-                  key={log.id}
-                  onClick={() => setSelectedLog(log)}
-                  className="group grid grid-cols-[160px_120px_1fr_1fr_1.4fr_100px] gap-4 px-6 py-4 hover:bg-white/[0.03] transition-all duration-300 ease-out cursor-pointer items-center text-xs relative overflow-hidden"
-                  style={{ animationDelay: `${index * 30}ms` }}
-                >
-                  <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-[var(--accent-primary)] transform -translate-x-full group-hover:translate-x-0 transition-transform duration-300 shadow-[0_0_8px_var(--accent-primary)]" />
-
-                  <div className="flex flex-col gap-0.5">
-                    <span className="font-mono text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors">
-                      {formatTimestamp(log.time).split(" ")[1]}
-                    </span>
-                    <span className="text-[10px] text-[var(--text-dim)] font-mono opacity-60">
-                      {formatTimestamp(log.time).split(" ")[0]}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-2 min-w-0">
-                    {log.provider ? (
-                      <span className="w-5 h-5 flex items-center justify-center text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors flex-shrink-0 opacity-80">
-                        {getProviderIcon(log.provider, "w-4 h-4")}
-                      </span>
-                    ) : null}
-                    <span
-                      className="truncate font-medium text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors"
-                      title={log.provider}
-                    >
-                      {log.provider || "-"}
-                    </span>
-                  </div>
-
+            <div
+              style={{
+                height: `${rowVirtualizer.getTotalSize()}px`,
+                width: "100%",
+                position: "relative",
+              }}
+            >
+              {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                const entry = filteredLogs[virtualRow.index];
+                return (
                   <div
-                    className="truncate font-mono text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors opacity-90"
-                    title={log.account}
+                    key={entry.id}
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      width: "100%",
+                      height: `${virtualRow.size}px`,
+                      transform: `translateY(${virtualRow.start}px)`,
+                    }}
                   >
-                    {log.account || "-"}
+                    <LogRow
+                      entry={entry}
+                      index={virtualRow.index}
+                      onClick={handleSelectLog}
+                    />
                   </div>
-
-                  <div
-                    className="truncate font-medium text-[var(--accent-primary)] opacity-80 group-hover:opacity-100 transition-opacity"
-                    title={log.model}
-                  >
-                    {log.model || "-"}
-                  </div>
-
-                  <div
-                    className="truncate text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors"
-                    title={log.userInput}
-                  >
-                    {log.userInput || "-"}
-                  </div>
-
-                  <div className="flex justify-end">
-                    {getStatusBadge(log.statusCode)}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -604,7 +674,7 @@ export function Logs() {
                   </div>
                 </div>
                 <div className="flex items-center gap-4">
-                  {getStatusBadge(selectedLog.statusCode)}
+                  <StatusBadge statusCode={selectedLog.statusCode} />
                   <div className="h-8 w-px bg-[var(--glass-border)]" />
                   <button
                     onClick={() => setSelectedLog(null)}
