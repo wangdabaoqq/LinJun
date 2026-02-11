@@ -463,11 +463,12 @@ export function Logs() {
       </div>
 
       <div className="glass-card flex-1 flex flex-col min-h-0 overflow-hidden border border-[var(--glass-border)] shadow-2xl bg-[var(--bg-primary)]/40 backdrop-blur-xl rounded-2xl relative">
-        <div className="grid grid-cols-[160px_120px_1fr_1fr_100px] gap-4 px-6 py-3 bg-white/[0.02] border-b border-[var(--glass-border)] text-[11px] uppercase tracking-[0.1em] font-medium text-[var(--text-muted)] select-none sticky top-0 z-10 backdrop-blur-md">
+        <div className="grid grid-cols-[160px_120px_1fr_1fr_1.4fr_100px] gap-4 px-6 py-3 bg-white/[0.02] border-b border-[var(--glass-border)] text-[11px] uppercase tracking-[0.1em] font-medium text-[var(--text-muted)] select-none sticky top-0 z-10 backdrop-blur-md">
           <div className="flex items-center gap-2">{t.logs.time}</div>
           <div>{t.logs.provider}</div>
           <div>{t.logs.account}</div>
           <div>{t.logs.model}</div>
+          <div>{t.logs.userInput}</div>
           <div className="text-right pr-2">{t.logs.status}</div>
         </div>
 
@@ -499,7 +500,7 @@ export function Logs() {
                 <div
                   key={log.id}
                   onClick={() => setSelectedLog(log)}
-                  className="group grid grid-cols-[160px_120px_1fr_1fr_100px] gap-4 px-6 py-4 hover:bg-white/[0.03] transition-all duration-300 ease-out cursor-pointer items-center text-xs relative overflow-hidden"
+                  className="group grid grid-cols-[160px_120px_1fr_1fr_1.4fr_100px] gap-4 px-6 py-4 hover:bg-white/[0.03] transition-all duration-300 ease-out cursor-pointer items-center text-xs relative overflow-hidden"
                   style={{ animationDelay: `${index * 30}ms` }}
                 >
                   <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-[var(--accent-primary)] transform -translate-x-full group-hover:translate-x-0 transition-transform duration-300 shadow-[0_0_8px_var(--accent-primary)]" />
@@ -539,6 +540,13 @@ export function Logs() {
                     title={log.model}
                   >
                     {log.model || "-"}
+                  </div>
+
+                  <div
+                    className="truncate text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors"
+                    title={log.userInput}
+                  >
+                    {log.userInput || "-"}
                   </div>
 
                   <div className="flex justify-end">
