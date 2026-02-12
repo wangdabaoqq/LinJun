@@ -289,7 +289,7 @@ function ProviderTable({
     <div className="overflow-x-auto">
       <table className="w-full">
         <thead>
-          <tr className="text-xs text-[var(--text-dim)] border-b ">
+          <tr className="text-xs text-[var(--text-dim)] border-b border-[var(--glass-border)]">
             <th className="text-left py-2 font-medium">{labels.provider}</th>
             <th className="text-right py-2 font-medium">{labels.requests}</th>
             <th className="text-right py-2 font-medium">{labels.tokens}</th>
@@ -303,7 +303,7 @@ function ProviderTable({
           {providers.map((p) => (
             <tr
               key={p.provider}
-              className="border-b last:border-0"
+              className="border-b border-[var(--glass-border)] last:border-b-0"
             >
               <td className="py-3 text-sm font-medium text-[var(--text-primary)] capitalize flex items-center gap-2">
                 <span className="w-5 h-5">{getProviderIcon(p.provider)}</span>

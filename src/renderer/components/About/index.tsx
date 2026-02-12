@@ -58,10 +58,11 @@ export function About() {
   }>({ checking: false });
 
   const [proxyUpdateStatus, setProxyUpdateStatus] = useState<{
+    checked: boolean;
     checking: boolean;
     updating: boolean;
     result?: UpdateInfo;
-  }>({ checking: false, updating: false });
+  }>({ checked: false, checking: false, updating: false });
   const [proxyUpdateProgress, setProxyUpdateProgress] =
     useState<UpdateProgress | null>(null);
   const [proxyRestartPromptVisible, setProxyRestartPromptVisible] =
@@ -99,6 +100,7 @@ export function About() {
 
       setProxyUpdateStatus((prev) => ({
         ...prev,
+        checked: prev.checked,
         result: {
           hasUpdate: prev.result?.hasUpdate || false,
           currentVersion: result.version || "unknown",
@@ -154,9 +156,15 @@ export function About() {
       if (!result) {
         throw new Error("Update check API is unavailable");
       }
-      setProxyUpdateStatus({ checking: false, updating: false, result });
+      setProxyUpdateStatus({
+        checked: true,
+        checking: false,
+        updating: false,
+        result,
+      });
     } catch (error) {
       setProxyUpdateStatus({
+        checked: true,
         checking: false,
         updating: false,
         result: {
@@ -182,6 +190,7 @@ export function About() {
         throw new Error("Binary update API is unavailable");
       }
       setProxyUpdateStatus({
+        checked: true,
         checking: false,
         updating: false,
         result,
@@ -200,6 +209,7 @@ export function About() {
       );
     } catch (error) {
       setProxyUpdateStatus((prev) => ({
+        checked: true,
         checking: false,
         updating: false,
         result: {
@@ -623,6 +633,7 @@ export function About() {
             ) : null}
 
             {proxyUpdateStatus.result &&
+            proxyUpdateStatus.checked &&
             !proxyUpdateStatus.checking &&
             !proxyUpdateStatus.updating ? (
               <motion.div

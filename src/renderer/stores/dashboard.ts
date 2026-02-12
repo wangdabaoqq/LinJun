@@ -12,6 +12,7 @@ export interface LogEntry {
   id: string;
   timestamp: string;
   provider: string;
+  account?: string;
   model: string;
   tokens: number;
   status: "success" | "error";
@@ -119,6 +120,21 @@ function _parseTimeAgo(resetAt: string): number {
   return Infinity;
 }
 
+function resolveDashboardProvider(provider?: string, account?: string): string {
+  const normalizedProvider = provider?.trim() || "";
+  if (normalizedProvider && normalizedProvider.toLowerCase() !== "unknown") {
+    return normalizedProvider;
+  }
+
+  const normalizedAccount = account?.trim() || "";
+  if (normalizedAccount.toLowerCase().startsWith("custom-")) {
+    const customName = normalizedAccount.slice("custom-".length).trim();
+    return customName ? `custom · ${customName}` : "custom";
+  }
+
+  return normalizedProvider || "unknown";
+}
+
 export const useDashboardStore = create<DashboardState>((set, get) => ({
   proxyStatus: { running: false, port: DEFAULT_PORT, version: "unknown" },
   accounts: [],
@@ -222,13 +238,15 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
             id: string;
             timestamp: string;
             provider?: string;
+            account?: string;
             model?: string;
             status: string;
             duration?: number;
           }) => ({
             id: e.id,
             timestamp: e.timestamp,
-            provider: e.provider || "unknown",
+            provider: resolveDashboardProvider(e.provider, e.account),
+            account: e.account,
             model: e.model || "unknown",
             tokens: 0,
             status: (e.status === "success"
