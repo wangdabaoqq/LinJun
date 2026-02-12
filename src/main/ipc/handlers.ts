@@ -1539,6 +1539,10 @@ export function setupIpcHandlers(): void {
           "oauth-account-excluded-models": accountRules,
         });
 
+        if (!success) {
+          return { success: false, error: "Failed to update config file (check permissions or YAML syntax)" };
+        }
+
         return { success, accountRules };
       } catch (error) {
         log.error("[IPC] Failed to save account OAuth exclusion rules:", error);
@@ -1578,6 +1582,10 @@ export function setupIpcHandlers(): void {
         const success = proxyManager.updateConfigYaml({
           "oauth-account-excluded-models": accountRules,
         });
+
+        if (!success) {
+          return { success: false, error: "Failed to update config file (check permissions or YAML syntax)" };
+        }
 
         return { success, accountRules };
       } catch (error) {

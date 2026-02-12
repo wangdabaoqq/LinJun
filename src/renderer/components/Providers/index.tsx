@@ -39,7 +39,7 @@ import { AddProviderModal } from "./AddProviderModal";
 import { ProviderCard } from "./ProviderCard";
 import { CopilotAuthModal } from "./CopilotAuthModal";
 import { AmpcodeSettingsModal } from "./AmpcodeSettingsModal";
-import { AccountModelRulesModal } from "./AccountModelRulesModal";
+import { AccountModelExplorerModal } from "./AccountModelExplorerModal";
 
 type OAuthProviderRules = Record<string, string[]>;
 type OAuthAccountRules = Record<string, Record<string, string[]>>;
@@ -843,6 +843,38 @@ export function Providers() {
     [getAccountRulesKey, oauthAccountRules],
   );
 
+  const getAccountDisplay = (account: Account) => {
+    let main = account.nickname || "";
+    let sub = account.email || "";
+
+    if (!main) {
+      if (
+        account.email &&
+        !account.email.startsWith("oauth-") &&
+        account.email !== "unknown"
+      ) {
+        main = account.email.split("@")[0];
+        sub = account.email;
+      } else if (account.filePath) {
+        const filename = account.filePath.split(/[/\\]/).pop() || "";
+        main = filename
+          .replace(
+            /^(claude|gemini|codex|antigravity|qwen|iflow|github-copilot|kiro)-/i,
+            "",
+          )
+          .replace(/\.json$/i, "");
+        sub = filename;
+      } else {
+        main = account.email || "Account";
+        sub = "";
+      }
+    }
+
+    if (main === sub) sub = "";
+
+    return { main, sub };
+  };
+
   const handleOpenAccountModelRules = useCallback(
     (providerId: string, account: Account) => {
       setEditingAccountModelRules({ providerId, account });
@@ -850,23 +882,37 @@ export function Providers() {
     [],
   );
 
-  const handleLoadModelCatalog = useCallback(async (): Promise<string[]> => {
+  const handleLoadModelCatalog = useCallback(async (): Promise<
+    Array<{ id: string; ownedBy: string }>
+  > => {
     const result = await window.electronAPI?.models?.fetch();
     if (!result?.success) {
       throw new Error(result?.error || t.providers.accountModelRulesLoadFailed);
     }
 
     const models = Array.isArray(result.models) ? result.models : [];
-    return models
-      .map((model: unknown) => {
-        if (typeof model === "string") return model;
-        if (model && typeof model === "object" && "id" in model) {
-          return String((model as { id: string }).id || "");
+    const normalizedModels: Array<{ id: string; ownedBy: string }> = models.map(
+      (model: unknown) => {
+        if (typeof model === "string") {
+          return { id: model, ownedBy: "" };
         }
-        return "";
-      })
-      .map((modelId: string) => modelId.trim())
-      .filter((modelId: string) => modelId.length > 0);
+        if (model && typeof model === "object" && "id" in model) {
+          const typedModel = model as { id?: string; owned_by?: string };
+          return {
+            id: String(typedModel.id || ""),
+            ownedBy: String(typedModel.owned_by || ""),
+          };
+        }
+        return { id: "", ownedBy: "" };
+      },
+    );
+
+    return normalizedModels
+      .map((model) => ({
+        id: model.id.trim(),
+        ownedBy: model.ownedBy.trim().toLowerCase(),
+      }))
+      .filter((model) => model.id.length > 0);
   }, [t.providers.accountModelRulesLoadFailed]);
 
   const handleSaveAccountModelRules = useCallback(
@@ -1440,27 +1486,38 @@ export function Providers() {
         />
       )}
       {editingAccountModelRules && (
-        <AccountModelRulesModal
+        <AccountModelExplorerModal
           isOpen={!!editingAccountModelRules}
+          onClose={() => setEditingAccountModelRules(null)}
           accountLabel={
-            editingAccountModelRules.account.nickname ||
-            editingAccountModelRules.account.email
+            editingAccountModelRules
+              ? getAccountDisplay(editingAccountModelRules.account).main
+              : ""
           }
-          sourceOptions={getSourceOptionsForProvider(
-            editingAccountModelRules.providerId,
-          )}
-          initialSourceKey={getAccountSourceKey(
-            editingAccountModelRules.providerId,
-            editingAccountModelRules.account,
-          )}
-          accountRulesBySource={getAccountRulesBySource(
-            editingAccountModelRules.providerId,
-            editingAccountModelRules.account,
-          )}
-          providerRules={oauthProviderRules}
+          providerId={editingAccountModelRules?.providerId || ""}
+          sourceOptions={
+            editingAccountModelRules
+              ? getSourceOptionsForProvider(editingAccountModelRules.providerId)
+              : []
+          }
+          initialSourceKey={
+            editingAccountModelRules
+              ? getAccountSourceKey(
+                  editingAccountModelRules.providerId,
+                  editingAccountModelRules.account,
+                )
+              : ""
+          }
+          accountRulesBySource={
+            editingAccountModelRules
+              ? getAccountRulesBySource(
+                  editingAccountModelRules.providerId,
+                  editingAccountModelRules.account,
+                )
+              : {}
+          }
           onLoadCatalog={handleLoadModelCatalog}
           onSave={handleSaveAccountModelRules}
-          onClose={() => setEditingAccountModelRules(null)}
         />
       )}
       {showCustomProviderForm && (
