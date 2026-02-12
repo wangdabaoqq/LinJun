@@ -809,6 +809,20 @@ export function Providers() {
     [getAccountRulesKey, getSourceOptionsForProvider, oauthAccountRules],
   );
 
+  const getSourceOptionsForAccount = useCallback(
+    (providerId: string, account: Account): string[] => {
+      const accountSourceKey = getAccountSourceKey(providerId, account);
+      if (accountSourceKey) {
+        return [accountSourceKey];
+      }
+
+      const fallbackSourceKey =
+        getSourceOptionsForProvider(providerId)[0] || providerId;
+      return fallbackSourceKey ? [fallbackSourceKey] : [];
+    },
+    [getAccountSourceKey, getSourceOptionsForProvider],
+  );
+
   const getAccountModelRulesMeta = useCallback(
     (providerId: string, account: Account) => {
       const accountKey = getAccountRulesKey(providerId, account);
@@ -1497,7 +1511,10 @@ export function Providers() {
           providerId={editingAccountModelRules?.providerId || ""}
           sourceOptions={
             editingAccountModelRules
-              ? getSourceOptionsForProvider(editingAccountModelRules.providerId)
+              ? getSourceOptionsForAccount(
+                  editingAccountModelRules.providerId,
+                  editingAccountModelRules.account,
+                )
               : []
           }
           initialSourceKey={

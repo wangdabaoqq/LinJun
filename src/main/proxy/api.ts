@@ -88,9 +88,8 @@ class ManagementAPI {
   async getClaudeAuthUrl(): Promise<QwenAuthUrlResponse> {
     try {
       const res = await this.client.get(
-        `${this.baseURL}/v0/management/claude-auth-url`,
+        `${this.baseURL}/v0/management/anthropic-auth-url`,
         {
-          params: { is_webui: true },
           headers: this.getAuthHeaders(),
         },
       );
@@ -103,10 +102,14 @@ class ManagementAPI {
 
   async getGeminiAuthUrl(projectId?: string): Promise<QwenAuthUrlResponse> {
     try {
+      const trimmedProjectId = projectId?.trim();
       const res = await this.client.get(
         `${this.baseURL}/v0/management/gemini-cli-auth-url`,
         {
-          params: { project_id: projectId || null, is_webui: true },
+          params: {
+            is_webui: true,
+            ...(trimmedProjectId ? { project_id: trimmedProjectId } : {}),
+          },
           headers: this.getAuthHeaders(),
         },
       );

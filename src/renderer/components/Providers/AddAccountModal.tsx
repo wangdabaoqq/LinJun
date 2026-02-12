@@ -50,11 +50,15 @@ export const AddAccountModal = memo(function AddAccountModal({
 
   useEffect(() => {
     if (isAuthUrlModalProvider && (window as any).electronAPI) {
+      if (provider.id === "gemini") {
+        setAntigravityAuthUrl(null);
+        return;
+      }
+
       const authGetters: Record<string, (() => Promise<any>) | undefined> = {
         antigravity: (window as any).electronAPI.antigravity?.getAuthUrl,
         codex: (window as any).electronAPI.codex?.getAuthUrl,
         claude: (window as any).electronAPI.claude?.getAuthUrl,
-        gemini: (window as any).electronAPI.gemini?.getAuthUrl,
         qwen: (window as any).electronAPI.qwen?.getAuthUrl,
         iflow: (window as any).electronAPI.iflow?.getAuthUrl,
       };
@@ -151,13 +155,69 @@ export const AddAccountModal = memo(function AddAccountModal({
     }, 240);
   };
 
+  const openAuthUrlInBrowser = (url: string) => {
+    setAntigravityAuthUrl(url);
+    setIsAntigravityAuthenticating(true);
+    (window as any).electronAPI?.app.openExternal(url);
+    setTimeout(() => {
+      setIsAntigravityAuthenticating(false);
+    }, 5000);
+  };
+
   const handleOAuthConnect = async () => {
+    if (provider.id === "gemini") {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const result = await (window as any).electronAPI?.gemini?.getAuthUrl(
+          projectId.trim() || undefined,
+        );
+        if (result?.status === "ok" && result.url) {
+          openAuthUrlInBrowser(result.url);
+        } else {
+          setError("Failed to get Gemini authentication URL");
+        }
+      } catch (err) {
+        setError(String(err));
+      } finally {
+        setIsLoading(false);
+      }
+      return;
+    }
+
     if (isAuthUrlModalProvider && antigravityAuthUrl) {
-      setIsAntigravityAuthenticating(true);
-      (window as any).electronAPI?.app.openExternal(antigravityAuthUrl);
-      setTimeout(() => {
-        setIsAntigravityAuthenticating(false);
-      }, 5000);
+      openAuthUrlInBrowser(antigravityAuthUrl);
+      return;
+    }
+
+    if (isAuthUrlModalProvider) {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const authGetters: Record<string, (() => Promise<any>) | undefined> = {
+          antigravity: (window as any).electronAPI.antigravity?.getAuthUrl,
+          codex: (window as any).electronAPI.codex?.getAuthUrl,
+          claude: (window as any).electronAPI.claude?.getAuthUrl,
+          qwen: (window as any).electronAPI.qwen?.getAuthUrl,
+          iflow: (window as any).electronAPI.iflow?.getAuthUrl,
+        };
+        const authGetter = authGetters[provider.id];
+        if (!authGetter) {
+          setError("Authentication failed");
+          return;
+        }
+
+        const result = await authGetter();
+        if (result?.status === "ok" && result.url) {
+          openAuthUrlInBrowser(result.url);
+        } else {
+          setError(`Failed to get ${provider.name} authentication URL`);
+        }
+      } catch (err) {
+        setError(String(err));
+      } finally {
+        setIsLoading(false);
+      }
       return;
     }
 
@@ -601,6 +661,24 @@ export const AddAccountModal = memo(function AddAccountModal({
                     <div
                       className={`space-y-6 ${isAuthUrlModalProvider ? "" : "p-5 rounded-2xl border border-[var(--glass-border)] bg-[var(--text-primary)]/[0.01]"}`}
                     >
+                      {provider.id === "gemini" && (
+                        <div>
+                          <label className="block text-[10px] font-bold text-[var(--text-dim)] uppercase tracking-wider mb-2.5 px-1 text-left">
+                            {`${t.providers.projectIdLabel} (${t.providers.optional})`}
+                          </label>
+                          <input
+                            type="text"
+                            value={projectId}
+                            onChange={(e) => setProjectId(e.target.value)}
+                            placeholder={t.providers.projectIdPlaceholder}
+                            className="glass-input w-full"
+                          />
+                          <p className="text-[10px] text-[var(--text-dim)] mt-2 px-1 italic opacity-60 text-left">
+                            {t.providers.projectIdDescription}
+                          </p>
+                        </div>
+                      )}
+
                       <p className="text-xs font-medium text-[var(--text-muted)] leading-relaxed text-left">
                         {isAntigravity
                           ? t.providers.antigravityAuthInstructions
@@ -668,7 +746,7 @@ export const AddAccountModal = memo(function AddAccountModal({
                 <div className="space-y-6">
                   <div>
                     <label className="block text-[10px] font-bold text-[var(--text-dim)] uppercase tracking-wider mb-2.5 px-1 text-left">
-                      {t.providers.projectIdLabel} ({t.providers.optional})
+                      {`${t.providers.projectIdLabel} (${t.providers.optional})`}
                     </label>
                     <input
                       type="text"

@@ -56,11 +56,11 @@ interface ProviderFilterConfig {
 const PROVIDER_FILTER_CONFIG: Record<string, ProviderFilterConfig> = {
   copilot: { ownedBy: ["github-copilot"] },
   codex: { ownedBy: ["github-copilot"] },
-  claude: { idPrefix: ["claude-"] },
-  gemini: { idPrefix: ["gemini-"] },
-  qwen: { idPrefix: ["qwen"] },
+  claude: { ownedBy: ["claude-"] },
+  gemini: { ownedBy: ["google"] },
+  qwen: { ownedBy: ["qwen"] },
   kiro: { ownedBy: ["aws"] },
-  iflow: { idPrefix: ["iflow"] },
+  iflow: { ownedBy: ["iflow"] },
 };
 
 function mergeUniqueCatalogModels(models: CatalogModel[]): CatalogModel[] {

@@ -32,7 +32,7 @@ const PROVIDER_FILTER_CONFIG: Record<string, ProviderFilterConfig> = {
   gemini: { idPrefix: ["gemini-"] },
   qwen: { idPrefix: ["qwen"] },
   kiro: { ownedBy: ["aws"] },
-  iflow: { idPrefix: ["iflow"] },
+  iflow: { ownedBy: ["iflow"], idPrefix: ["iflow"] },
 };
 
 interface ModelQuotaModalProps {
