@@ -17,7 +17,7 @@
 </p>
 
 <p align="center">
-  <strong>跨平台 AI 代理管理工具，支持 Claude、Gemini、Codex、Copilot、Qwen、Droid CLI、Kiro 等。</strong>
+  <strong>跨平台 AI 代理管理工具，支持 Claude、Gemini、Codex、Copilot、Qwen、iFlow、Kiro 等。</strong>
 </p>
 
 <p align="center">
@@ -26,7 +26,7 @@
 
 ## ✨ 功能特性
 
-- 🔌 **扩展服务商支持**：支持 Claude、Gemini、Codex、Qwen、Antigravity、Droid CLI、GitHub Copilot、Kiro、自定义服务商、AmpCode
+- 🔌 **扩展服务商支持**：支持 Claude、Gemini、Codex、Qwen、Antigravity、iFlow、GitHub Copilot、Kiro、自定义服务商、AmpCode
 - 📊 **配额 + 模型可见性**：可在配额页通过 **查看全部模型** 查看 `/v1/models?is_webui=true` 返回的服务商模型列表
 - 🧠 **服务商感知模型过滤**：配额模型列表会按当前服务商上下文过滤（如 Codex/Copilot/Kiro）
 - ⚡ **大体量日志性能优化**：日志页已支持虚拟列表与增量轮询，大数据量下保持流畅
@@ -48,7 +48,7 @@
 | OpenAI Codex   | OAuth          |
 | Qwen Code      | OAuth          |
 | Antigravity    | OAuth (Google) |
-| Droid CLI      | OAuth          |
+| iFlow          | OAuth          |
 | GitHub Copilot | OAuth          |
 | Kiro           | OAuth          |
 | 自定义服务商   | API Key        |
@@ -62,6 +62,9 @@ LinJun 可以自动配置以下工具使用你的集中代理：
 - Codex CLI
 - Gemini CLI
 - OpenCode
+- Amp CLI
+- Droid CLI
+- iFlow CLI
 
 ## 📥 安装
 

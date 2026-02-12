@@ -17,7 +17,7 @@
 </p>
 
 <p align="center">
-  <strong>Cross-platform AI proxy management for Claude, Gemini, Codex, Copilot, Qwen, Droid CLI, Kiro, and more.</strong>
+  <strong>Cross-platform AI proxy management for Claude, Gemini, Codex, Copilot, Qwen, iFlow, Kiro, and more.</strong>
 </p>
 
 <p align="center">
@@ -26,7 +26,7 @@
 
 ## ✨ Features
 
-- 🔌 **Expanded Provider Support**: Connect Claude, Gemini, Codex, Qwen, Antigravity, Droid CLI, GitHub Copilot, Kiro, Custom Provider, and AmpCode
+- 🔌 **Expanded Provider Support**: Connect Claude, Gemini, Codex, Qwen, Antigravity, iFlow, GitHub Copilot, Kiro, Custom Provider, and AmpCode
 - 📊 **Quota + Model Visibility**: Track account usage and open **View All Models** to see provider-scoped models from `/v1/models?is_webui=true`
 - 🧠 **Provider-Aware Model Filtering**: Quota model list is filtered by provider context (for example Codex/Copilot/Kiro-specific views)
 - ⚡ **Large Log Performance**: Virtualized log table and incremental polling keep the Logs page responsive for large datasets
@@ -48,7 +48,7 @@
 | OpenAI Codex    | OAuth          |
 | Qwen Code       | OAuth          |
 | Antigravity     | OAuth (Google) |
-| Droid CLI       | OAuth          |
+| iFlow           | OAuth          |
 | GitHub Copilot  | OAuth          |
 | Kiro            | OAuth          |
 | Custom Provider | API Key        |
@@ -62,6 +62,9 @@ LinJun can automatically configure these tools to use your centralized proxy:
 - Codex CLI
 - Gemini CLI
 - OpenCode
+- Amp CLI
+- Droid CLI
+- iFlow CLI
 
 ## 📥 Installation
 
