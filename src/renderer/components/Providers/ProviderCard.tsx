@@ -141,10 +141,8 @@ export const ProviderCard = memo(function ProviderCard({
                       );
                     }}
                     disabled={isTogglePending}
-                    className={`relative w-8 h-5 rounded-full transition-colors duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-black ${
-                      isEnabled
-                        ? "bg-[var(--accent-primary)] shadow-[0_0_8px_rgba(var(--accent-primary-rgb),0.4)]"
-                        : "bg-white/10 hover:bg-white/20"
+                    className={`relative w-8 h-4 rounded-full transition-colors duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-black ${
+                      isEnabled ? "toggle-track-active" : "toggle-track"
                     } ${isTogglePending ? "opacity-70 cursor-wait" : "cursor-pointer"}`}
                     title={
                       isEnabled
@@ -153,9 +151,9 @@ export const ProviderCard = memo(function ProviderCard({
                     }
                   >
                     <motion.div
-                      className="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow-sm flex items-center justify-center pointer-events-none"
+                      className="toggle-knob absolute top-0.5 left-0.5 w-3 h-3 rounded-full flex items-center justify-center pointer-events-none"
                       animate={{
-                        x: isEnabled ? 12 : 0,
+                        x: isEnabled ? 16 : 0,
                         scale: isTogglePending ? 0.8 : 1,
                       }}
                       transition={{
@@ -165,7 +163,7 @@ export const ProviderCard = memo(function ProviderCard({
                       }}
                     >
                       {isTogglePending && (
-                        <Loader2 className="w-2.5 h-2.5 text-[var(--accent-primary)] animate-spin" />
+                        <Loader2 className="w-2 h-2 text-[var(--accent-primary)] animate-spin" />
                       )}
                     </motion.div>
                   </motion.button>

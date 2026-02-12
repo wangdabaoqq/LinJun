@@ -17,15 +17,70 @@ export const AddProviderModal = memo(function AddProviderModal({
   const t = useTranslations();
   const [isClosing, setIsClosing] = useState(false);
   const closeTimerRef = useRef<number | null>(null);
-  const orderedProviders = useMemo(() => {
-    const customProvider = allProviders.filter(
-      (provider) => provider.id === "custom",
+  const providerGroups = useMemo(() => {
+    const officialAccounts = allProviders.filter(
+      (provider) => provider.id !== "custom" && provider.id !== "ampcode",
     );
-    const otherProviders = allProviders.filter(
-      (provider) => provider.id !== "custom",
+    const routingProtocol = allProviders.filter(
+      (provider) => provider.id === "ampcode",
     );
-    return [...otherProviders, ...customProvider];
-  }, []);
+    const custom = allProviders.filter((provider) => provider.id === "custom");
+
+    return [
+      {
+        key: "official-accounts",
+        title: t.providers.officialAccounts,
+        providers: officialAccounts,
+      },
+      {
+        key: "routing-protocol",
+        title: t.providers.routingProtocol,
+        providers: routingProtocol,
+      },
+      {
+        key: "custom",
+        title: t.providers.customProvider,
+        providers: custom,
+      },
+    ].filter((group) => group.providers.length > 0);
+  }, [
+    t.providers.customProvider,
+    t.providers.officialAccounts,
+    t.providers.routingProtocol,
+  ]);
+
+  const renderProviderCard = (provider: Omit<Provider, "accounts">) => {
+    return (
+      <div
+        key={provider.id}
+        className="group relative p-6 cursor-pointer transition-all duration-300 rounded-2xl glass-card border-[var(--glass-border)] bg-[var(--text-primary)]/[0.01] hover:bg-[var(--text-primary)]/[0.03] hover:border-[var(--accent-primary)]/20 hover:shadow-soft-md active:scale-[0.99]"
+        onClick={() => runCloseAnimation(() => onSelectProvider(provider))}
+      >
+        <div className="flex flex-col gap-6">
+          <div className="text-4xl transition-transform duration-300 group-hover:scale-105">
+            {provider.icon}
+          </div>
+          <div className="space-y-2">
+            <h3 className="font-bold text-[var(--text-primary)] text-base tracking-tight leading-tight">
+              {provider.id === "custom"
+                ? t.providers.customProvider
+                : provider.name}
+            </h3>
+            <div className="flex">
+              <span className="px-3 py-1 text-[9px] rounded-full font-bold uppercase tracking-wider border border-[var(--glass-border)] text-[var(--text-dim)] group-hover:text-[var(--text-primary)] group-hover:border-[var(--text-primary)]/20 transition-all opacity-70">
+                {provider.authType === "oauth" ||
+                provider.authType === "oauth-project"
+                  ? "OAuth"
+                  : provider.authType === "import"
+                    ? "Import"
+                    : "API Key"}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   useEffect(() => {
     return () => {
@@ -72,41 +127,17 @@ export const AddProviderModal = memo(function AddProviderModal({
         </div>
 
         <div className="relative z-10 p-8 overflow-y-auto custom-scrollbar">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {orderedProviders.map((provider) => {
-              return (
-                <div
-                  key={provider.id}
-                  className="group relative p-6 cursor-pointer transition-all duration-300 rounded-2xl glass-card border-[var(--glass-border)] bg-[var(--text-primary)]/[0.01] hover:bg-[var(--text-primary)]/[0.03] hover:border-[var(--accent-primary)]/20 hover:shadow-soft-md active:scale-[0.99]"
-                  onClick={() =>
-                    runCloseAnimation(() => onSelectProvider(provider))
-                  }
-                >
-                  <div className="flex flex-col gap-6">
-                    <div className="text-4xl transition-transform duration-300 group-hover:scale-105">
-                      {provider.icon}
-                    </div>
-                    <div className="space-y-2">
-                      <h3 className="font-bold text-[var(--text-primary)] text-base tracking-tight leading-tight">
-                        {provider.id === "custom"
-                          ? t.providers.customProvider
-                          : provider.name}
-                      </h3>
-                      <div className="flex">
-                        <span className="px-3 py-1 text-[9px] rounded-full font-bold uppercase tracking-wider border border-[var(--glass-border)] text-[var(--text-dim)] group-hover:text-[var(--text-primary)] group-hover:border-[var(--text-primary)]/20 transition-all opacity-70">
-                          {provider.authType === "oauth" ||
-                          provider.authType === "oauth-project"
-                            ? "OAuth"
-                            : provider.authType === "import"
-                              ? "Import"
-                              : "API Key"}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
+          <div className="space-y-7">
+            {providerGroups.map((group) => (
+              <section key={group.key}>
+                <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--text-dim)] mb-3 opacity-70">
+                  {group.title}
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {group.providers.map(renderProviderCard)}
                 </div>
-              );
-            })}
+              </section>
+            ))}
           </div>
         </div>
       </div>

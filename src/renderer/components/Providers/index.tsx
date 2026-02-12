@@ -80,6 +80,7 @@ export function Providers() {
   } | null>(null);
 
   const [officialExpanded, setOfficialExpanded] = useState(false);
+  const [routingExpanded, setRoutingExpanded] = useState(false);
   const [customExpanded, setCustomExpanded] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [showAmpcodeSettings, setShowAmpcodeSettings] = useState(false);
@@ -797,7 +798,7 @@ export function Providers() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 px-1">
           {[
             {
-              label: t.providers.official,
+              label: t.providers.officialAccounts,
               value: stats.totalProviders,
               icon: ShieldCheck,
               color: "text-[var(--accent-primary)]",
@@ -878,11 +879,41 @@ export function Providers() {
               onClick={() => setOfficialExpanded(!officialExpanded)}
             >
               <h3 className="text-[11px] font-bold text-[var(--text-primary)] uppercase tracking-[0.2em] opacity-30 group-hover/section:opacity-60 transition-opacity">
-                {t.providers.official}
+                {t.providers.officialAccounts}
               </h3>
               <div className="h-px flex-1 bg-[var(--text-primary)]/5" />
               <div
                 className={`p-1 rounded-lg hover:bg-[var(--text-primary)]/5 transition-all text-[var(--text-dim)] ${officialExpanded ? "rotate-180" : ""}`}
+              >
+                <ChevronDown className="w-3.5 h-3.5" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+              {providersWithAccounts.map((provider) => (
+                <ProviderCard
+                  key={provider.id}
+                  provider={provider}
+                  isExpanded={officialExpanded}
+                  onRemoveAccount={handleRemoveAccount}
+                  onToggleAccountEnabled={handleToggleAccountEnabled}
+                  pendingToggleAccountIds={pendingAccountToggles}
+                />
+              ))}
+            </div>
+          </section>
+
+          <section>
+            <div
+              className="flex items-center gap-4 mb-6 cursor-pointer group/section"
+              onClick={() => setRoutingExpanded(!routingExpanded)}
+            >
+              <h3 className="text-[11px] font-bold text-[var(--text-primary)] uppercase tracking-[0.2em] opacity-30 group-hover/section:opacity-60 transition-opacity">
+                {t.providers.routingProtocol}
+              </h3>
+              <div className="h-px flex-1 bg-[var(--text-primary)]/5" />
+              <div
+                className={`p-1 rounded-lg hover:bg-[var(--text-primary)]/5 transition-all text-[var(--text-dim)] ${routingExpanded ? "rotate-180" : ""}`}
               >
                 <ChevronDown className="w-3.5 h-3.5" />
               </div>
@@ -901,7 +932,7 @@ export function Providers() {
                           {t.providers.ampcodeSettingsTitle}
                         </h4>
                         <span className="px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider rounded bg-[var(--text-primary)]/5 text-[var(--text-dim)]">
-                          official
+                          {t.providers.protocol}
                         </span>
                       </div>
                       <p className="text-[10px] font-mono text-[var(--text-dim)] mt-1 tracking-tighter opacity-70">
@@ -931,7 +962,7 @@ export function Providers() {
                   </div>
                 </div>
 
-                {officialExpanded && (
+                {routingExpanded && (
                   <div className="flex items-center gap-6 mt-6 pt-5 border-t border-[var(--text-primary)]/5 animate-in fade-in slide-in-from-top-1 duration-200">
                     <div className="space-y-0.5">
                       <p className="text-[9px] font-bold text-[var(--text-dim)] uppercase tracking-wider">
@@ -954,17 +985,6 @@ export function Providers() {
                   </div>
                 )}
               </div>
-
-              {providersWithAccounts.map((provider) => (
-                <ProviderCard
-                  key={provider.id}
-                  provider={provider}
-                  isExpanded={officialExpanded}
-                  onRemoveAccount={handleRemoveAccount}
-                  onToggleAccountEnabled={handleToggleAccountEnabled}
-                  pendingToggleAccountIds={pendingAccountToggles}
-                />
-              ))}
             </div>
           </section>
 
@@ -1040,15 +1060,17 @@ export function Providers() {
                               : t.providers.disabledState}
                           </span>
                           <button
+                            role="switch"
+                            aria-checked={cp.enabled}
                             onClick={() =>
                               handleToggleCustomProviderEnabled(cp, !cp.enabled)
                             }
                             disabled={!!pendingCustomToggles[cp.id]}
-                            className={`relative w-12 h-7 rounded-full transition-all duration-300 p-1 ${
+                            className={`relative w-8 h-4 rounded-full transition-colors duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-black ${
                               cp.enabled
-                                ? "bg-[var(--accent-primary)]"
-                                : "bg-white/10"
-                            } ${pendingCustomToggles[cp.id] ? "opacity-60 cursor-not-allowed" : ""}`}
+                                ? "toggle-track-active"
+                                : "toggle-track"
+                            } ${pendingCustomToggles[cp.id] ? "opacity-70 cursor-wait" : "cursor-pointer"}`}
                             title={
                               cp.enabled
                                 ? t.providers.disableProvider
@@ -1056,10 +1078,14 @@ export function Providers() {
                             }
                           >
                             <div
-                              className={`w-5 h-5 rounded-full bg-white shadow-md transition-transform duration-200 ${
-                                cp.enabled ? "translate-x-5" : "translate-x-0"
+                              className={`toggle-knob absolute top-0.5 left-0.5 w-3 h-3 rounded-full flex items-center justify-center pointer-events-none transition-transform duration-200 ${
+                                cp.enabled ? "translate-x-4" : "translate-x-0"
                               }`}
-                            />
+                            >
+                              {pendingCustomToggles[cp.id] && (
+                                <Loader2 className="w-2 h-2 text-[var(--accent-primary)] animate-spin" />
+                              )}
+                            </div>
                           </button>
                         </div>
                         <div className="flex gap-1 opacity-0 group-hover/card:opacity-100 transition-all duration-300">
