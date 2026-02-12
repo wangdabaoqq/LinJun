@@ -95,6 +95,9 @@ export function Providers() {
   const [pendingCustomToggles, setPendingCustomToggles] = useState<
     Record<string, boolean>
   >({});
+  const [isDeletingCustomProvider, setIsDeletingCustomProvider] =
+    useState(false);
+  const [isRemovingAccount, setIsRemovingAccount] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [openaiProviders, setOpenaiProviders] = useState<
     OpenAICompatProvider[]
@@ -295,6 +298,11 @@ export function Providers() {
   const handleDeleteCustomProvider = async (
     provider: CustomProviderDisplay,
   ) => {
+    if (isDeletingCustomProvider) {
+      return;
+    }
+
+    setIsDeletingCustomProvider(true);
     try {
       let success = false;
       if (!provider.enabled) {
@@ -399,6 +407,8 @@ export function Providers() {
       }
     } catch (err) {
       log.error("[Providers] Failed to delete custom provider:", err);
+    } finally {
+      setIsDeletingCustomProvider(false);
     }
   };
 
@@ -610,12 +620,17 @@ export function Providers() {
     providerId: string,
     accountId: string,
   ) => {
+    if (isRemovingAccount) {
+      return;
+    }
+
+    setIsRemovingAccount(true);
     const account = providerAccounts.find(
       (acc) => acc.provider === providerId && acc.id === accountId,
     );
 
-    if (account?.filePath && window.electronAPI?.providers) {
-      try {
+    try {
+      if (account?.filePath && window.electronAPI?.providers) {
         const result = await window.electronAPI.providers.removeAccount(
           account.filePath,
         );
@@ -625,12 +640,14 @@ export function Providers() {
         } else {
           log.error("[Providers] Failed to remove account:", result?.error);
         }
-      } catch (error) {
-        log.error("[Providers] Error removing account:", error);
+      } else {
+        removeAccountLocal(providerId, accountId);
+        setRemoveConfirmAccount(null);
       }
-    } else {
-      removeAccountLocal(providerId, accountId);
-      setRemoveConfirmAccount(null);
+    } catch (error) {
+      log.error("[Providers] Error removing account:", error);
+    } finally {
+      setIsRemovingAccount(false);
     }
   };
 
@@ -1259,10 +1276,14 @@ export function Providers() {
 
       <ConfirmModal
         isOpen={!!deleteConfirmProvider}
-        onClose={() => setDeleteConfirmProvider(null)}
+        onClose={() => {
+          if (!isDeletingCustomProvider) {
+            setDeleteConfirmProvider(null);
+          }
+        }}
         onConfirm={() => {
           if (deleteConfirmProvider) {
-            handleDeleteCustomProvider(deleteConfirmProvider);
+            void handleDeleteCustomProvider(deleteConfirmProvider);
           }
         }}
         title={
@@ -1277,14 +1298,19 @@ export function Providers() {
         confirmText={t.common.delete}
         cancelText={t.common.cancel}
         variant="danger"
+        isLoading={isDeletingCustomProvider}
       />
 
       <ConfirmModal
         isOpen={!!removeConfirmAccount}
-        onClose={() => setRemoveConfirmAccount(null)}
+        onClose={() => {
+          if (!isRemovingAccount) {
+            setRemoveConfirmAccount(null);
+          }
+        }}
         onConfirm={() => {
           if (removeConfirmAccount)
-            performRemoveAccount(
+            void performRemoveAccount(
               removeConfirmAccount.providerId,
               removeConfirmAccount.accountId,
             );
@@ -1294,6 +1320,7 @@ export function Providers() {
         confirmText={t.common.delete}
         cancelText={t.common.cancel}
         variant="danger"
+        isLoading={isRemovingAccount}
       />
     </div>
   );
