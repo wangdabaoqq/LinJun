@@ -141,9 +141,9 @@ export const ProviderCard = memo(function ProviderCard({
                       );
                     }}
                     disabled={isTogglePending}
-                    className={`relative w-11 h-6 rounded-full transition-colors duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-black ${
+                    className={`relative w-8 h-5 rounded-full transition-colors duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-black ${
                       isEnabled
-                        ? "bg-[var(--accent-primary)] shadow-[0_0_10px_rgba(var(--accent-primary-rgb),0.4)]"
+                        ? "bg-[var(--accent-primary)] shadow-[0_0_8px_rgba(var(--accent-primary-rgb),0.4)]"
                         : "bg-white/10 hover:bg-white/20"
                     } ${isTogglePending ? "opacity-70 cursor-wait" : "cursor-pointer"}`}
                     title={
@@ -153,9 +153,9 @@ export const ProviderCard = memo(function ProviderCard({
                     }
                   >
                     <motion.div
-                      className="absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow-sm flex items-center justify-center pointer-events-none"
+                      className="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow-sm flex items-center justify-center pointer-events-none"
                       animate={{
-                        x: isEnabled ? 20 : 0,
+                        x: isEnabled ? 12 : 0,
                         scale: isTogglePending ? 0.8 : 1,
                       }}
                       transition={{
