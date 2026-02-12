@@ -72,15 +72,8 @@ export function Providers() {
   const [showCustomProviderForm, setShowCustomProviderForm] = useState(false);
   const [editingCustomProvider, setEditingCustomProvider] =
     useState<CustomProviderDisplay | null>(null);
-  const [deleteConfirmProvider, setDeleteConfirmProvider] = useState<{
-    type: CustomProviderType;
-    name: string;
-    rawData:
-      | OpenAICompatProvider
-      | ClaudeCompatProvider
-      | GeminiCompatProvider
-      | CodexCompatProvider;
-  } | null>(null);
+  const [deleteConfirmProvider, setDeleteConfirmProvider] =
+    useState<CustomProviderDisplay | null>(null);
   const [removeConfirmAccount, setRemoveConfirmAccount] = useState<{
     providerId: string;
     accountId: string;
@@ -95,6 +88,12 @@ export function Providers() {
     message: string;
   } | null>(null);
   const [copiedProvider, setCopiedProvider] = useState<string | null>(null);
+  const [pendingAccountToggles, setPendingAccountToggles] = useState<
+    Record<string, boolean>
+  >({});
+  const [pendingCustomToggles, setPendingCustomToggles] = useState<
+    Record<string, boolean>
+  >({});
   const [isImporting, setIsImporting] = useState(false);
   const [openaiProviders, setOpenaiProviders] = useState<
     OpenAICompatProvider[]
@@ -113,67 +112,146 @@ export function Providers() {
 
   const loadCustomProviders = useCallback(async () => {
     try {
-      const allProviders: CustomProviderDisplay[] = [];
+      const allCustomProviders: CustomProviderDisplay[] = [];
 
-      const openaiResult = await window.electronAPI?.openaiCompat?.getAll();
-      if (openaiResult?.success && openaiResult.providers) {
-        setOpenaiProviders(openaiResult.providers);
-        openaiResult.providers.forEach((p: OpenAICompatProvider) => {
-          allProviders.push({
+      const customResult = await window.electronAPI?.customProviders?.getAll();
+      if (customResult?.success) {
+        const active = customResult.active || {};
+        const drafts = customResult.drafts || {};
+
+        const activeOpenai =
+          (active["openai-compatibility"] as OpenAICompatProvider[]) || [];
+        const activeClaude =
+          (active["claude-api-key"] as ClaudeCompatProvider[]) || [];
+        const activeGemini =
+          (active["gemini-api-key"] as GeminiCompatProvider[]) || [];
+        const activeCodex =
+          (active["codex-api-key"] as CodexCompatProvider[]) || [];
+
+        const draftOpenai =
+          (drafts["openai-compatibility"] as OpenAICompatProvider[]) || [];
+        const draftClaude =
+          (drafts["claude-api-key"] as ClaudeCompatProvider[]) || [];
+        const draftGemini =
+          (drafts["gemini-api-key"] as GeminiCompatProvider[]) || [];
+        const draftCodex =
+          (drafts["codex-api-key"] as CodexCompatProvider[]) || [];
+
+        setOpenaiProviders(activeOpenai);
+        setClaudeProviders(activeClaude);
+        setGeminiProviders(activeGemini);
+        setCodexProviders(activeCodex);
+
+        activeOpenai.forEach((provider, idx) => {
+          allCustomProviders.push({
+            id: `active-openai-${idx}-${provider.name}`,
             type: "openai",
-            name: p.name,
-            baseUrl: p["base-url"],
-            keysCount: p["api-key-entries"]?.length || 0,
-            modelsCount: p.models?.length || 0,
-            rawData: p,
+            name: provider.name,
+            baseUrl: provider["base-url"],
+            keysCount: provider["api-key-entries"]?.length || 0,
+            modelsCount: provider.models?.length || 0,
+            enabled: true,
+            rawData: provider,
           });
         });
-      }
 
-      const claudeResult = await window.electronAPI?.claudeCompat?.getAll();
-      if (claudeResult?.success && claudeResult.entries) {
-        setClaudeProviders(claudeResult.entries);
-        claudeResult.entries.forEach((p: ClaudeCompatProvider, idx: number) => {
-          allProviders.push({
+        draftOpenai.forEach((provider, idx) => {
+          allCustomProviders.push({
+            id: `draft-openai-${idx}-${provider.name}`,
+            type: "openai",
+            name: provider.name,
+            baseUrl: provider["base-url"],
+            keysCount: provider["api-key-entries"]?.length || 0,
+            modelsCount: provider.models?.length || 0,
+            enabled: false,
+            rawData: provider,
+          });
+        });
+
+        activeClaude.forEach((entry, idx) => {
+          allCustomProviders.push({
+            id: `active-claude-${idx}`,
             type: "claude",
-            name: p.name || `Claude #${idx + 1}`,
-            baseUrl: p["base-url"] || "https://api.anthropic.com",
+            name: entry.name || `Claude #${idx + 1}`,
+            baseUrl: entry["base-url"] || "https://api.anthropic.com",
             keysCount: 1,
-            modelsCount: p.models?.length || 0,
-            rawData: p,
+            modelsCount: entry.models?.length || 0,
+            enabled: true,
+            rawData: entry,
           });
         });
-      }
 
-      const geminiResult = await window.electronAPI?.geminiCompat?.getAll();
-      if (geminiResult?.success && geminiResult.entries) {
-        setGeminiProviders(geminiResult.entries);
-        geminiResult.entries.forEach((p: GeminiCompatProvider, idx: number) => {
-          allProviders.push({
+        draftClaude.forEach((entry, idx) => {
+          allCustomProviders.push({
+            id: `draft-claude-${idx}`,
+            type: "claude",
+            name: entry.name || `Claude Draft #${idx + 1}`,
+            baseUrl: entry["base-url"] || "https://api.anthropic.com",
+            keysCount: 1,
+            modelsCount: entry.models?.length || 0,
+            enabled: false,
+            rawData: entry,
+          });
+        });
+
+        activeGemini.forEach((entry, idx) => {
+          allCustomProviders.push({
+            id: `active-gemini-${idx}`,
             type: "gemini",
-            name: p.name || `Gemini #${idx + 1}`,
+            name: entry.name || `Gemini #${idx + 1}`,
             baseUrl:
-              p["base-url"] || "https://generativelanguage.googleapis.com",
+              entry["base-url"] || "https://generativelanguage.googleapis.com",
             keysCount: 1,
-            modelsCount: p.models?.length || 0,
-            rawData: p,
+            modelsCount: entry.models?.length || 0,
+            enabled: true,
+            rawData: entry,
           });
         });
-      }
 
-      const codexResult = await window.electronAPI?.codexCompat?.getAll();
-      if (codexResult?.success && codexResult.entries) {
-        setCodexProviders(codexResult.entries);
-        codexResult.entries.forEach((p: CodexCompatProvider, idx: number) => {
-          allProviders.push({
-            type: "codex",
-            name: p.name || `Codex #${idx + 1}`,
-            baseUrl: p["base-url"] || "https://api.openai.com/v1",
+        draftGemini.forEach((entry, idx) => {
+          allCustomProviders.push({
+            id: `draft-gemini-${idx}`,
+            type: "gemini",
+            name: entry.name || `Gemini Draft #${idx + 1}`,
+            baseUrl:
+              entry["base-url"] || "https://generativelanguage.googleapis.com",
             keysCount: 1,
-            modelsCount: p.models?.length || 0,
-            rawData: p,
+            modelsCount: entry.models?.length || 0,
+            enabled: false,
+            rawData: entry,
           });
         });
+
+        activeCodex.forEach((entry, idx) => {
+          allCustomProviders.push({
+            id: `active-codex-${idx}`,
+            type: "codex",
+            name: entry.name || `Codex #${idx + 1}`,
+            baseUrl: entry["base-url"] || "https://api.openai.com/v1",
+            keysCount: 1,
+            modelsCount: entry.models?.length || 0,
+            enabled: true,
+            rawData: entry,
+          });
+        });
+
+        draftCodex.forEach((entry, idx) => {
+          allCustomProviders.push({
+            id: `draft-codex-${idx}`,
+            type: "codex",
+            name: entry.name || `Codex Draft #${idx + 1}`,
+            baseUrl: entry["base-url"] || "https://api.openai.com/v1",
+            keysCount: 1,
+            modelsCount: entry.models?.length || 0,
+            enabled: false,
+            rawData: entry,
+          });
+        });
+      } else {
+        setOpenaiProviders([]);
+        setClaudeProviders([]);
+        setGeminiProviders([]);
+        setCodexProviders([]);
       }
 
       const ampcodeResult = await window.electronAPI?.ampcodeCompat?.getAll();
@@ -183,7 +261,7 @@ export function Providers() {
         setAmpcodeProvider(null);
       }
 
-      setCustomProviders(allProviders);
+      setCustomProviders(allCustomProviders);
     } catch (err) {
       log.error("[Providers] Failed to load custom providers:", err);
     }
@@ -214,87 +292,102 @@ export function Providers() {
   }, [ampcodeProvider]);
 
   const handleDeleteCustomProvider = async (
-    type: CustomProviderType,
-    name: string,
-    rawData: CustomProviderDisplay["rawData"],
+    provider: CustomProviderDisplay,
   ) => {
     try {
       let success = false;
-      if (type === "openai") {
-        const result = await window.electronAPI?.openaiCompat?.delete(name);
+      if (!provider.enabled) {
+        const result = await window.electronAPI?.customProviders?.removeDraft({
+          type: provider.type,
+          rawData: provider.rawData,
+        });
         success = result?.success || false;
-      } else if (type === "claude") {
+      } else if (provider.type === "openai") {
+        const result = await window.electronAPI?.openaiCompat?.delete(
+          provider.name,
+        );
+        success = result?.success || false;
+      } else if (provider.type === "claude") {
         const current = await window.electronAPI?.claudeCompat?.getAll();
         if (current?.success && current.entries) {
-          const target = rawData as ClaudeCompatProvider;
+          const target = provider.rawData as ClaudeCompatProvider;
           const targetName = target.name || "";
           const targetKey = target["api-key"] || "";
           const targetBaseUrl = target["base-url"] || "";
-          const filtered = current.entries.filter((e: ClaudeCompatProvider) => {
-            if (targetName && e.name) {
-              return e.name !== targetName;
-            }
-            if (targetKey) {
-              const entryBaseUrl = e["base-url"] || "";
-              if (targetBaseUrl) {
-                return !(
-                  e["api-key"] === targetKey && entryBaseUrl === targetBaseUrl
-                );
+          const filtered = current.entries.filter(
+            (entry: ClaudeCompatProvider) => {
+              if (targetName && entry.name) {
+                return entry.name !== targetName;
               }
-              return e["api-key"] !== targetKey;
-            }
-            return e.name !== name;
-          });
+              if (targetKey) {
+                const entryBaseUrl = entry["base-url"] || "";
+                if (targetBaseUrl) {
+                  return !(
+                    entry["api-key"] === targetKey &&
+                    entryBaseUrl === targetBaseUrl
+                  );
+                }
+                return entry["api-key"] !== targetKey;
+              }
+              return entry.name !== provider.name;
+            },
+          );
           const result = await window.electronAPI?.claudeCompat?.save(filtered);
           success = result?.success || false;
         }
-      } else if (type === "gemini") {
+      } else if (provider.type === "gemini") {
         const current = await window.electronAPI?.geminiCompat?.getAll();
         if (current?.success && current.entries) {
-          const target = rawData as GeminiCompatProvider;
+          const target = provider.rawData as GeminiCompatProvider;
           const targetName = target.name || "";
           const targetKey = target["api-key"] || "";
           const targetBaseUrl = target["base-url"] || "";
-          const filtered = current.entries.filter((e: GeminiCompatProvider) => {
-            if (targetName && e.name) {
-              return e.name !== targetName;
-            }
-            if (targetKey) {
-              const entryBaseUrl = e["base-url"] || "";
-              if (targetBaseUrl) {
-                return !(
-                  e["api-key"] === targetKey && entryBaseUrl === targetBaseUrl
-                );
+          const filtered = current.entries.filter(
+            (entry: GeminiCompatProvider) => {
+              if (targetName && entry.name) {
+                return entry.name !== targetName;
               }
-              return e["api-key"] !== targetKey;
-            }
-            return e.name !== name;
-          });
+              if (targetKey) {
+                const entryBaseUrl = entry["base-url"] || "";
+                if (targetBaseUrl) {
+                  return !(
+                    entry["api-key"] === targetKey &&
+                    entryBaseUrl === targetBaseUrl
+                  );
+                }
+                return entry["api-key"] !== targetKey;
+              }
+              return entry.name !== provider.name;
+            },
+          );
           const result = await window.electronAPI?.geminiCompat?.save(filtered);
           success = result?.success || false;
         }
-      } else if (type === "codex") {
+      } else if (provider.type === "codex") {
         const current = await window.electronAPI?.codexCompat?.getAll();
         if (current?.success && current.entries) {
-          const target = rawData as CodexCompatProvider;
+          const target = provider.rawData as CodexCompatProvider;
           const targetName = target.name || "";
           const targetKey = target["api-key"] || "";
           const targetBaseUrl = target["base-url"] || "";
-          const filtered = current.entries.filter((e: CodexCompatProvider) => {
-            if (targetName && e.name) {
-              return e.name !== targetName;
-            }
-            if (targetKey) {
-              const entryBaseUrl = e["base-url"] || "";
-              if (targetBaseUrl) {
-                return !(
-                  e["api-key"] === targetKey && entryBaseUrl === targetBaseUrl
-                );
+          const filtered = current.entries.filter(
+            (entry: CodexCompatProvider) => {
+              if (targetName && entry.name) {
+                return entry.name !== targetName;
               }
-              return e["api-key"] !== targetKey;
-            }
-            return e.name !== name;
-          });
+              if (targetKey) {
+                const entryBaseUrl = entry["base-url"] || "";
+                if (targetBaseUrl) {
+                  return !(
+                    entry["api-key"] === targetKey &&
+                    entryBaseUrl === targetBaseUrl
+                  );
+                }
+                return entry["api-key"] !== targetKey;
+              }
+              return entry.name !== provider.name;
+            },
+          );
           const result = await window.electronAPI?.codexCompat?.save(filtered);
           success = result?.success || false;
         }
@@ -330,7 +423,7 @@ export function Providers() {
         .filter((provider) => provider.type === cp.type)
         .map((provider) => provider.name);
       const newName = buildCopyName(cp.name, existingNames);
-      const copiedKey = `${cp.type}-${cp.name}`;
+      const copiedKey = cp.id;
 
       if (cp.type === "openai") {
         const providerData = {
@@ -540,6 +633,77 @@ export function Providers() {
     }
   };
 
+  const handleToggleAccountEnabled = async (
+    providerId: string,
+    accountId: string,
+    enabled: boolean,
+  ) => {
+    const account = providerAccounts.find(
+      (acc) => acc.provider === providerId && acc.id === accountId,
+    );
+
+    if (!account?.filePath) {
+      return;
+    }
+
+    const pendingKey = `${providerId}:${accountId}`;
+    setPendingAccountToggles((prev) => ({ ...prev, [pendingKey]: true }));
+
+    try {
+      const result = await window.electronAPI?.providers?.setAccountEnabled(
+        account.filePath,
+        enabled,
+      );
+      if (result?.success) {
+        await loadAccounts({ force: true });
+      } else {
+        log.error("[Providers] Failed to toggle account state:", result?.error);
+      }
+    } catch (error) {
+      log.error("[Providers] Failed to toggle account state:", error);
+    } finally {
+      setPendingAccountToggles((prev) => {
+        const next = { ...prev };
+        delete next[pendingKey];
+        return next;
+      });
+    }
+  };
+
+  const handleToggleCustomProviderEnabled = async (
+    provider: CustomProviderDisplay,
+    enabled: boolean,
+  ) => {
+    setPendingCustomToggles((prev) => ({ ...prev, [provider.id]: true }));
+
+    try {
+      const result = await window.electronAPI?.customProviders?.setEnabled(
+        {
+          type: provider.type,
+          rawData: provider.rawData,
+        },
+        enabled,
+      );
+
+      if (result?.success) {
+        await loadCustomProviders();
+      } else {
+        log.error(
+          "[Providers] Failed to toggle custom provider state:",
+          result?.error,
+        );
+      }
+    } catch (error) {
+      log.error("[Providers] Failed to toggle custom provider state:", error);
+    } finally {
+      setPendingCustomToggles((prev) => {
+        const next = { ...prev };
+        delete next[provider.id];
+        return next;
+      });
+    }
+  };
+
   const accountsByProvider = new Map<string, Account[]>();
 
   (providerAccounts as TokenAccount[]).forEach((acc) => {
@@ -567,6 +731,7 @@ export function Providers() {
       id: acc.id,
       email: acc.email,
       status: acc.status,
+      enabled: acc.enabled,
       lastUsed: lastUsedText,
       filePath: acc.filePath,
     });
@@ -796,6 +961,8 @@ export function Providers() {
                   provider={provider}
                   isExpanded={officialExpanded}
                   onRemoveAccount={handleRemoveAccount}
+                  onToggleAccountEnabled={handleToggleAccountEnabled}
+                  pendingToggleAccountIds={pendingAccountToggles}
                 />
               ))}
             </div>
@@ -837,7 +1004,7 @@ export function Providers() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                 {customProviders.map((cp) => (
                   <div
-                    key={`${cp.type}-${cp.name}`}
+                    key={cp.id}
                     className="group/card relative flex flex-col p-6 rounded-3xl glass-card transition-all duration-300 border border-[rgba(255,255,255,0.04)]"
                   >
                     <div className="flex items-start justify-between mb-6">
@@ -859,50 +1026,85 @@ export function Providers() {
                           </p>
                         </div>
                       </div>
-                      <div className="flex gap-1 opacity-0 group-hover/card:opacity-100 transition-all duration-300">
-                        <button
-                          onClick={() => {
-                            setEditingCustomProvider(cp);
-                            setShowCustomProviderForm(true);
-                          }}
-                          className="p-1.5 text-[var(--text-dim)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 rounded-lg transition-all"
-                          title={t.common.edit}
-                        >
-                          <Edit2 className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => {
-                            handleCopyCustomProvider(cp);
-                          }}
-                          className={`p-1.5 rounded-lg transition-all ${
-                            copiedProvider === `${cp.type}-${cp.name}`
-                              ? "text-emerald-500"
-                              : "text-[var(--text-dim)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5"
-                          }`}
-                          title={
-                            copiedProvider === `${cp.type}-${cp.name}`
-                              ? t.common.copied
-                              : t.common.copy
-                          }
-                        >
-                          {copiedProvider === `${cp.type}-${cp.name}` ? (
-                            <Check className="w-3.5 h-3.5" />
-                          ) : (
-                            <Copy className="w-3.5 h-3.5" />
+                      <div className="flex flex-col items-end gap-2">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`text-[10px] font-bold uppercase tracking-wider ${
+                              cp.enabled
+                                ? "text-emerald-500"
+                                : "text-[var(--text-dim)]"
+                            }`}
+                          >
+                            {cp.enabled
+                              ? t.providers.enabledState
+                              : t.providers.disabledState}
+                          </span>
+                          <button
+                            onClick={() =>
+                              handleToggleCustomProviderEnabled(cp, !cp.enabled)
+                            }
+                            disabled={!!pendingCustomToggles[cp.id]}
+                            className={`relative w-12 h-7 rounded-full transition-all duration-300 p-1 ${
+                              cp.enabled
+                                ? "bg-[var(--accent-primary)]"
+                                : "bg-white/10"
+                            } ${pendingCustomToggles[cp.id] ? "opacity-60 cursor-not-allowed" : ""}`}
+                            title={
+                              cp.enabled
+                                ? t.providers.disableProvider
+                                : t.providers.enableProvider
+                            }
+                          >
+                            <div
+                              className={`w-5 h-5 rounded-full bg-white shadow-md transition-transform duration-200 ${
+                                cp.enabled ? "translate-x-5" : "translate-x-0"
+                              }`}
+                            />
+                          </button>
+                        </div>
+                        <div className="flex gap-1 opacity-0 group-hover/card:opacity-100 transition-all duration-300">
+                          {cp.enabled && (
+                            <>
+                              <button
+                                onClick={() => {
+                                  setEditingCustomProvider(cp);
+                                  setShowCustomProviderForm(true);
+                                }}
+                                className="p-1.5 text-[var(--text-dim)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 rounded-lg transition-all"
+                                title={t.common.edit}
+                              >
+                                <Edit2 className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => {
+                                  handleCopyCustomProvider(cp);
+                                }}
+                                className={`p-1.5 rounded-lg transition-all ${
+                                  copiedProvider === cp.id
+                                    ? "text-emerald-500"
+                                    : "text-[var(--text-dim)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5"
+                                }`}
+                                title={
+                                  copiedProvider === cp.id
+                                    ? t.common.copied
+                                    : t.common.copy
+                                }
+                              >
+                                {copiedProvider === cp.id ? (
+                                  <Check className="w-3.5 h-3.5" />
+                                ) : (
+                                  <Copy className="w-3.5 h-3.5" />
+                                )}
+                              </button>
+                            </>
                           )}
-                        </button>
-                        <button
-                          onClick={() =>
-                            setDeleteConfirmProvider({
-                              type: cp.type,
-                              name: cp.name,
-                              rawData: cp.rawData,
-                            })
-                          }
-                          className="p-1.5 text-[var(--text-dim)] hover:text-neon-red hover:bg-neon-red/5 rounded-lg transition-all"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                          <button
+                            onClick={() => setDeleteConfirmProvider(cp)}
+                            className="p-1.5 text-[var(--text-dim)] hover:text-neon-red hover:bg-neon-red/5 rounded-lg transition-all"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </div>
                     </div>
 
@@ -1033,12 +1235,9 @@ export function Providers() {
         isOpen={!!deleteConfirmProvider}
         onClose={() => setDeleteConfirmProvider(null)}
         onConfirm={() => {
-          if (deleteConfirmProvider)
-            handleDeleteCustomProvider(
-              deleteConfirmProvider.type,
-              deleteConfirmProvider.name,
-              deleteConfirmProvider.rawData,
-            );
+          if (deleteConfirmProvider) {
+            handleDeleteCustomProvider(deleteConfirmProvider);
+          }
         }}
         title={
           deleteConfirmProvider

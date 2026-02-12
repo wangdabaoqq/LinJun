@@ -56,11 +56,13 @@ export interface AmpcodeCompatProvider {
 export type CustomProviderType = "openai" | "claude" | "gemini" | "codex";
 
 export interface CustomProviderDisplay {
+  id: string;
   type: CustomProviderType;
   name: string;
   baseUrl: string;
   keysCount: number;
   modelsCount: number;
+  enabled: boolean;
   rawData:
     | OpenAICompatProvider
     | ClaudeCompatProvider
@@ -73,6 +75,7 @@ export interface Account {
   email: string;
   nickname?: string;
   status: "online" | "offline";
+  enabled?: boolean;
   lastUsed: string;
   filePath?: string;
 }

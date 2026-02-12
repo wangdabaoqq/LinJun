@@ -7,7 +7,7 @@ import path from "path";
 import { app, ipcMain, shell } from "electron";
 
 import log from "../utils/logger";
-import { proxyManager } from "../proxy/manager";
+import { proxyManager, type ProxyConfig } from "../proxy/manager";
 import { managementAPI } from "../proxy/api";
 import { store } from "../utils/store";
 import { setAutoLaunch } from "../utils/autoLaunch";
@@ -31,6 +31,7 @@ import {
   refreshQuota,
   ProviderType,
   scanTokenFiles,
+  scanProviderTokenFiles,
   isKiroTokenValid,
   refreshKiroTokenManually,
   isKiroRefreshBlocked,
@@ -40,6 +41,186 @@ import {
   isValidSettingKey,
   isPathSafe,
 } from "../utils/validation";
+
+type CustomProviderType = "openai" | "claude" | "gemini" | "codex";
+
+interface OpenAICompatibilityEntry {
+  name: string;
+  "base-url": string;
+  "api-key-entries": { "api-key": string; "proxy-url"?: string }[];
+  "system-access-token"?: string;
+  "new-api-user"?: string;
+  "enable-usage-query"?: boolean;
+  prefix?: string;
+  models?: { name: string; alias?: string }[];
+}
+
+interface ClaudeCompatibilityEntry {
+  name?: string;
+  "api-key": string;
+  "base-url"?: string;
+  "proxy-url"?: string;
+  "system-access-token"?: string;
+  "new-api-user"?: string;
+  "enable-usage-query"?: boolean;
+  prefix?: string;
+  models?: { name: string; alias?: string }[];
+}
+
+interface GeminiCompatibilityEntry {
+  name?: string;
+  "api-key": string;
+  "base-url"?: string;
+  "proxy-url"?: string;
+  "system-access-token"?: string;
+  "new-api-user"?: string;
+  "enable-usage-query"?: boolean;
+  prefix?: string;
+  headers?: Record<string, string>;
+  models?: { name: string; alias?: string }[];
+}
+
+interface CodexCompatibilityEntry {
+  name?: string;
+  "api-key": string;
+  "base-url"?: string;
+  "proxy-url"?: string;
+  "system-access-token"?: string;
+  "new-api-user"?: string;
+  "enable-usage-query"?: boolean;
+  prefix?: string;
+  models?: { name: string; alias?: string }[];
+}
+
+interface CustomProviderDrafts {
+  "openai-compatibility": OpenAICompatibilityEntry[];
+  "claude-api-key": ClaudeCompatibilityEntry[];
+  "gemini-api-key": GeminiCompatibilityEntry[];
+  "codex-api-key": CodexCompatibilityEntry[];
+}
+
+const EMPTY_CUSTOM_PROVIDER_DRAFTS: CustomProviderDrafts = {
+  "openai-compatibility": [],
+  "claude-api-key": [],
+  "gemini-api-key": [],
+  "codex-api-key": [],
+};
+
+function parseCustomProviderDrafts(value: unknown): CustomProviderDrafts {
+  const source =
+    value && typeof value === "object"
+      ? (value as Record<string, unknown>)
+      : {};
+
+  return {
+    "openai-compatibility": Array.isArray(source["openai-compatibility"])
+      ? (source["openai-compatibility"] as OpenAICompatibilityEntry[])
+      : [],
+    "claude-api-key": Array.isArray(source["claude-api-key"])
+      ? (source["claude-api-key"] as ClaudeCompatibilityEntry[])
+      : [],
+    "gemini-api-key": Array.isArray(source["gemini-api-key"])
+      ? (source["gemini-api-key"] as GeminiCompatibilityEntry[])
+      : [],
+    "codex-api-key": Array.isArray(source["codex-api-key"])
+      ? (source["codex-api-key"] as CodexCompatibilityEntry[])
+      : [],
+  };
+}
+
+function getCustomProviderDrafts(): CustomProviderDrafts {
+  return parseCustomProviderDrafts(store.get("customProviderDrafts"));
+}
+
+function setCustomProviderDrafts(drafts: CustomProviderDrafts): void {
+  store.set("customProviderDrafts", drafts);
+}
+
+function getCustomProviderConfigKey(
+  type: CustomProviderType,
+): keyof CustomProviderDrafts {
+  if (type === "openai") return "openai-compatibility";
+  if (type === "claude") return "claude-api-key";
+  if (type === "gemini") return "gemini-api-key";
+  return "codex-api-key";
+}
+
+function isSameCustomProviderEntry(
+  type: CustomProviderType,
+  left: unknown,
+  right: unknown,
+): boolean {
+  if (
+    !left ||
+    !right ||
+    typeof left !== "object" ||
+    typeof right !== "object"
+  ) {
+    return false;
+  }
+
+  if (type === "openai") {
+    return (
+      (left as OpenAICompatibilityEntry).name ===
+      (right as OpenAICompatibilityEntry).name
+    );
+  }
+
+  const leftEntry = left as ClaudeCompatibilityEntry;
+  const rightEntry = right as ClaudeCompatibilityEntry;
+
+  return (
+    (leftEntry.name || "") === (rightEntry.name || "") &&
+    leftEntry["api-key"] === rightEntry["api-key"] &&
+    (leftEntry["base-url"] || "") === (rightEntry["base-url"] || "")
+  );
+}
+
+function getManagedAuthDirs(): {
+  activeAuthDir: string;
+  disabledAuthDir: string;
+} {
+  const config = proxyManager.loadConfigFromYaml();
+  const activeAuthDir = config?.["auth-dir"] || proxyManager.getAuthDir();
+  const disabledAuthDir = path.join(
+    path.dirname(activeAuthDir),
+    "auth-disabled",
+  );
+  return { activeAuthDir, disabledAuthDir };
+}
+
+function isTokenPathInDirectory(filePath: string, baseDir: string): boolean {
+  const relativePath = path.relative(baseDir, filePath);
+  return isPathSafe(baseDir, relativePath);
+}
+
+function moveTokenFileToDirectory(
+  sourcePath: string,
+  targetDir: string,
+): string {
+  if (!fs.existsSync(targetDir)) {
+    fs.mkdirSync(targetDir, { recursive: true });
+  }
+
+  const sourceName = path.basename(sourcePath);
+  let targetPath = path.join(targetDir, sourceName);
+
+  if (fs.existsSync(targetPath)) {
+    const ext = path.extname(sourceName);
+    const base = path.basename(sourceName, ext);
+    const suffix = `${Date.now()}-${crypto.randomBytes(3).toString("hex")}`;
+    targetPath = path.join(targetDir, `${base}-${suffix}${ext}`);
+  }
+
+  try {
+    fs.renameSync(sourcePath, targetPath);
+  } catch {
+    fs.copyFileSync(sourcePath, targetPath);
+    fs.unlinkSync(sourcePath);
+  }
+
+  return targetPath;
+}
 
 export function setupIpcHandlers(): void {
   ipcMain.handle("proxy:start", async () => {
@@ -271,6 +452,152 @@ export function setupIpcHandlers(): void {
         return { success, summary };
       } catch (error) {
         log.error("[IPC] Failed to import custom providers:", error);
+        return { success: false, error: String(error) };
+      }
+    },
+  );
+
+  ipcMain.handle("customProviders:getAll", () => {
+    try {
+      const config = proxyManager.loadConfigFromYaml();
+      if (!config) {
+        return { success: false, error: "Failed to load config" };
+      }
+
+      return {
+        success: true,
+        active: {
+          "openai-compatibility": config["openai-compatibility"] || [],
+          "claude-api-key": config["claude-api-key"] || [],
+          "gemini-api-key": config["gemini-api-key"] || [],
+          "codex-api-key": config["codex-api-key"] || [],
+        },
+        drafts: getCustomProviderDrafts(),
+      };
+    } catch (error) {
+      log.error("[IPC] Failed to get all custom providers:", error);
+      return {
+        success: false,
+        error: String(error),
+        active: EMPTY_CUSTOM_PROVIDER_DRAFTS,
+        drafts: EMPTY_CUSTOM_PROVIDER_DRAFTS,
+      };
+    }
+  });
+
+  ipcMain.handle(
+    "customProviders:setEnabled",
+    (
+      _event,
+      payload: {
+        type: CustomProviderType;
+        rawData:
+          | OpenAICompatibilityEntry
+          | ClaudeCompatibilityEntry
+          | GeminiCompatibilityEntry
+          | CodexCompatibilityEntry;
+      },
+      enabled: boolean,
+    ) => {
+      try {
+        const config = proxyManager.loadConfigFromYaml();
+        if (!config) {
+          return { success: false, error: "Failed to load config" };
+        }
+
+        const drafts = getCustomProviderDrafts();
+        const key = getCustomProviderConfigKey(payload.type);
+        const activeEntries = Array.isArray(config[key])
+          ? [...(config[key] as unknown[])]
+          : [];
+        const draftEntries = [...(drafts[key] as unknown[])];
+
+        const activeIndex = activeEntries.findIndex((entry) =>
+          isSameCustomProviderEntry(payload.type, entry, payload.rawData),
+        );
+        const draftIndex = draftEntries.findIndex((entry) =>
+          isSameCustomProviderEntry(payload.type, entry, payload.rawData),
+        );
+
+        if (enabled) {
+          if (activeIndex >= 0) {
+            return { success: true };
+          }
+
+          if (draftIndex === -1) {
+            return { success: false, error: "Draft provider not found" };
+          }
+
+          const [entry] = draftEntries.splice(draftIndex, 1);
+          activeEntries.push(entry);
+        } else {
+          if (draftIndex >= 0 && activeIndex === -1) {
+            return { success: true };
+          }
+
+          if (activeIndex === -1) {
+            return { success: false, error: "Provider not found" };
+          }
+
+          const [entry] = activeEntries.splice(activeIndex, 1);
+          draftEntries.push(entry);
+        }
+
+        const success = proxyManager.updateConfigYaml({
+          [key]: activeEntries,
+        } as Partial<ProxyConfig>);
+        if (!success) {
+          return { success: false, error: "Failed to update config" };
+        }
+
+        const nextDrafts = {
+          ...drafts,
+          [key]: draftEntries,
+        } as CustomProviderDrafts;
+        setCustomProviderDrafts(nextDrafts);
+
+        return { success: true };
+      } catch (error) {
+        log.error("[IPC] Failed to toggle custom provider state:", error);
+        return { success: false, error: String(error) };
+      }
+    },
+  );
+
+  ipcMain.handle(
+    "customProviders:removeDraft",
+    (
+      _event,
+      payload: {
+        type: CustomProviderType;
+        rawData:
+          | OpenAICompatibilityEntry
+          | ClaudeCompatibilityEntry
+          | GeminiCompatibilityEntry
+          | CodexCompatibilityEntry;
+      },
+    ) => {
+      try {
+        const drafts = getCustomProviderDrafts();
+        const key = getCustomProviderConfigKey(payload.type);
+        const currentDrafts = drafts[key] as unknown[];
+        const nextDraftsForType = currentDrafts.filter(
+          (entry) =>
+            !isSameCustomProviderEntry(payload.type, entry, payload.rawData),
+        );
+
+        if (nextDraftsForType.length === currentDrafts.length) {
+          return { success: false, error: "Draft provider not found" };
+        }
+
+        const nextDrafts = {
+          ...drafts,
+          [key]: nextDraftsForType,
+        } as CustomProviderDrafts;
+        setCustomProviderDrafts(nextDrafts);
+        return { success: true };
+      } catch (error) {
+        log.error("[IPC] Failed to remove custom provider draft:", error);
         return { success: false, error: String(error) };
       }
     },
@@ -982,11 +1309,11 @@ export function setupIpcHandlers(): void {
 
   ipcMain.handle("providers:getAccounts", async () => {
     try {
-      const tokens = scanTokenFiles();
+      const tokens = scanProviderTokenFiles();
       const accounts = [];
 
       for (const token of tokens) {
-        if (token.provider === "kiro") {
+        if (token.enabled && token.provider === "kiro") {
           if (isKiroRefreshBlocked(token.filePath)) {
             continue;
           }
@@ -1001,7 +1328,8 @@ export function setupIpcHandlers(): void {
           id: `${token.provider}-${token.email}`,
           provider: token.provider,
           email: token.email,
-          status: "online" as const,
+          status: token.enabled ? ("online" as const) : ("offline" as const),
+          enabled: token.enabled,
           lastUsed: token.raw.last_refresh || token.expired,
           filePath: token.filePath,
         });
@@ -1018,8 +1346,14 @@ export function setupIpcHandlers(): void {
     "providers:removeAccount",
     async (_event, filePath: string) => {
       try {
-        const authDir = proxyManager.getAuthDir();
-        if (!isPathSafe(authDir, path.relative(authDir, filePath))) {
+        const { activeAuthDir, disabledAuthDir } = getManagedAuthDirs();
+        const isInActiveDir = isTokenPathInDirectory(filePath, activeAuthDir);
+        const isInDisabledDir = isTokenPathInDirectory(
+          filePath,
+          disabledAuthDir,
+        );
+
+        if (!isInActiveDir && !isInDisabledDir) {
           log.warn(
             `[IPC] Rejected unsafe path for account removal: ${filePath}`,
           );
@@ -1032,6 +1366,34 @@ export function setupIpcHandlers(): void {
         return { success: false, error: "Token file not found" };
       } catch (error) {
         log.error("[IPC] Failed to remove account:", error);
+        return { success: false, error: String(error) };
+      }
+    },
+  );
+
+  ipcMain.handle(
+    "providers:setAccountEnabled",
+    async (_event, filePath: string, enabled: boolean) => {
+      try {
+        const { activeAuthDir, disabledAuthDir } = getManagedAuthDirs();
+        const sourceDir = enabled ? disabledAuthDir : activeAuthDir;
+        const targetDir = enabled ? activeAuthDir : disabledAuthDir;
+
+        if (!isTokenPathInDirectory(filePath, sourceDir)) {
+          log.warn(
+            `[IPC] Rejected unsafe path for account toggle: ${filePath}`,
+          );
+          return { success: false, error: "Invalid file path" };
+        }
+
+        if (!fs.existsSync(filePath)) {
+          return { success: false, error: "Token file not found" };
+        }
+
+        const nextPath = moveTokenFileToDirectory(filePath, targetDir);
+        return { success: true, filePath: nextPath };
+      } catch (error) {
+        log.error("[IPC] Failed to toggle account enabled state:", error);
         return { success: false, error: String(error) };
       }
     },

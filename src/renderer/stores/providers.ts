@@ -5,6 +5,7 @@ export interface TokenAccount {
   provider: string;
   email: string;
   status: "online" | "offline";
+  enabled: boolean;
   lastUsed: string;
   filePath: string;
 }

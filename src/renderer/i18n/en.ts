@@ -256,6 +256,10 @@ export const en = {
     removeAccountConfirm: "Unlink account?",
     removeAccountDesc:
       "This will remove the credentials from LinJun. You will need to re-authenticate to use it again.",
+    enabledState: "Enabled",
+    disabledState: "Disabled",
+    enableProvider: "Enable",
+    disableProvider: "Disable",
     customProtocol: "Protocol",
     customCompatible: "Compatible",
     customClaudeEntries: "API Key Entries",

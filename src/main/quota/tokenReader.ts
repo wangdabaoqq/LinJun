@@ -4,12 +4,16 @@ import path from "path";
 import log from "../utils/logger";
 import { proxyManager } from "../proxy/manager";
 
-function getAuthDir(): string {
+function getActiveAuthDir(): string {
   const config = proxyManager.loadConfigFromYaml();
   if (config?.["auth-dir"]) {
     return config["auth-dir"];
   }
   return proxyManager.getAuthDir();
+}
+
+function getDisabledAuthDir(activeAuthDir: string): string {
+  return path.join(path.dirname(activeAuthDir), "auth-disabled");
 }
 
 export type ProviderType =
@@ -75,14 +79,38 @@ export interface TokenReadResult {
   refreshToken: string;
   expired: Date;
   filePath: string;
+  enabled: boolean;
   raw: TokenFile;
 }
 
 export function scanTokenFiles(): TokenReadResult[] {
-  const authDir = getAuthDir();
+  const authDir = getActiveAuthDir();
+  return readTokenFilesFromDir(authDir, true, true);
+}
 
+export function scanProviderTokenFiles(): TokenReadResult[] {
+  const activeAuthDir = getActiveAuthDir();
+  const disabledAuthDir = getDisabledAuthDir(activeAuthDir);
+
+  const activeTokens = readTokenFilesFromDir(activeAuthDir, true, true);
+  const disabledTokens = readTokenFilesFromDir(disabledAuthDir, false, false);
+
+  log.info(
+    `[TokenReader] Provider token scan active=${activeTokens.length}, disabled=${disabledTokens.length}`,
+  );
+
+  return [...activeTokens, ...disabledTokens];
+}
+
+function readTokenFilesFromDir(
+  authDir: string,
+  enabled: boolean,
+  warnIfMissing: boolean,
+): TokenReadResult[] {
   if (!fs.existsSync(authDir)) {
-    log.warn(`[TokenReader] Auth directory not found: ${authDir}`);
+    if (warnIfMissing) {
+      log.warn(`[TokenReader] Auth directory not found: ${authDir}`);
+    }
     return [];
   }
 
@@ -97,14 +125,14 @@ export function scanTokenFiles(): TokenReadResult[] {
 
     if (!stat.isFile()) continue;
 
-    const result = readTokenFile(filePath);
+    const result = readTokenFile(filePath, enabled);
     if (result) {
       tokenFiles.push(result);
     }
   }
 
   log.info(
-    `[TokenReader] Found ${tokenFiles.length} token files in ${authDir}`,
+    `[TokenReader] Found ${tokenFiles.length} token files in ${authDir} (enabled=${enabled})`,
   );
   return tokenFiles;
 }
@@ -139,7 +167,10 @@ function parseProviderFromFilename(filename: string): ProviderType | null {
 /**
  * Read and parse a single token file
  */
-function readTokenFile(filePath: string): TokenReadResult | null {
+function readTokenFile(
+  filePath: string,
+  enabled: boolean,
+): TokenReadResult | null {
   try {
     const content = fs.readFileSync(filePath, "utf-8");
     const data: TokenFile = JSON.parse(content);
@@ -170,6 +201,7 @@ function readTokenFile(filePath: string): TokenReadResult | null {
       refreshToken: refreshToken || "",
       expired: expiredStr ? new Date(expiredStr) : new Date(),
       filePath,
+      enabled,
       raw: data,
     };
   } catch (error) {

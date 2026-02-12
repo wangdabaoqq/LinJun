@@ -1,5 +1,6 @@
 import { memo } from "react";
-import { Trash2, User } from "lucide-react";
+import { Loader2, Trash2, User } from "lucide-react";
+import { motion } from "motion/react";
 
 import { useTranslations } from "../../stores/settings";
 import { Provider, Account } from "./types";
@@ -8,12 +9,20 @@ interface ProviderCardProps {
   provider: Provider;
   isExpanded: boolean;
   onRemoveAccount: (providerId: string, accountId: string) => void;
+  onToggleAccountEnabled: (
+    providerId: string,
+    accountId: string,
+    enabled: boolean,
+  ) => void;
+  pendingToggleAccountIds: Record<string, boolean>;
 }
 
 export const ProviderCard = memo(function ProviderCard({
   provider,
   isExpanded,
   onRemoveAccount,
+  onToggleAccountEnabled,
+  pendingToggleAccountIds,
 }: ProviderCardProps) {
   const t = useTranslations();
   const onlineCount = provider.accounts.filter(
@@ -81,6 +90,9 @@ export const ProviderCard = memo(function ProviderCard({
         <div className="mt-5 space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-200">
           {provider.accounts.map((account) => {
             const { main, sub } = getAccountDisplay(account);
+            const isEnabled = account.enabled !== false;
+            const toggleKey = `${provider.id}:${account.id}`;
+            const isTogglePending = !!pendingToggleAccountIds[toggleKey];
             return (
               <div
                 key={account.id}
@@ -91,7 +103,7 @@ export const ProviderCard = memo(function ProviderCard({
                     <User className="w-3.5 h-3.5" />
                   </div>
                   <div
-                    className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-[var(--bg-primary)] ${account.status === "online" ? "bg-[var(--accent-primary)]" : "bg-[var(--text-dim)]"}`}
+                    className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-[var(--bg-primary)] ${isEnabled ? "bg-[var(--accent-primary)]" : "bg-[var(--text-dim)]"}`}
                   />
                 </div>
 
@@ -106,16 +118,73 @@ export const ProviderCard = memo(function ProviderCard({
                   )}
                 </div>
 
-                <button
-                  className="p-2 rounded-xl text-[var(--text-dim)] hover:text-red-500 hover:bg-red-500/10 opacity-0 group-hover/item:opacity-100 transition-all active:scale-90"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onRemoveAccount(provider.id, account.id);
-                  }}
-                  title={t.common.delete}
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
+                <div className="flex items-center gap-2 opacity-0 group-hover/item:opacity-100 transition-all">
+                  <span
+                    className={`text-[10px] font-bold uppercase tracking-wider ${
+                      isEnabled ? "text-emerald-500" : "text-[var(--text-dim)]"
+                    }`}
+                  >
+                    {isEnabled
+                      ? t.providers.enabledState
+                      : t.providers.disabledState}
+                  </span>
+                  <motion.button
+                    role="switch"
+                    aria-checked={isEnabled}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onToggleAccountEnabled(
+                        provider.id,
+                        account.id,
+                        !isEnabled,
+                      );
+                    }}
+                    disabled={isTogglePending}
+                    className={`relative w-11 h-6 rounded-full transition-colors duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-black ${
+                      isEnabled
+                        ? "bg-[var(--accent-primary)] shadow-[0_0_10px_rgba(var(--accent-primary-rgb),0.4)]"
+                        : "bg-white/10 hover:bg-white/20"
+                    } ${isTogglePending ? "opacity-70 cursor-wait" : "cursor-pointer"}`}
+                    title={
+                      isEnabled
+                        ? t.providers.disableProvider
+                        : t.providers.enableProvider
+                    }
+                  >
+                    <motion.div
+                      className="absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow-sm flex items-center justify-center pointer-events-none"
+                      animate={{
+                        x: isEnabled ? 20 : 0,
+                        scale: isTogglePending ? 0.8 : 1,
+                      }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 500,
+                        damping: 30,
+                      }}
+                    >
+                      {isTogglePending && (
+                        <Loader2 className="w-2.5 h-2.5 text-[var(--accent-primary)] animate-spin" />
+                      )}
+                    </motion.div>
+                  </motion.button>
+
+                  <button
+                    className="p-2 rounded-xl text-[var(--text-dim)] hover:text-red-500 hover:bg-red-500/10 transition-all active:scale-90"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onRemoveAccount(provider.id, account.id);
+                    }}
+                    title={t.common.delete}
+                  >
+                    {isTogglePending ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Trash2 className="w-3.5 h-3.5" />
+                    )}
+                  </button>
+                </div>
               </div>
             );
           })}

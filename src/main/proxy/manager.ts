@@ -225,6 +225,10 @@ class ProxyManager extends EventEmitter {
     return path.join(this.getConfigDir(), "auth");
   }
 
+  getDisabledAuthDir(): string {
+    return path.join(this.getConfigDir(), "auth-disabled");
+  }
+
   getConfigPath(): string {
     return path.join(this.getConfigDir(), "config.yaml");
   }
@@ -232,6 +236,7 @@ class ProxyManager extends EventEmitter {
   ensureConfig(): void {
     const configDir = this.getConfigDir();
     const authDir = this.getAuthDir();
+    const disabledAuthDir = this.getDisabledAuthDir();
     const configPath = this.getConfigPath();
 
     if (!fs.existsSync(configDir)) {
@@ -240,6 +245,10 @@ class ProxyManager extends EventEmitter {
 
     if (!fs.existsSync(authDir)) {
       fs.mkdirSync(authDir, { recursive: true });
+    }
+
+    if (!fs.existsSync(disabledAuthDir)) {
+      fs.mkdirSync(disabledAuthDir, { recursive: true });
     }
 
     const existingSecret = store.get("managementSecret");

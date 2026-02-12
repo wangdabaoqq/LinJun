@@ -1,6 +1,61 @@
 import Store from "electron-store";
 import { DEFAULT_PORT } from "../../shared/constants";
 
+interface OpenAICompatibilityEntry {
+  name: string;
+  "base-url": string;
+  "api-key-entries": { "api-key": string; "proxy-url"?: string }[];
+  "system-access-token"?: string;
+  "new-api-user"?: string;
+  "enable-usage-query"?: boolean;
+  prefix?: string;
+  models?: { name: string; alias?: string }[];
+}
+
+interface ClaudeCompatibilityEntry {
+  name?: string;
+  "api-key": string;
+  "base-url"?: string;
+  "proxy-url"?: string;
+  "system-access-token"?: string;
+  "new-api-user"?: string;
+  "enable-usage-query"?: boolean;
+  prefix?: string;
+  models?: { name: string; alias?: string }[];
+}
+
+interface GeminiCompatibilityEntry {
+  name?: string;
+  "api-key": string;
+  "base-url"?: string;
+  "proxy-url"?: string;
+  "system-access-token"?: string;
+  "new-api-user"?: string;
+  "enable-usage-query"?: boolean;
+  prefix?: string;
+  headers?: Record<string, string>;
+  models?: { name: string; alias?: string }[];
+}
+
+interface CodexCompatibilityEntry {
+  name?: string;
+  "api-key": string;
+  "base-url"?: string;
+  "proxy-url"?: string;
+  "system-access-token"?: string;
+  "new-api-user"?: string;
+  "enable-usage-query"?: boolean;
+  prefix?: string;
+  models?: { name: string; alias?: string }[];
+}
+
+interface CustomProviderDrafts {
+  "openai-compatibility": OpenAICompatibilityEntry[];
+  "claude-api-key": ClaudeCompatibilityEntry[];
+  "gemini-api-key": GeminiCompatibilityEntry[];
+  "codex-api-key": CodexCompatibilityEntry[];
+}
+
 interface StoreSchema {
   port: number;
   autoStart: boolean;
@@ -15,6 +70,7 @@ interface StoreSchema {
   uptimeCheckEnabled: boolean;
   uptimeCheckInterval: number;
   uptimeAlertThreshold: number;
+  customProviderDrafts: CustomProviderDrafts;
 }
 
 export const store = new Store<StoreSchema>({
@@ -32,5 +88,11 @@ export const store = new Store<StoreSchema>({
     uptimeCheckEnabled: true,
     uptimeCheckInterval: 60,
     uptimeAlertThreshold: 95,
+    customProviderDrafts: {
+      "openai-compatibility": [],
+      "claude-api-key": [],
+      "gemini-api-key": [],
+      "codex-api-key": [],
+    },
   },
 });

@@ -142,10 +142,68 @@ const electronAPI = {
   },
   providers: {
     getAccounts: () => ipcRenderer.invoke("providers:getAccounts"),
+    setAccountEnabled: (filePath: string, enabled: boolean) =>
+      ipcRenderer.invoke("providers:setAccountEnabled", filePath, enabled),
     removeAccount: (filePath: string) =>
       ipcRenderer.invoke("providers:removeAccount", filePath),
   },
   customProviders: {
+    getAll: () => ipcRenderer.invoke("customProviders:getAll"),
+    setEnabled: (
+      payload: {
+        type: "openai" | "claude" | "gemini" | "codex";
+        rawData:
+          | {
+              name: string;
+              "base-url": string;
+              "api-key-entries": { "api-key": string; "proxy-url"?: string }[];
+              "system-access-token"?: string;
+              "new-api-user"?: string;
+              "enable-usage-query"?: boolean;
+              models?: { name: string; alias?: string }[];
+              prefix?: string;
+            }
+          | {
+              name?: string;
+              "api-key": string;
+              "base-url"?: string;
+              "proxy-url"?: string;
+              "system-access-token"?: string;
+              "new-api-user"?: string;
+              "enable-usage-query"?: boolean;
+              models?: { name: string; alias?: string }[];
+              headers?: Record<string, string>;
+              prefix?: string;
+            };
+      },
+      enabled: boolean,
+    ) => ipcRenderer.invoke("customProviders:setEnabled", payload, enabled),
+    removeDraft: (payload: {
+      type: "openai" | "claude" | "gemini" | "codex";
+      rawData:
+        | {
+            name: string;
+            "base-url": string;
+            "api-key-entries": { "api-key": string; "proxy-url"?: string }[];
+            "system-access-token"?: string;
+            "new-api-user"?: string;
+            "enable-usage-query"?: boolean;
+            models?: { name: string; alias?: string }[];
+            prefix?: string;
+          }
+        | {
+            name?: string;
+            "api-key": string;
+            "base-url"?: string;
+            "proxy-url"?: string;
+            "system-access-token"?: string;
+            "new-api-user"?: string;
+            "enable-usage-query"?: boolean;
+            models?: { name: string; alias?: string }[];
+            headers?: Record<string, string>;
+            prefix?: string;
+          };
+    }) => ipcRenderer.invoke("customProviders:removeDraft", payload),
     import: (
       data: {
         "openai-compatibility"?: {
