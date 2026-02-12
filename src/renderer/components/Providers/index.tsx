@@ -26,7 +26,6 @@ import {
   Provider,
   OpenAICompatProvider,
   Account,
-  CustomProviderType,
   CustomProviderDisplay,
   ClaudeCompatProvider,
   GeminiCompatProvider,
@@ -40,6 +39,21 @@ import { AddProviderModal } from "./AddProviderModal";
 import { ProviderCard } from "./ProviderCard";
 import { CopilotAuthModal } from "./CopilotAuthModal";
 import { AmpcodeSettingsModal } from "./AmpcodeSettingsModal";
+import { AccountModelRulesModal } from "./AccountModelRulesModal";
+
+type OAuthProviderRules = Record<string, string[]>;
+type OAuthAccountRules = Record<string, Record<string, string[]>>;
+
+const DEFAULT_SOURCE_OPTIONS_BY_PROVIDER: Record<string, string[]> = {
+  gemini: ["gemini-cli", "vertex", "aistudio"],
+  antigravity: ["antigravity"],
+  claude: ["claude"],
+  codex: ["codex"],
+  qwen: ["qwen"],
+  iflow: ["iflow"],
+  copilot: ["copilot"],
+  kiro: ["kiro"],
+};
 
 export function Providers() {
   const t = useTranslations();
@@ -113,6 +127,18 @@ export function Providers() {
   );
   const [ampcodeProvider, setAmpcodeProvider] =
     useState<AmpcodeCompatProvider | null>(null);
+  const [oauthProviderRules, setOauthProviderRules] =
+    useState<OAuthProviderRules>({});
+  const [oauthAccountRules, setOauthAccountRules] = useState<OAuthAccountRules>(
+    {},
+  );
+  const [sourceOptionsByProvider, setSourceOptionsByProvider] = useState<
+    Record<string, string[]>
+  >(DEFAULT_SOURCE_OPTIONS_BY_PROVIDER);
+  const [editingAccountModelRules, setEditingAccountModelRules] = useState<{
+    providerId: string;
+    account: Account;
+  } | null>(null);
 
   const loadCustomProviders = useCallback(async () => {
     try {
@@ -271,10 +297,29 @@ export function Providers() {
     }
   }, []);
 
+  const loadOAuthRules = useCallback(async () => {
+    try {
+      const result = await window.electronAPI?.oauthRules?.get();
+      if (!result?.success) {
+        return;
+      }
+
+      setOauthProviderRules((result.providerRules as OAuthProviderRules) || {});
+      setOauthAccountRules((result.accountRules as OAuthAccountRules) || {});
+      setSourceOptionsByProvider(
+        (result.sourceOptionsByProvider as Record<string, string[]>) ||
+          DEFAULT_SOURCE_OPTIONS_BY_PROVIDER,
+      );
+    } catch (error) {
+      log.error("[Providers] Failed to load OAuth model rules:", error);
+    }
+  }, []);
+
   useEffect(() => {
     loadAccounts();
     loadCustomProviders();
-  }, [loadAccounts, loadCustomProviders]);
+    loadOAuthRules();
+  }, [loadAccounts, loadCustomProviders, loadOAuthRules]);
 
   const stats = useMemo(() => {
     const totalProviders = new Set(providerAccounts.map((a) => a.provider))
@@ -722,6 +767,173 @@ export function Providers() {
     }
   };
 
+  const getSourceOptionsForProvider = useCallback(
+    (providerId: string): string[] => {
+      return (
+        sourceOptionsByProvider[providerId] ||
+        DEFAULT_SOURCE_OPTIONS_BY_PROVIDER[providerId] || [providerId]
+      );
+    },
+    [sourceOptionsByProvider],
+  );
+
+  const getAccountRulesKey = useCallback(
+    (providerId: string, account: Account): string => {
+      if (account.accountKey) {
+        return account.accountKey;
+      }
+
+      const filename = account.filePath?.split(/[/\\]/).pop() || account.id;
+      return `${providerId}:${filename}`;
+    },
+    [],
+  );
+
+  const getAccountSourceKey = useCallback(
+    (providerId: string, account: Account): string => {
+      const accountKey = getAccountRulesKey(providerId, account);
+
+      const fromAccountRules = Object.entries(oauthAccountRules).find(
+        ([, accountMap]) => !!accountMap[accountKey],
+      )?.[0];
+      if (fromAccountRules) {
+        return fromAccountRules;
+      }
+
+      if (account.oauthSourceKey) {
+        return account.oauthSourceKey;
+      }
+
+      return getSourceOptionsForProvider(providerId)[0] || providerId;
+    },
+    [getAccountRulesKey, getSourceOptionsForProvider, oauthAccountRules],
+  );
+
+  const getAccountModelRulesMeta = useCallback(
+    (providerId: string, account: Account) => {
+      const accountKey = getAccountRulesKey(providerId, account);
+      const sourceKey = getAccountSourceKey(providerId, account);
+      const providerPatterns = oauthProviderRules[sourceKey] || [];
+      const accountPatterns = oauthAccountRules[sourceKey]?.[accountKey] || [];
+      const count = new Set([...providerPatterns, ...accountPatterns]).size;
+      return { sourceKey, count };
+    },
+    [
+      getAccountRulesKey,
+      getAccountSourceKey,
+      oauthProviderRules,
+      oauthAccountRules,
+    ],
+  );
+
+  const getAccountRulesBySource = useCallback(
+    (providerId: string, account: Account): Record<string, string[]> => {
+      const accountKey = getAccountRulesKey(providerId, account);
+      const rulesBySource: Record<string, string[]> = {};
+
+      Object.entries(oauthAccountRules).forEach(([sourceKey, accountMap]) => {
+        const patterns = accountMap[accountKey] || [];
+        if (patterns.length > 0) {
+          rulesBySource[sourceKey] = patterns;
+        }
+      });
+
+      return rulesBySource;
+    },
+    [getAccountRulesKey, oauthAccountRules],
+  );
+
+  const handleOpenAccountModelRules = useCallback(
+    (providerId: string, account: Account) => {
+      setEditingAccountModelRules({ providerId, account });
+    },
+    [],
+  );
+
+  const handleLoadModelCatalog = useCallback(async (): Promise<string[]> => {
+    const result = await window.electronAPI?.models?.fetch();
+    if (!result?.success) {
+      throw new Error(result?.error || t.providers.accountModelRulesLoadFailed);
+    }
+
+    const models = Array.isArray(result.models) ? result.models : [];
+    return models
+      .map((model: unknown) => {
+        if (typeof model === "string") return model;
+        if (model && typeof model === "object" && "id" in model) {
+          return String((model as { id: string }).id || "");
+        }
+        return "";
+      })
+      .map((modelId: string) => modelId.trim())
+      .filter((modelId: string) => modelId.length > 0);
+  }, [t.providers.accountModelRulesLoadFailed]);
+
+  const handleSaveAccountModelRules = useCallback(
+    async (sourceKey: string, accountPatterns: string[]) => {
+      if (!editingAccountModelRules) {
+        return;
+      }
+
+      const accountKey = getAccountRulesKey(
+        editingAccountModelRules.providerId,
+        editingAccountModelRules.account,
+      );
+      const sanitizedPatterns = Array.from(
+        new Set(
+          accountPatterns.map((pattern) => pattern.trim()).filter(Boolean),
+        ),
+      );
+
+      const existingSources = Object.entries(oauthAccountRules)
+        .filter(([, accountMap]) => !!accountMap[accountKey])
+        .map(([existingSourceKey]) => existingSourceKey);
+
+      if (!window.electronAPI?.oauthRules) {
+        throw new Error(t.providers.accountModelRulesSaveFailed);
+      }
+
+      for (const existingSourceKey of existingSources) {
+        const clearResult =
+          await window.electronAPI.oauthRules.clearAccountRules(
+            existingSourceKey,
+            accountKey,
+          );
+        if (!clearResult?.success) {
+          throw new Error(
+            clearResult?.error || t.providers.accountModelRulesSaveFailed,
+          );
+        }
+      }
+
+      if (sanitizedPatterns.length > 0) {
+        const saveResult = await window.electronAPI.oauthRules.setAccountRules(
+          sourceKey,
+          accountKey,
+          sanitizedPatterns,
+        );
+
+        if (!saveResult?.success) {
+          throw new Error(
+            saveResult?.error || t.providers.accountModelRulesSaveFailed,
+          );
+        }
+      }
+
+      await loadOAuthRules();
+      await loadAccounts({ force: true });
+      setEditingAccountModelRules(null);
+    },
+    [
+      editingAccountModelRules,
+      getAccountRulesKey,
+      loadAccounts,
+      loadOAuthRules,
+      oauthAccountRules,
+      t.providers.accountModelRulesSaveFailed,
+    ],
+  );
+
   const accountsByProvider = new Map<string, Account[]>();
 
   (providerAccounts as TokenAccount[]).forEach((acc) => {
@@ -748,6 +960,8 @@ export function Providers() {
     accounts.push({
       id: acc.id,
       email: acc.email,
+      accountKey: acc.accountKey,
+      oauthSourceKey: acc.oauthSourceKey,
       status: acc.status,
       enabled: acc.enabled,
       lastUsed: lastUsedText,
@@ -915,6 +1129,8 @@ export function Providers() {
                   onRemoveAccount={handleRemoveAccount}
                   onToggleAccountEnabled={handleToggleAccountEnabled}
                   pendingToggleAccountIds={pendingAccountToggles}
+                  onEditAccountModelRules={handleOpenAccountModelRules}
+                  getAccountModelRulesMeta={getAccountModelRulesMeta}
                 />
               ))}
             </div>
@@ -1221,6 +1437,30 @@ export function Providers() {
           provider={addAccountProvider}
           onClose={() => setAddAccountProvider(null)}
           onAdd={handleAccountAdded}
+        />
+      )}
+      {editingAccountModelRules && (
+        <AccountModelRulesModal
+          isOpen={!!editingAccountModelRules}
+          accountLabel={
+            editingAccountModelRules.account.nickname ||
+            editingAccountModelRules.account.email
+          }
+          sourceOptions={getSourceOptionsForProvider(
+            editingAccountModelRules.providerId,
+          )}
+          initialSourceKey={getAccountSourceKey(
+            editingAccountModelRules.providerId,
+            editingAccountModelRules.account,
+          )}
+          accountRulesBySource={getAccountRulesBySource(
+            editingAccountModelRules.providerId,
+            editingAccountModelRules.account,
+          )}
+          providerRules={oauthProviderRules}
+          onLoadCatalog={handleLoadModelCatalog}
+          onSave={handleSaveAccountModelRules}
+          onClose={() => setEditingAccountModelRules(null)}
         />
       )}
       {showCustomProviderForm && (

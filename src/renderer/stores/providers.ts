@@ -4,6 +4,8 @@ export interface TokenAccount {
   id: string;
   provider: string;
   email: string;
+  accountKey?: string;
+  oauthSourceKey?: string;
   status: "online" | "offline";
   enabled: boolean;
   lastUsed: string;

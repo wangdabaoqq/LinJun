@@ -140,6 +140,24 @@ const electronAPI = {
   models: {
     fetch: () => ipcRenderer.invoke("models:fetch"),
   },
+  oauthRules: {
+    get: () => ipcRenderer.invoke("oauthRules:get"),
+    setProviderRules: (sourceKey: string, patterns: string[]) =>
+      ipcRenderer.invoke("oauthRules:setProviderRules", sourceKey, patterns),
+    setAccountRules: (
+      sourceKey: string,
+      accountKey: string,
+      patterns: string[],
+    ) =>
+      ipcRenderer.invoke(
+        "oauthRules:setAccountRules",
+        sourceKey,
+        accountKey,
+        patterns,
+      ),
+    clearAccountRules: (sourceKey: string, accountKey: string) =>
+      ipcRenderer.invoke("oauthRules:clearAccountRules", sourceKey, accountKey),
+  },
   providers: {
     getAccounts: () => ipcRenderer.invoke("providers:getAccounts"),
     setAccountEnabled: (filePath: string, enabled: boolean) =>

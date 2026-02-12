@@ -106,6 +106,23 @@ const EMPTY_CUSTOM_PROVIDER_DRAFTS: CustomProviderDrafts = {
   "codex-api-key": [],
 };
 
+type OAuthExcludedModelsConfig = Record<string, string[]>;
+type OAuthAccountExcludedModelsConfig = Record<
+  string,
+  Record<string, string[]>
+>;
+
+const OAUTH_SOURCE_OPTIONS_BY_PROVIDER: Record<string, string[]> = {
+  gemini: ["gemini-cli", "vertex", "aistudio"],
+  antigravity: ["antigravity"],
+  claude: ["claude"],
+  codex: ["codex"],
+  qwen: ["qwen"],
+  iflow: ["iflow"],
+  copilot: ["copilot"],
+  kiro: ["kiro"],
+};
+
 function parseCustomProviderDrafts(value: unknown): CustomProviderDrafts {
   const source =
     value && typeof value === "object"
@@ -220,6 +237,120 @@ function moveTokenFileToDirectory(
   }
 
   return targetPath;
+}
+
+function normalizeOAuthSourceKey(source: unknown): string | null {
+  if (typeof source !== "string") return null;
+  const normalized = source.trim().toLowerCase();
+  if (!normalized) return null;
+  if (!/^[a-z0-9-]+$/.test(normalized)) return null;
+  return normalized;
+}
+
+function normalizeAccountKey(accountKey: unknown): string | null {
+  if (typeof accountKey !== "string") return null;
+  const normalized = accountKey.trim();
+  if (!normalized || normalized.length > 255) return null;
+  return normalized;
+}
+
+function sanitizeModelPatterns(patterns: unknown): string[] {
+  if (!Array.isArray(patterns)) return [];
+
+  const seen = new Set<string>();
+  const sanitized: string[] = [];
+
+  patterns.forEach((item) => {
+    if (typeof item !== "string") return;
+    const pattern = item.trim();
+    if (!pattern || pattern.length > 120) return;
+    if (seen.has(pattern)) return;
+    seen.add(pattern);
+    sanitized.push(pattern);
+  });
+
+  return sanitized.slice(0, 200);
+}
+
+function normalizeOAuthExcludedModels(
+  value: unknown,
+): OAuthExcludedModelsConfig {
+  if (!value || typeof value !== "object") return {};
+
+  const source = value as Record<string, unknown>;
+  const normalized: OAuthExcludedModelsConfig = {};
+
+  Object.entries(source).forEach(([sourceKey, patterns]) => {
+    const normalizedSourceKey = normalizeOAuthSourceKey(sourceKey);
+    if (!normalizedSourceKey) return;
+
+    const sanitizedPatterns = sanitizeModelPatterns(patterns);
+    if (sanitizedPatterns.length > 0) {
+      normalized[normalizedSourceKey] = sanitizedPatterns;
+    }
+  });
+
+  return normalized;
+}
+
+function normalizeOAuthAccountExcludedModels(
+  value: unknown,
+): OAuthAccountExcludedModelsConfig {
+  if (!value || typeof value !== "object") return {};
+
+  const source = value as Record<string, unknown>;
+  const normalized: OAuthAccountExcludedModelsConfig = {};
+
+  Object.entries(source).forEach(([sourceKey, accountMap]) => {
+    const normalizedSourceKey = normalizeOAuthSourceKey(sourceKey);
+    if (!normalizedSourceKey || !accountMap || typeof accountMap !== "object") {
+      return;
+    }
+
+    const normalizedAccounts: Record<string, string[]> = {};
+    Object.entries(accountMap as Record<string, unknown>).forEach(
+      ([accountKey, patterns]) => {
+        const normalizedAccountKey = normalizeAccountKey(accountKey);
+        if (!normalizedAccountKey) return;
+        const sanitizedPatterns = sanitizeModelPatterns(patterns);
+        if (sanitizedPatterns.length > 0) {
+          normalizedAccounts[normalizedAccountKey] = sanitizedPatterns;
+        }
+      },
+    );
+
+    if (Object.keys(normalizedAccounts).length > 0) {
+      normalized[normalizedSourceKey] = normalizedAccounts;
+    }
+  });
+
+  return normalized;
+}
+
+function resolveOAuthSourceKeyForAccount(
+  providerId: string,
+  accountKey: string,
+  tokenSourceKey: string | undefined,
+  accountRules: OAuthAccountExcludedModelsConfig,
+): string | undefined {
+  const sourceFromRules = Object.entries(accountRules).find(
+    ([, accountMap]) => accountMap[accountKey],
+  )?.[0];
+  if (sourceFromRules) {
+    return sourceFromRules;
+  }
+
+  const normalizedTokenSourceKey = normalizeOAuthSourceKey(tokenSourceKey);
+  if (normalizedTokenSourceKey) {
+    return normalizedTokenSourceKey;
+  }
+
+  const sourceOptions = OAUTH_SOURCE_OPTIONS_BY_PROVIDER[providerId] || [];
+  return sourceOptions[0];
+}
+
+function buildAccountKey(providerId: string, filePath: string): string {
+  return `${providerId}:${path.basename(filePath)}`;
 }
 
 export function setupIpcHandlers(): void {
@@ -1303,12 +1434,172 @@ export function setupIpcHandlers(): void {
     }
   });
 
+  ipcMain.handle("oauthRules:get", async () => {
+    try {
+      const config = proxyManager.loadConfigFromYaml();
+      const providerRules = normalizeOAuthExcludedModels(
+        config?.["oauth-excluded-models"],
+      );
+      const accountRules = normalizeOAuthAccountExcludedModels(
+        config?.["oauth-account-excluded-models"],
+      );
+      return {
+        success: true,
+        providerRules,
+        accountRules,
+        sourceOptionsByProvider: OAUTH_SOURCE_OPTIONS_BY_PROVIDER,
+      };
+    } catch (error) {
+      log.error("[IPC] Failed to get OAuth model exclusion rules:", error);
+      return {
+        success: false,
+        providerRules: {},
+        accountRules: {},
+        sourceOptionsByProvider: OAUTH_SOURCE_OPTIONS_BY_PROVIDER,
+        error: String(error),
+      };
+    }
+  });
+
+  ipcMain.handle(
+    "oauthRules:setProviderRules",
+    async (_event, sourceKey: string, patterns: unknown) => {
+      try {
+        const normalizedSourceKey = normalizeOAuthSourceKey(sourceKey);
+        if (!normalizedSourceKey) {
+          return { success: false, error: "Invalid OAuth source key" };
+        }
+
+        const normalizedPatterns = sanitizeModelPatterns(patterns);
+        const config = proxyManager.loadConfigFromYaml();
+        const providerRules = normalizeOAuthExcludedModels(
+          config?.["oauth-excluded-models"],
+        );
+
+        if (normalizedPatterns.length > 0) {
+          providerRules[normalizedSourceKey] = normalizedPatterns;
+        } else {
+          delete providerRules[normalizedSourceKey];
+        }
+
+        const success = proxyManager.updateConfigYaml({
+          "oauth-excluded-models": providerRules,
+        });
+
+        return { success, providerRules };
+      } catch (error) {
+        log.error(
+          "[IPC] Failed to save provider OAuth exclusion rules:",
+          error,
+        );
+        return { success: false, error: String(error) };
+      }
+    },
+  );
+
+  ipcMain.handle(
+    "oauthRules:setAccountRules",
+    async (
+      _event,
+      sourceKey: string,
+      accountKey: string,
+      patterns: unknown,
+    ) => {
+      try {
+        const normalizedSourceKey = normalizeOAuthSourceKey(sourceKey);
+        if (!normalizedSourceKey) {
+          return { success: false, error: "Invalid OAuth source key" };
+        }
+
+        const normalizedAccountKey = normalizeAccountKey(accountKey);
+        if (!normalizedAccountKey) {
+          return { success: false, error: "Invalid account key" };
+        }
+
+        const normalizedPatterns = sanitizeModelPatterns(patterns);
+        const config = proxyManager.loadConfigFromYaml();
+        const accountRules = normalizeOAuthAccountExcludedModels(
+          config?.["oauth-account-excluded-models"],
+        );
+        const sourceRules = { ...(accountRules[normalizedSourceKey] || {}) };
+
+        if (normalizedPatterns.length > 0) {
+          sourceRules[normalizedAccountKey] = normalizedPatterns;
+          accountRules[normalizedSourceKey] = sourceRules;
+        } else {
+          delete sourceRules[normalizedAccountKey];
+          if (Object.keys(sourceRules).length > 0) {
+            accountRules[normalizedSourceKey] = sourceRules;
+          } else {
+            delete accountRules[normalizedSourceKey];
+          }
+        }
+
+        const success = proxyManager.updateConfigYaml({
+          "oauth-account-excluded-models": accountRules,
+        });
+
+        return { success, accountRules };
+      } catch (error) {
+        log.error("[IPC] Failed to save account OAuth exclusion rules:", error);
+        return { success: false, error: String(error) };
+      }
+    },
+  );
+
+  ipcMain.handle(
+    "oauthRules:clearAccountRules",
+    async (_event, sourceKey: string, accountKey: string) => {
+      try {
+        const normalizedSourceKey = normalizeOAuthSourceKey(sourceKey);
+        if (!normalizedSourceKey) {
+          return { success: false, error: "Invalid OAuth source key" };
+        }
+
+        const normalizedAccountKey = normalizeAccountKey(accountKey);
+        if (!normalizedAccountKey) {
+          return { success: false, error: "Invalid account key" };
+        }
+
+        const config = proxyManager.loadConfigFromYaml();
+        const accountRules = normalizeOAuthAccountExcludedModels(
+          config?.["oauth-account-excluded-models"],
+        );
+
+        const sourceRules = { ...(accountRules[normalizedSourceKey] || {}) };
+        delete sourceRules[normalizedAccountKey];
+
+        if (Object.keys(sourceRules).length > 0) {
+          accountRules[normalizedSourceKey] = sourceRules;
+        } else {
+          delete accountRules[normalizedSourceKey];
+        }
+
+        const success = proxyManager.updateConfigYaml({
+          "oauth-account-excluded-models": accountRules,
+        });
+
+        return { success, accountRules };
+      } catch (error) {
+        log.error(
+          "[IPC] Failed to clear account OAuth exclusion rules:",
+          error,
+        );
+        return { success: false, error: String(error) };
+      }
+    },
+  );
+
   // ═══════════════════════════════════════════════════════════════════════════════
   // Provider Accounts Management - Token-based account listing
   // ═══════════════════════════════════════════════════════════════════════════════
 
   ipcMain.handle("providers:getAccounts", async () => {
     try {
+      const config = proxyManager.loadConfigFromYaml();
+      const accountRules = normalizeOAuthAccountExcludedModels(
+        config?.["oauth-account-excluded-models"],
+      );
       const tokens = scanProviderTokenFiles();
       const accounts = [];
 
@@ -1324,10 +1615,21 @@ export function setupIpcHandlers(): void {
           }
         }
 
+        const accountKey =
+          token.accountKey || buildAccountKey(token.provider, token.filePath);
+        const oauthSourceKey = resolveOAuthSourceKeyForAccount(
+          token.provider,
+          accountKey,
+          token.oauthSourceKey,
+          accountRules,
+        );
+
         accounts.push({
           id: `${token.provider}-${token.email}`,
           provider: token.provider,
           email: token.email,
+          accountKey,
+          oauthSourceKey,
           status: token.enabled ? ("online" as const) : ("offline" as const),
           enabled: token.enabled,
           lastUsed: token.raw.last_refresh || token.expired,

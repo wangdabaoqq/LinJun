@@ -109,6 +109,12 @@ export interface OpenAICompatibilityProvider {
   models?: OpenAICompatibilityModel[];
 }
 
+export type OAuthExcludedModelsConfig = Record<string, string[]>;
+export type OAuthAccountExcludedModelsConfig = Record<
+  string,
+  Record<string, string[]>
+>;
+
 export interface ProxyConfig {
   host: string;
   port: number;
@@ -130,6 +136,8 @@ export interface ProxyConfig {
     "switch-project"?: boolean;
     "switch-preview-model"?: boolean;
   };
+  "oauth-excluded-models"?: OAuthExcludedModelsConfig;
+  "oauth-account-excluded-models"?: OAuthAccountExcludedModelsConfig;
   "request-retry"?: number;
   "max-retry-interval"?: number;
   "openai-compatibility"?: OpenAICompatibilityProvider[];

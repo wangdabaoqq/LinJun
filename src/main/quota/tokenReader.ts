@@ -69,12 +69,17 @@ export interface TokenFile {
   token_type?: string;
   scope?: string;
   username?: string;
+
+  "oauth-source"?: string;
+  oauth_source?: string;
 }
 
 export interface TokenReadResult {
   provider: ProviderType;
   email: string;
+  accountKey: string;
   accountId?: string;
+  oauthSourceKey?: string;
   accessToken: string;
   refreshToken: string;
   expired: Date;
@@ -164,6 +169,30 @@ function parseProviderFromFilename(filename: string): ProviderType | null {
   return null;
 }
 
+function getDefaultOAuthSourceKey(provider: ProviderType): string | undefined {
+  if (provider === "gemini") return "gemini-cli";
+  if (provider === "claude") return "claude";
+  if (provider === "codex") return "codex";
+  if (provider === "qwen") return "qwen";
+  if (provider === "iflow") return "iflow";
+  if (provider === "antigravity") return "antigravity";
+  if (provider === "copilot") return "copilot";
+  if (provider === "kiro") return "kiro";
+  return undefined;
+}
+
+function sanitizeOAuthSourceKey(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const source = value.trim().toLowerCase();
+  if (!source) return undefined;
+  if (!/^[a-z0-9-]+$/.test(source)) return undefined;
+  return source;
+}
+
+function buildAccountKey(provider: ProviderType, filePath: string): string {
+  return `${provider}:${path.basename(filePath)}`;
+}
+
 /**
  * Read and parse a single token file
  */
@@ -193,10 +222,16 @@ function readTokenFile(
       return null;
     }
 
+    const oauthSourceKey =
+      sanitizeOAuthSourceKey(data["oauth-source"] || data.oauth_source) ||
+      getDefaultOAuthSourceKey(provider);
+
     return {
       provider,
       email: data.email || data.username || path.basename(filePath, ".json"),
+      accountKey: buildAccountKey(provider, filePath),
       accountId: data.account_id,
+      oauthSourceKey,
       accessToken,
       refreshToken: refreshToken || "",
       expired: expiredStr ? new Date(expiredStr) : new Date(),

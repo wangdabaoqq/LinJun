@@ -15,6 +15,11 @@ interface ProviderCardProps {
     enabled: boolean,
   ) => void;
   pendingToggleAccountIds: Record<string, boolean>;
+  onEditAccountModelRules: (providerId: string, account: Account) => void;
+  getAccountModelRulesMeta: (
+    providerId: string,
+    account: Account,
+  ) => { sourceKey?: string; count: number };
 }
 
 export const ProviderCard = memo(function ProviderCard({
@@ -23,6 +28,8 @@ export const ProviderCard = memo(function ProviderCard({
   onRemoveAccount,
   onToggleAccountEnabled,
   pendingToggleAccountIds,
+  onEditAccountModelRules,
+  getAccountModelRulesMeta,
 }: ProviderCardProps) {
   const t = useTranslations();
   const onlineCount = provider.accounts.filter(
@@ -93,6 +100,12 @@ export const ProviderCard = memo(function ProviderCard({
             const isEnabled = account.enabled !== false;
             const toggleKey = `${provider.id}:${account.id}`;
             const isTogglePending = !!pendingToggleAccountIds[toggleKey];
+            const modelRulesMeta = getAccountModelRulesMeta(
+              provider.id,
+              account,
+            );
+            const accountSourceLabel =
+              modelRulesMeta.sourceKey || account.oauthSourceKey || provider.id;
             return (
               <div
                 key={account.id}
@@ -116,6 +129,30 @@ export const ProviderCard = memo(function ProviderCard({
                       {sub}
                     </div>
                   )}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEditAccountModelRules(provider.id, account);
+                    }}
+                    className={`mt-1.5 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-[9px] font-bold uppercase tracking-wider transition-colors ${
+                      modelRulesMeta.count > 0
+                        ? "border-amber-500/30 text-amber-500 hover:border-amber-500/50 hover:bg-amber-500/10"
+                        : "border-[var(--glass-border)] text-[var(--text-dim)] hover:text-[var(--text-primary)] hover:border-[var(--glass-border-hover)]"
+                    }`}
+                    title={t.providers.accountModelRulesManage}
+                  >
+                    <span className="font-mono text-[8px] opacity-70">
+                      {accountSourceLabel}
+                    </span>
+                    <span>
+                      {modelRulesMeta.count > 0
+                        ? t.providers.accountModelRulesLimited.replace(
+                            "{count}",
+                            String(modelRulesMeta.count),
+                          )
+                        : t.providers.accountModelRulesAll}
+                    </span>
+                  </button>
                 </div>
 
                 <div className="flex items-center gap-2 opacity-0 group-hover/item:opacity-100 transition-all">

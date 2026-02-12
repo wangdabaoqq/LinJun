@@ -74,6 +74,8 @@ export interface Account {
   id: string;
   email: string;
   nickname?: string;
+  accountKey?: string;
+  oauthSourceKey?: string;
   status: "online" | "offline";
   enabled?: boolean;
   lastUsed: string;
