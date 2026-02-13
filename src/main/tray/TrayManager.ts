@@ -20,6 +20,8 @@ export class TrayManager {
   private trayWindow: TrayWindow | null = null;
   private mainWindow: BrowserWindow | null = null;
   private isRunning: boolean = false;
+  private quotaInterval: NodeJS.Timeout | null = null;
+  private warningState: boolean = false;
 
   private constructor() {}
 
@@ -56,6 +58,33 @@ export class TrayManager {
       this.isRunning = running;
       this.updateContextMenu();
     });
+
+    this.startQuotaPolling();
+  }
+
+  private startQuotaPolling(): void {
+    if (this.quotaInterval) return;
+    this.quotaInterval = setInterval(() => {}, 15000);
+  }
+
+  private stopQuotaPolling(): void {
+    if (this.quotaInterval) {
+      clearInterval(this.quotaInterval);
+      this.quotaInterval = null;
+    }
+  }
+
+  public updateQuotaUsage(pct: number): void {
+    this.warningState = pct >= 90;
+    this.updateTrayIcon();
+  }
+
+  public isWarningState(): boolean {
+    return this.warningState;
+  }
+
+  private updateTrayIcon(): void {
+    if (!this.tray) return;
   }
 
   private setupEventHandlers(): void {
@@ -154,6 +183,7 @@ export class TrayManager {
   }
 
   public destroy(): void {
+    this.stopQuotaPolling();
     this.trayWindow?.destroy();
     this.tray?.destroy();
     this.tray = null;

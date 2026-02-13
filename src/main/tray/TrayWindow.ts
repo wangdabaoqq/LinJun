@@ -14,8 +14,8 @@ export class TrayWindow {
 
   private createWindow(): void {
     this.window = new BrowserWindow({
-      width: 320,
-      height: 450, // Default height, will be resized by renderer
+      width: 350,
+      height: 560,
       show: false,
       frame: false,
       fullscreenable: false,
@@ -23,6 +23,7 @@ export class TrayWindow {
       transparent: true,
       alwaysOnTop: true,
       skipTaskbar: true,
+      hasShadow: true,
       // macOS-only visual effects
       ...(isMac
         ? {

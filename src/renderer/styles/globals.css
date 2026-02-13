@@ -959,6 +959,36 @@ body {
   );
 }
 
+.tray-scrollbar {
+  scrollbar-gutter: stable;
+}
+
+.tray-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.tray-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.tray-scrollbar::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--text-primary) 18%, transparent);
+  border-radius: 9999px;
+}
+
+.tray-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--text-primary) 30%, transparent);
+}
+
+.tray-x-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.tray-x-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }

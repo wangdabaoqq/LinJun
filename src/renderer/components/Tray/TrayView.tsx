@@ -1,13 +1,14 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   Power,
-  ExternalLink,
   Copy,
   Check,
   Play,
   Square,
   RotateCw,
+  LayoutDashboard,
+  ChevronRight,
 } from "lucide-react";
 import {
   useQuotaStore,
@@ -26,7 +27,7 @@ import { getProviderIcon } from "@renderer/components/icons/ProviderIcons";
 import { SunIcon } from "../ui/sun";
 import { MoonIcon } from "../ui/moon";
 
-function ProgressBar({
+function SlimProgressBar({
   percent,
   label,
   resetIn,
@@ -39,55 +40,48 @@ function ProgressBar({
 }) {
   const t = useTranslations();
   const displayLabel = useMemo(() => {
-    if (provider !== "codex") {
-      return label || "";
-    }
-    if (label?.includes("5小时") || label?.includes("5-Hour")) {
+    if (provider !== "codex") return label || "";
+    if (label?.includes("5小时") || label?.includes("5-Hour"))
       return t.quota.fiveHourLimit;
-    }
     if (
       label?.includes("7天") ||
       label?.includes("7-Day") ||
       label?.includes("Weekly")
-    ) {
+    )
       return t.quota.weeklyLimit;
-    }
-    return "";
-  }, [label, provider, t.quota.fiveHourLimit, t.quota.weeklyLimit]);
-  const shouldShowLabel = displayLabel.length > 0;
+    return label || "";
+  }, [label, provider, t.quota]);
 
   const colorClass = useMemo(() => {
     if (percent >= 90)
-      return "bg-neon-red shadow-[0_0_8px_rgba(239,68,68,0.4)] dark:shadow-[0_0_12px_rgba(239,68,68,0.3)]";
+      return "bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.3)]";
     if (percent >= 70)
-      return "bg-neon-amber shadow-[0_0_8px_rgba(245,158,11,0.4)] dark:shadow-[0_0_12px_rgba(245,158,11,0.3)]";
-    return "bg-neon-green shadow-[0_0_8px_rgba(16,185,129,0.4)] dark:shadow-[0_0_12px_rgba(16,185,129,0.3)]";
+      return "bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.3)]";
+    return "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.3)]";
   }, [percent]);
 
   return (
-    <div className="w-full min-w-0">
-      {shouldShowLabel && (
-        <div className="flex justify-between items-center mb-1.5 px-0.5">
-          <span className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest truncate max-w-[55%]">
-            {displayLabel}
-          </span>
-          <div className="flex items-center gap-1.5">
-            {resetIn && (
-              <span className="text-[9px] font-bold text-[var(--text-muted)] whitespace-nowrap italic opacity-80">
-                {resetIn}
-              </span>
-            )}
-            <span className="text-[10px] font-black text-[var(--text-muted)] font-mono tabular-nums">
-              {Math.round(percent)}%
+    <div className="w-full space-y-1.5">
+      <div className="flex justify-between items-end px-0.5">
+        <span className="text-[10px] font-semibold text-slate-500/80 dark:text-white/40 uppercase tracking-wider truncate max-w-[60%]">
+          {displayLabel}
+        </span>
+        <div className="flex items-center gap-1.5">
+          {resetIn && (
+            <span className="text-[9px] font-medium text-slate-400 dark:text-white/30 italic">
+              {resetIn}
             </span>
-          </div>
+          )}
+          <span className="text-[10px] font-bold text-slate-700 dark:text-white/60 font-mono">
+            {Math.round(percent)}%
+          </span>
         </div>
-      )}
-      <div className="h-1.5 w-full bg-[var(--text-primary)]/10 dark:bg-black/40 rounded-full overflow-hidden">
+      </div>
+      <div className="h-1.5 w-full bg-slate-200/50 dark:bg-black/40 rounded-full overflow-hidden">
         <motion.div
           initial={{ width: 0 }}
-          animate={{ width: `${Math.max(percent, 1.5)}%` }}
-          transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+          animate={{ width: `${Math.max(percent, 2)}%` }}
+          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
           className={`h-full rounded-full transition-colors duration-500 ${colorClass}`}
         />
       </div>
@@ -95,55 +89,43 @@ function ProgressBar({
   );
 }
 
-function AccountItem({ account }: { account: QuotaAccount }) {
+function AccountCard({ account }: { account: QuotaAccount }) {
   const windows = useMemo(() => {
     const list: QuotaWindow[] = [];
     if (account.rateLimits.primary) list.push(account.rateLimits.primary);
     if (account.rateLimits.secondary) list.push(account.rateLimits.secondary);
-
     if (account.provider !== "custom" && account.rateLimits.additional)
       list.push(...account.rateLimits.additional);
-
     return list.slice(0, 4);
   }, [account.provider, account.rateLimits]);
 
   return (
-    <div className="group relative p-4 rounded-[20px] bg-[var(--text-primary)]/[0.02] dark:bg-white/[0.03] hover:bg-[var(--text-primary)]/[0.04] dark:hover:bg-white/[0.06] transition-all duration-500 border border-[var(--text-primary)]/[0.05] dark:border-white/[0.05] hover:border-[var(--text-primary)]/10 dark:hover:border-white/10">
-      <div className="flex justify-between items-start mb-4">
+    <div className="p-3.5 rounded-2xl bg-white/40 dark:bg-white/5 border border-white/40 dark:border-white/5 shadow-sm space-y-4">
+      <div className="flex justify-between items-center">
         <div className="flex items-center gap-2 min-w-0">
-          <span
-            className="text-xs font-black text-[var(--text-primary)] truncate select-none tracking-tight font-mono"
-            title={account.email}
-          >
+          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.6)]" />
+          <span className="text-xs font-bold text-slate-700 dark:text-white/80 truncate font-mono">
             {account.email}
           </span>
-          {account.badge && (
-            <span className="flex-none text-[8px] font-black px-1.5 py-0.5 rounded-full bg-[var(--text-primary)]/[0.06] dark:bg-white/10 text-[var(--text-muted)] tracking-widest uppercase">
-              {account.badge}
-            </span>
-          )}
         </div>
         {account.status === "limited" && (
-          <span className="flex-none text-[8px] text-neon-red font-black uppercase tracking-[0.2em] animate-pulse">
+          <span className="text-[9px] font-black text-rose-500 uppercase tracking-widest bg-rose-500/10 px-1.5 py-0.5 rounded-md">
             Limit
           </span>
         )}
       </div>
-      {windows.length > 0 && (
-        <div
-          className={`grid gap-x-6 gap-y-4 ${windows.length > 1 ? "grid-cols-2" : "grid-cols-1"}`}
-        >
-          {windows.map((w, i) => (
-            <ProgressBar
-              key={i}
-              percent={w.usedPercent}
-              label={w.label}
-              resetIn={w.resetIn}
-              provider={account.provider}
-            />
-          ))}
-        </div>
-      )}
+
+      <div className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
+        {windows.map((w, i) => (
+          <SlimProgressBar
+            key={i}
+            percent={w.usedPercent}
+            label={w.label}
+            resetIn={w.resetIn}
+            provider={account.provider}
+          />
+        ))}
+      </div>
     </div>
   );
 }
@@ -155,6 +137,10 @@ export function TrayView() {
   const proxyRunning = useSettingsStore((s) => s.proxyRunning);
   const [copied, setCopied] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const providerTabsRef = useRef<HTMLDivElement | null>(null);
+  const providerButtonRefs = useRef<Record<string, HTMLButtonElement | null>>(
+    {},
+  );
 
   const {
     providers,
@@ -180,7 +166,17 @@ export function TrayView() {
   }, [providers, selectedProvider, selectProvider]);
 
   useEffect(() => {
-    window.electronAPI?.tray?.setHeight?.(560);
+    if (!selectedProvider) return;
+    const selectedButton = providerButtonRefs.current[selectedProvider];
+    selectedButton?.scrollIntoView({
+      behavior: "smooth",
+      block: "nearest",
+      inline: "center",
+    });
+  }, [selectedProvider]);
+
+  useEffect(() => {
+    window.electronAPI?.tray?.setHeight?.(580);
   }, []);
 
   const handleRefresh = async () => {
@@ -188,16 +184,6 @@ export function TrayView() {
     await refreshQuotas();
     setTimeout(() => setIsRefreshing(false), 1000);
   };
-
-  const timeAgo = useMemo(() => {
-    if (!lastUpdated) return "";
-    const seconds = Math.floor(
-      (new Date().getTime() - lastUpdated.getTime()) / 1000,
-    );
-    if (seconds < 60) return t.quota.justNow;
-    const minutes = Math.floor(seconds / 60);
-    return t.quota.minutesAgo.replace("{minutes}", minutes.toString());
-  }, [lastUpdated, t.quota]);
 
   const handleCopyUrl = async () => {
     const url = `http://127.0.0.1:${port}`;
@@ -211,126 +197,160 @@ export function TrayView() {
     else await startProxy();
   };
 
+  const timeAgo = useMemo(() => {
+    if (!lastUpdated) return "";
+    const seconds = Math.floor(
+      (new Date().getTime() - lastUpdated.getTime()) / 1000,
+    );
+    if (seconds < 60) return t.quota.justNow;
+    const minutes = Math.floor(seconds / 60);
+    return t.quota.minutesAgo.replace("{minutes}", minutes.toString());
+  }, [lastUpdated, t.quota]);
+
   return (
-    <div className="w-full h-[560px] flex flex-col select-none overflow-hidden font-sans tracking-tight transition-all duration-300 text-[var(--text-primary)] bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-[24px]">
-      <div className="absolute inset-0 bg-overlay -z-10" />
+    <div className="w-full h-[580px] flex flex-col select-none overflow-hidden font-sans tracking-tight text-slate-900 dark:text-white/90 antialiased relative">
+      <div className="absolute inset-0 bg-white/30 dark:bg-black/20 backdrop-blur-3xl -z-10" />
 
-      <header className="flex-none px-6 pt-6 pb-4">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-3">
-            <h1 className="font-black text-xl tracking-tighter uppercase italic bg-gradient-to-br from-[var(--text-primary)] to-[var(--text-dim)] bg-clip-text text-transparent">
-              LinJun
-            </h1>
-            <div
-              className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 transition-all duration-500 ${
-                proxyRunning
-                  ? "bg-neon-green/10 text-neon-green border border-neon-green/20"
-                  : "bg-[var(--text-primary)]/5 text-[var(--text-dim)] border border-[var(--text-primary)]/10"
-              }`}
-            >
-              <div
-                className={`w-1.5 h-1.5 rounded-full ${
-                  proxyRunning
-                    ? "bg-neon-green animate-pulse"
-                    : "bg-current opacity-40"
-                }`}
-              />
-              {proxyRunning ? "Active" : "Stopped"}
+      <div className="absolute top-0 left-0 right-0 h-6 drag-region z-50" />
+
+      <header className="flex-none px-5 pt-6 pb-3 flex items-center justify-between border-b border-black/[0.03] dark:border-white/[0.03] no-drag relative z-10">
+        <div className="flex items-center gap-2.5">
+          <div
+            className={`w-2 h-2 rounded-full shadow-lg ${proxyRunning ? "bg-emerald-500 shadow-emerald-500/40 animate-pulse" : "bg-slate-400 dark:bg-white/20"}`}
+          />
+          <span className="text-[11px] font-bold uppercase tracking-[0.15em] text-slate-500 dark:text-white/40">
+            LinJun Proxy • {proxyRunning ? "Active" : "Paused"}
+          </span>
+        </div>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={handleRefresh}
+            disabled={isLoading || isRefreshing}
+            className="p-1.5 rounded-lg hover:bg-black/[0.05] dark:hover:bg-white/[0.05] transition-colors disabled:opacity-20"
+          >
+            <RotateCw
+              size={14}
+              className={
+                isLoading || isRefreshing ? "animate-spin" : "text-slate-500"
+              }
+            />
+          </button>
+          <button
+            onClick={toggleTheme}
+            className="p-1.5 rounded-lg hover:bg-black/[0.05] dark:hover:bg-white/[0.05] transition-colors"
+          >
+            {theme === "dark" ? (
+              <SunIcon size={14} className="text-slate-400" />
+            ) : (
+              <MoonIcon size={14} className="text-slate-500" />
+            )}
+          </button>
+        </div>
+      </header>
+
+      <section className="flex-none p-5 no-drag">
+        <div className="p-4 rounded-3xl bg-white/60 dark:bg-white/5 border border-white/60 dark:border-white/10 shadow-xl shadow-black/[0.02] backdrop-blur-md">
+          <div className="flex items-center justify-between gap-4">
+            <div className="space-y-1">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
+                Endpoint
+              </span>
+              <button
+                onClick={handleCopyUrl}
+                className="flex items-center gap-2 group transition-opacity active:opacity-60"
+              >
+                <code className="text-[13px] font-bold font-mono text-slate-700 dark:text-white/80">
+                  127.0.0.1:{port}
+                </code>
+                {copied ? (
+                  <Check size={12} className="text-emerald-500" />
+                ) : (
+                  <Copy
+                    size={12}
+                    className="text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                  />
+                )}
+              </button>
             </div>
-          </div>
-
-          <div className="flex items-center gap-1">
-            <button
-              onClick={handleRefresh}
-              disabled={isLoading || isRefreshing}
-              className="p-2 rounded-xl hover:bg-[var(--text-primary)]/5 dark:hover:bg-white/10 transition-all active:scale-90 disabled:opacity-30 group"
-              title="Refresh"
-            >
-              <RotateCw
-                size={16}
-                className={`${isLoading || isRefreshing ? "animate-spin" : "opacity-40 group-hover:opacity-100 transition-opacity"}`}
-              />
-            </button>
-            <button
-              onClick={toggleTheme}
-              className="p-2 rounded-xl hover:bg-[var(--text-primary)]/5 dark:hover:bg-white/10 transition-all active:scale-90 group"
-              title={theme === "dark" ? "Light Mode" : "Dark Mode"}
-            >
-              {theme === "dark" ? (
-                <SunIcon
-                  size={16}
-                  className="opacity-40 group-hover:opacity-100 transition-opacity"
-                />
-              ) : (
-                <MoonIcon
-                  size={16}
-                  className="opacity-40 group-hover:opacity-100 transition-opacity"
-                />
-              )}
-            </button>
-            <div className="w-px h-4 bg-[var(--text-primary)]/10 mx-1" />
             <button
               onClick={toggleProxy}
-              className={`p-2 rounded-xl transition-all active:scale-90 shadow-sm ${
+              className={`flex items-center gap-2.5 px-5 py-2.5 rounded-2xl transition-all active:scale-95 shadow-lg ${
                 proxyRunning
-                  ? "text-white bg-neon-red hover:bg-neon-red/90 shadow-neon-red/20"
-                  : "text-white bg-neon-green hover:bg-neon-green/90 shadow-neon-green/20"
+                  ? "bg-rose-500 text-white shadow-rose-500/20 hover:bg-rose-600"
+                  : "bg-emerald-500 text-white shadow-emerald-500/20 hover:bg-emerald-600"
               }`}
             >
               {proxyRunning ? (
                 <Square size={14} fill="currentColor" />
               ) : (
-                <Play size={14} fill="currentColor" strokeWidth={3} />
+                <Play size={14} fill="currentColor" />
               )}
+              <span className="text-xs font-bold uppercase tracking-wider">
+                {proxyRunning ? "Stop" : "Start"}
+              </span>
             </button>
           </div>
         </div>
+      </section>
 
-        <div className="flex items-center justify-between px-0.5">
-          <button
-            onClick={handleCopyUrl}
-            className="flex items-center gap-2 py-1 px-2 -ml-2 rounded-lg hover:bg-[var(--text-primary)]/5 transition-colors group"
-          >
-            <span className="text-[10px] font-black text-[var(--text-dim)] font-mono tracking-tighter group-hover:text-[var(--text-primary)] transition-colors">
-              127.0.0.1:{port}
-            </span>
-            {copied ? (
-              <Check size={10} className="text-neon-green" />
-            ) : (
-              <Copy
-                size={10}
-                className="opacity-0 group-hover:opacity-40 transition-opacity"
-              />
-            )}
-          </button>
-          <span className="text-[9px] font-black text-[var(--text-dim)] uppercase tracking-[0.2em]">
-            {timeAgo}
-          </span>
-        </div>
-      </header>
-
-      <div className="flex-none px-5 py-2">
-        <div className="flex items-center gap-2 p-1.5 bg-[var(--text-primary)]/[0.03] dark:bg-white/[0.03] rounded-[22px] overflow-x-auto no-scrollbar border border-[var(--text-primary)]/5 dark:border-white/5">
+      <nav className="flex-none px-5 py-2 no-drag">
+        <div
+          ref={providerTabsRef}
+          className="p-1 flex items-center gap-1 bg-black/[0.04] dark:bg-white/[0.04] rounded-2xl border border-black/[0.02] dark:border-white/[0.02] overflow-x-auto tray-x-scrollbar scroll-smooth"
+          onWheel={(event) => {
+            const tabs = providerTabsRef.current;
+            if (!tabs || tabs.scrollWidth <= tabs.clientWidth) return;
+            if (Math.abs(event.deltaX) > Math.abs(event.deltaY)) return;
+            const delta = event.deltaY;
+            if (delta === 0) return;
+            event.preventDefault();
+            tabs.scrollLeft += delta * 1.8;
+          }}
+        >
           {providers.map((p) => (
             <button
               key={p.id}
-              onClick={() => selectProvider(p.id)}
-              className={`relative flex-shrink-0 min-w-[44px] h-11 px-3 rounded-[16px] flex items-center justify-center transition-all duration-500 ${
+              ref={(element) => {
+                providerButtonRefs.current[p.id] = element;
+              }}
+              onClick={(event) => {
+                selectProvider(p.id);
+                event.currentTarget.scrollIntoView({
+                  behavior: "smooth",
+                  block: "nearest",
+                  inline: "center",
+                });
+              }}
+              className={`relative flex items-center gap-2 px-3.5 py-2 rounded-xl text-[11px] font-bold transition-all whitespace-nowrap active:scale-95 ${
                 selectedProvider === p.id
-                  ? "bg-[var(--text-primary)] text-[var(--bg-primary)] shadow-lg scale-100"
-                  : "hover:bg-[var(--text-primary)]/10 scale-95 opacity-40 hover:opacity-100"
+                  ? "text-slate-900 dark:text-white"
+                  : "text-slate-500 dark:text-white/40 hover:text-slate-800 dark:hover:text-white/60"
               }`}
-              title={p.name}
             >
-              <div className="w-5 h-5 flex items-center justify-center">
+              {selectedProvider === p.id && (
+                <motion.div
+                  layoutId="tray-provider-tab-active"
+                  transition={{
+                    type: "spring",
+                    stiffness: 420,
+                    damping: 34,
+                    mass: 0.6,
+                  }}
+                  className="absolute inset-0 rounded-xl bg-white dark:bg-white/10 shadow-sm ring-1 ring-black/[0.05] dark:ring-white/[0.05]"
+                />
+              )}
+              <div
+                className={`relative z-10 w-3.5 h-3.5 transition-opacity ${selectedProvider === p.id ? "opacity-100" : "opacity-50"}`}
+              >
                 {getProviderIcon(p.id)}
               </div>
+              <span className="relative z-10">{p.name}</span>
             </button>
           ))}
         </div>
-      </div>
+      </nav>
 
-      <div className="flex-1 min-h-0 px-6 py-4 overflow-y-auto custom-scrollbar">
+      <main className="flex-1 min-h-0 px-5 py-3 overflow-y-auto tray-scrollbar no-drag space-y-4">
         <AnimatePresence mode="popLayout">
           {isLoading && accounts.length === 0 ? (
             <motion.div
@@ -340,7 +360,7 @@ export function TrayView() {
               exit={{ opacity: 0 }}
               className="py-12 flex flex-col items-center justify-center space-y-4"
             >
-              <div className="w-6 h-6 animate-spin border-2 border-[var(--accent-primary)]/20 border-t-[var(--accent-primary)] rounded-full" />
+              <div className="w-5 h-5 border-2 border-slate-500/20 border-t-slate-500 rounded-full animate-spin" />
             </motion.div>
           ) : accounts.length === 0 ? (
             <motion.div
@@ -348,9 +368,9 @@ export function TrayView() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="py-12 flex flex-col items-center justify-center text-[var(--text-dim)]"
+              className="py-12 flex flex-col items-center justify-center"
             >
-              <span className="text-[10px] font-black uppercase tracking-[0.3em]">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] italic">
                 {t.tray.noAccounts}
               </span>
             </motion.div>
@@ -360,31 +380,50 @@ export function TrayView() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="space-y-4 pb-6"
+              className="space-y-3 pb-4"
             >
+              <div className="flex items-center justify-between px-1">
+                <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-white/30">
+                  Accounts
+                </h3>
+                <span className="text-[9px] font-bold text-slate-400 dark:text-white/20 italic">
+                  {timeAgo}
+                </span>
+              </div>
               {accounts.map((account) => (
-                <AccountItem key={account.id} account={account} />
+                <AccountCard key={account.id} account={account} />
               ))}
             </motion.div>
           )}
         </AnimatePresence>
-      </div>
+      </main>
 
-      <footer className="flex-none p-6 flex items-center gap-4 border-t border-[var(--text-primary)]/5 dark:border-white/5">
-        <button
-          onClick={() => window.electronAPI?.tray?.openDashboard?.()}
-          className="flex-1 h-12 flex items-center justify-center gap-2 rounded-2xl bg-[var(--text-primary)] text-[var(--bg-primary)] transition-all text-xs font-black uppercase tracking-widest active:scale-95 shadow-lg hover:scale-[1.02] hover:shadow-xl"
-        >
-          <ExternalLink size={14} strokeWidth={3} />
-          {t.tray.openDashboard}
-        </button>
-        <button
-          onClick={() => window.electronAPI?.app?.quit?.()}
-          className="flex-none w-12 h-12 flex items-center justify-center rounded-2xl bg-neon-red/10 text-neon-red hover:bg-neon-red hover:text-white transition-all active:scale-90 border border-neon-red/20"
-          title={t.tray.quit}
-        >
-          <Power size={18} strokeWidth={2.5} />
-        </button>
+      <footer className="flex-none p-5 border-t border-black/[0.03] dark:border-white/[0.03] no-drag">
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            onClick={() => window.electronAPI?.tray?.openDashboard?.()}
+            className="flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl bg-white/40 dark:bg-white/5 border border-white/60 dark:border-white/10 hover:bg-white/60 dark:hover:bg-white/10 transition-all active:scale-[0.96] group"
+          >
+            <div className="w-8 h-8 rounded-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+              <LayoutDashboard size={16} />
+            </div>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-white/60">
+              Dashboard
+            </span>
+          </button>
+
+          <button
+            onClick={() => window.electronAPI?.app?.quit?.()}
+            className="flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl bg-rose-500/5 border border-rose-500/10 hover:bg-rose-500/10 transition-all active:scale-[0.96] group"
+          >
+            <div className="w-8 h-8 rounded-full bg-rose-500 text-white flex items-center justify-center shadow-lg shadow-rose-500/20 group-hover:scale-110 transition-transform">
+              <Power size={16} />
+            </div>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-rose-500/80">
+              Quit App
+            </span>
+          </button>
+        </div>
       </footer>
     </div>
   );
