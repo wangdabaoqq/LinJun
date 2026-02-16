@@ -9,7 +9,7 @@ import {
   Settings,
   Users,
   ShieldCheck,
-  ChevronDown,
+  ChevronRight,
   Upload,
   Check,
   Copy,
@@ -1166,18 +1166,27 @@ export function Providers() {
 
           <section>
             <div
-              className="flex items-center gap-4 mb-6 cursor-pointer group/section"
+              className={`flex items-center gap-3 mb-6 cursor-pointer group/section px-4 py-3 rounded-xl border transition-all duration-200 ${
+                officialExpanded
+                  ? "bg-[var(--text-primary)]/[0.05] border-[var(--glass-border-hover)]"
+                  : "bg-transparent border-transparent hover:bg-[var(--text-primary)]/[0.03] hover:border-[var(--glass-border)]"
+              }`}
               onClick={() => setOfficialExpanded(!officialExpanded)}
             >
-              <h3 className="text-[11px] font-bold text-[var(--text-primary)] uppercase tracking-[0.2em] opacity-30 group-hover/section:opacity-60 transition-opacity">
+              <div
+                className={`flex-shrink-0 transition-transform duration-300 ${officialExpanded ? "rotate-90 text-[var(--accent-primary)]" : "text-[var(--text-dim)]"}`}
+              >
+                <ChevronRight className="w-4 h-4" />
+              </div>
+              <h3
+                className={`text-xs font-bold text-[var(--text-primary)] uppercase tracking-[0.15em] transition-opacity duration-200 ${officialExpanded ? "opacity-80" : "opacity-40 group-hover/section:opacity-60"}`}
+              >
                 {t.providers.officialAccounts}
               </h3>
-              <div className="h-px flex-1 bg-[var(--text-primary)]/5" />
-              <div
-                className={`p-1 rounded-lg hover:bg-[var(--text-primary)]/5 transition-all text-[var(--text-dim)] ${officialExpanded ? "rotate-180" : ""}`}
-              >
-                <ChevronDown className="w-3.5 h-3.5" />
-              </div>
+              <div className="flex-1" />
+              <span className="text-[10px] font-mono font-bold text-[var(--text-dim)] tabular-nums">
+                {stats.totalAccounts}
+              </span>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -1198,18 +1207,24 @@ export function Providers() {
 
           <section>
             <div
-              className="flex items-center gap-4 mb-6 cursor-pointer group/section"
+              className={`flex items-center gap-3 mb-6 cursor-pointer group/section px-4 py-3 rounded-xl border transition-all duration-200 ${
+                routingExpanded
+                  ? "bg-[var(--text-primary)]/[0.05] border-[var(--glass-border-hover)]"
+                  : "bg-transparent border-transparent hover:bg-[var(--text-primary)]/[0.03] hover:border-[var(--glass-border)]"
+              }`}
               onClick={() => setRoutingExpanded(!routingExpanded)}
             >
-              <h3 className="text-[11px] font-bold text-[var(--text-primary)] uppercase tracking-[0.2em] opacity-30 group-hover/section:opacity-60 transition-opacity">
+              <div
+                className={`flex-shrink-0 transition-transform duration-300 ${routingExpanded ? "rotate-90 text-[var(--accent-primary)]" : "text-[var(--text-dim)]"}`}
+              >
+                <ChevronRight className="w-4 h-4" />
+              </div>
+              <h3
+                className={`text-xs font-bold text-[var(--text-primary)] uppercase tracking-[0.15em] transition-opacity duration-200 ${routingExpanded ? "opacity-80" : "opacity-40 group-hover/section:opacity-60"}`}
+              >
                 {t.providers.routingProtocol}
               </h3>
-              <div className="h-px flex-1 bg-[var(--text-primary)]/5" />
-              <div
-                className={`p-1 rounded-lg hover:bg-[var(--text-primary)]/5 transition-all text-[var(--text-dim)] ${routingExpanded ? "rotate-180" : ""}`}
-              >
-                <ChevronDown className="w-3.5 h-3.5" />
-              </div>
+              <div className="flex-1" />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -1283,20 +1298,31 @@ export function Providers() {
 
           <section>
             <div
-              className="flex items-center gap-4 mb-6 cursor-pointer group/section"
+              className={`flex items-center gap-3 mb-6 cursor-pointer group/section px-4 py-3 rounded-xl border transition-all duration-200 ${
+                customExpanded
+                  ? "bg-[var(--text-primary)]/[0.05] border-[var(--glass-border-hover)]"
+                  : "bg-transparent border-transparent hover:bg-[var(--text-primary)]/[0.03] hover:border-[var(--glass-border)]"
+              }`}
               onClick={() => setCustomExpanded(!customExpanded)}
             >
-              <h3 className="text-[11px] font-bold text-[var(--text-primary)] uppercase tracking-[0.2em] opacity-30 group-hover/section:opacity-60 transition-opacity">
+              <div
+                className={`flex-shrink-0 transition-transform duration-300 ${customExpanded ? "rotate-90 text-[var(--accent-primary)]" : "text-[var(--text-dim)]"}`}
+              >
+                <ChevronRight className="w-4 h-4" />
+              </div>
+              <h3
+                className={`text-xs font-bold text-[var(--text-primary)] uppercase tracking-[0.15em] transition-opacity duration-200 ${customExpanded ? "opacity-80" : "opacity-40 group-hover/section:opacity-60"}`}
+              >
                 {t.providers.customManage}
               </h3>
-              <div className="h-px flex-1 bg-[var(--text-primary)]/5" />
+              <div className="flex-1" />
               <button
                 onClick={(event) => {
                   event.stopPropagation();
                   handleImportClick();
                 }}
                 disabled={isImporting}
-                className="glass-btn h-8 px-3 rounded-lg text-[10px] font-bold uppercase tracking-wider flex items-center gap-2"
+                className="glass-btn h-7 px-3 rounded-lg text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5"
               >
                 {isImporting ? (
                   <Loader2 className="w-3 h-3 animate-spin" />
@@ -1307,11 +1333,9 @@ export function Providers() {
                   ? t.providers.customImporting
                   : t.providers.customImport}
               </button>
-              <div
-                className={`p-1 rounded-lg hover:bg-[var(--text-primary)]/5 transition-all text-[var(--text-dim)] ${customExpanded ? "rotate-180" : ""}`}
-              >
-                <ChevronDown className="w-3.5 h-3.5" />
-              </div>
+              <span className="text-[10px] font-mono font-bold text-[var(--text-dim)] tabular-nums">
+                {customProviders.length}
+              </span>
             </div>
             {customProviders.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
