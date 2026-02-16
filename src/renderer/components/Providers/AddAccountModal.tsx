@@ -49,22 +49,25 @@ export const AddAccountModal = memo(function AddAccountModal({
     provider.id === "iflow";
 
   useEffect(() => {
-    if (isAuthUrlModalProvider && (window as any).electronAPI) {
+    if (isAuthUrlModalProvider && window.electronAPI) {
       if (provider.id === "gemini") {
         setAntigravityAuthUrl(null);
         return;
       }
 
-      const authGetters: Record<string, (() => Promise<any>) | undefined> = {
-        antigravity: (window as any).electronAPI.antigravity?.getAuthUrl,
-        codex: (window as any).electronAPI.codex?.getAuthUrl,
-        claude: (window as any).electronAPI.claude?.getAuthUrl,
-        qwen: (window as any).electronAPI.qwen?.getAuthUrl,
-        iflow: (window as any).electronAPI.iflow?.getAuthUrl,
+      const authGetters: Record<
+        string,
+        (() => Promise<{ status: string; url?: string }>) | undefined
+      > = {
+        antigravity: window.electronAPI.antigravity?.getAuthUrl,
+        codex: window.electronAPI.codex?.getAuthUrl,
+        claude: window.electronAPI.claude?.getAuthUrl,
+        qwen: window.electronAPI.qwen?.getAuthUrl,
+        iflow: window.electronAPI.iflow?.getAuthUrl,
       };
       const authGetter = authGetters[provider.id];
       if (authGetter) {
-        authGetter().then((res: any) => {
+        authGetter().then((res) => {
           if (res?.status === "ok" && res.url) {
             setAntigravityAuthUrl(res.url);
           }
@@ -91,9 +94,8 @@ export const AddAccountModal = memo(function AddAccountModal({
     let cancelled = false;
     const poll = async () => {
       try {
-        const status = await (window as any).electronAPI?.kiro?.getAuthStatus(
-          kiroAuthState,
-        );
+        const status =
+          await window.electronAPI?.kiro?.getAuthStatus(kiroAuthState);
         if (!status || cancelled) return;
 
         if (status.status === "device_code") {
@@ -104,15 +106,13 @@ export const AddAccountModal = memo(function AddAccountModal({
             setKiroUserCode(status.user_code);
           }
           if (status.verification_url && kiroPendingOpen) {
-            (window as any).electronAPI?.app.openExternal(
-              status.verification_url,
-            );
+            window.electronAPI?.app.openExternal(status.verification_url);
             setKiroPendingOpen(false);
           }
         } else if (status.status === "auth_url" && status.url) {
           setKiroVerificationUrl(status.url);
           if (kiroPendingOpen) {
-            (window as any).electronAPI?.app.openExternal(status.url);
+            window.electronAPI?.app.openExternal(status.url);
             setKiroPendingOpen(false);
           }
         } else if (status.status === "error" && status.error) {
@@ -158,7 +158,7 @@ export const AddAccountModal = memo(function AddAccountModal({
   const openAuthUrlInBrowser = (url: string) => {
     setAntigravityAuthUrl(url);
     setIsAntigravityAuthenticating(true);
-    (window as any).electronAPI?.app.openExternal(url);
+    window.electronAPI?.app.openExternal(url);
     setTimeout(() => {
       setIsAntigravityAuthenticating(false);
     }, 5000);
@@ -169,7 +169,7 @@ export const AddAccountModal = memo(function AddAccountModal({
       setIsLoading(true);
       setError(null);
       try {
-        const result = await (window as any).electronAPI?.gemini?.getAuthUrl(
+        const result = await window.electronAPI?.gemini?.getAuthUrl(
           projectId.trim() || undefined,
         );
         if (result?.status === "ok" && result.url) {
@@ -194,12 +194,15 @@ export const AddAccountModal = memo(function AddAccountModal({
       setIsLoading(true);
       setError(null);
       try {
-        const authGetters: Record<string, (() => Promise<any>) | undefined> = {
-          antigravity: (window as any).electronAPI.antigravity?.getAuthUrl,
-          codex: (window as any).electronAPI.codex?.getAuthUrl,
-          claude: (window as any).electronAPI.claude?.getAuthUrl,
-          qwen: (window as any).electronAPI.qwen?.getAuthUrl,
-          iflow: (window as any).electronAPI.iflow?.getAuthUrl,
+        const authGetters: Record<
+          string,
+          (() => Promise<{ status: string; url?: string }>) | undefined
+        > = {
+          antigravity: window.electronAPI?.antigravity?.getAuthUrl,
+          codex: window.electronAPI?.codex?.getAuthUrl,
+          claude: window.electronAPI?.claude?.getAuthUrl,
+          qwen: window.electronAPI?.qwen?.getAuthUrl,
+          iflow: window.electronAPI?.iflow?.getAuthUrl,
         };
         const authGetter = authGetters[provider.id];
         if (!authGetter) {
@@ -224,9 +227,7 @@ export const AddAccountModal = memo(function AddAccountModal({
     setIsLoading(true);
     setError(null);
     try {
-      const result = await (window as any).electronAPI?.api.startAuth(
-        provider.id as any,
-      );
+      const result = await window.electronAPI?.api.startAuth(provider.id);
       if (result?.success) {
         runCloseAnimation(() => {
           onAdd({
@@ -248,7 +249,7 @@ export const AddAccountModal = memo(function AddAccountModal({
     setIsLoading(true);
     setError(null);
     try {
-      const result = await (window as any).electronAPI?.kiro?.importToken();
+      const result = await window.electronAPI?.kiro?.importToken();
       if (result?.success) {
         runCloseAnimation(() => {
           onAdd({
@@ -275,7 +276,7 @@ export const AddAccountModal = memo(function AddAccountModal({
     setIsLoading(true);
     setError(null);
     try {
-      const result = await (window as any).electronAPI?.kiro?.importFromToken(
+      const result = await window.electronAPI?.kiro?.importFromToken(
         kiroTokenInput.trim(),
       );
       if (result?.success) {
@@ -309,7 +310,7 @@ export const AddAccountModal = memo(function AddAccountModal({
     setError(null);
 
     try {
-      const result = await (window as any).electronAPI?.kiro?.getAuthUrl({
+      const result = await window.electronAPI?.kiro?.getAuthUrl({
         method: mode,
         startUrl: mode === "idc" ? kiroIdcStartUrl.trim() : undefined,
         region:
@@ -334,7 +335,7 @@ export const AddAccountModal = memo(function AddAccountModal({
     setIsLoading(true);
     setError(null);
     try {
-      const result = await (window as any).electronAPI?.gemini?.getAuthUrl(
+      const result = await window.electronAPI?.gemini?.getAuthUrl(
         projectId.trim() || undefined,
       );
       if (result?.status === "ok") {
@@ -380,8 +381,8 @@ export const AddAccountModal = memo(function AddAccountModal({
     setIsLoading(true);
     setError(null);
     try {
-      const result = await (window as any).electronAPI?.api.validateApiKey(
-        provider.id as any,
+      const result = await window.electronAPI?.api.validateApiKey(
+        provider.id,
         apiKey,
       );
       if (result?.valid) {

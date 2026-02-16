@@ -1,4 +1,5 @@
 import fs from "fs";
+import fsp from "fs/promises";
 import path from "path";
 
 import log from "../utils/logger";
@@ -88,17 +89,21 @@ export interface TokenReadResult {
   raw: TokenFile;
 }
 
-export function scanTokenFiles(): TokenReadResult[] {
+export async function scanTokenFiles(): Promise<TokenReadResult[]> {
   const authDir = getActiveAuthDir();
   return readTokenFilesFromDir(authDir, true, true);
 }
 
-export function scanProviderTokenFiles(): TokenReadResult[] {
+export async function scanProviderTokenFiles(): Promise<TokenReadResult[]> {
   const activeAuthDir = getActiveAuthDir();
   const disabledAuthDir = getDisabledAuthDir(activeAuthDir);
 
-  const activeTokens = readTokenFilesFromDir(activeAuthDir, true, true);
-  const disabledTokens = readTokenFilesFromDir(disabledAuthDir, false, false);
+  const activeTokens = await readTokenFilesFromDir(activeAuthDir, true, true);
+  const disabledTokens = await readTokenFilesFromDir(
+    disabledAuthDir,
+    false,
+    false,
+  );
 
   log.info(
     `[TokenReader] Provider token scan active=${activeTokens.length}, disabled=${disabledTokens.length}`,
@@ -107,11 +112,11 @@ export function scanProviderTokenFiles(): TokenReadResult[] {
   return [...activeTokens, ...disabledTokens];
 }
 
-function readTokenFilesFromDir(
+async function readTokenFilesFromDir(
   authDir: string,
   enabled: boolean,
   warnIfMissing: boolean,
-): TokenReadResult[] {
+): Promise<TokenReadResult[]> {
   if (!fs.existsSync(authDir)) {
     if (warnIfMissing) {
       log.warn(`[TokenReader] Auth directory not found: ${authDir}`);
@@ -119,18 +124,18 @@ function readTokenFilesFromDir(
     return [];
   }
 
-  const files = fs.readdirSync(authDir);
+  const files = await fsp.readdir(authDir);
   const tokenFiles: TokenReadResult[] = [];
 
   for (const file of files) {
     if (!file.endsWith(".json")) continue;
 
     const filePath = path.join(authDir, file);
-    const stat = fs.statSync(filePath);
+    const stat = await fsp.stat(filePath);
 
     if (!stat.isFile()) continue;
 
-    const result = readTokenFile(filePath, enabled);
+    const result = await readTokenFile(filePath, enabled);
     if (result) {
       tokenFiles.push(result);
     }
@@ -196,12 +201,12 @@ function buildAccountKey(provider: ProviderType, filePath: string): string {
 /**
  * Read and parse a single token file
  */
-function readTokenFile(
+async function readTokenFile(
   filePath: string,
   enabled: boolean,
-): TokenReadResult | null {
+): Promise<TokenReadResult | null> {
   try {
-    const content = fs.readFileSync(filePath, "utf-8");
+    const content = await fsp.readFile(filePath, "utf-8");
     const data: TokenFile = JSON.parse(content);
     const filename = path.basename(filePath);
     const provider: ProviderType | null =
@@ -248,18 +253,23 @@ function readTokenFile(
 /**
  * Get tokens filtered by provider type
  */
-export function getTokensByProvider(provider: ProviderType): TokenReadResult[] {
-  return scanTokenFiles().filter((t) => t.provider === provider);
+export async function getTokensByProvider(
+  provider: ProviderType,
+): Promise<TokenReadResult[]> {
+  const tokens = await scanTokenFiles();
+  return tokens.filter((t) => t.provider === provider);
 }
 
 /**
  * Get unique providers with account counts
  */
-export function getProviderSummary(): Array<{
-  provider: ProviderType;
-  accountCount: number;
-}> {
-  const tokens = scanTokenFiles();
+export async function getProviderSummary(): Promise<
+  Array<{
+    provider: ProviderType;
+    accountCount: number;
+  }>
+> {
+  const tokens = await scanTokenFiles();
   const providerMap = new Map<ProviderType, number>();
 
   for (const token of tokens) {
@@ -276,12 +286,12 @@ export function getProviderSummary(): Array<{
 /**
  * Update a token file with new token data
  */
-export function updateTokenFile(
+export async function updateTokenFile(
   filePath: string,
   updates: Partial<TokenFile>,
-): boolean {
+): Promise<boolean> {
   try {
-    const content = fs.readFileSync(filePath, "utf-8");
+    const content = await fsp.readFile(filePath, "utf-8");
     const data: TokenFile = JSON.parse(content);
 
     const updatedData = {
@@ -290,7 +300,11 @@ export function updateTokenFile(
       last_refresh: new Date().toISOString(),
     };
 
-    fs.writeFileSync(filePath, JSON.stringify(updatedData, null, 2), "utf-8");
+    await fsp.writeFile(
+      filePath,
+      JSON.stringify(updatedData, null, 2),
+      "utf-8",
+    );
     log.info(`[TokenReader] Updated token file: ${filePath}`);
     return true;
   } catch (error) {

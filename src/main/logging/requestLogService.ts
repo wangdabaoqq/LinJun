@@ -1,4 +1,5 @@
 import fs from "fs";
+import fsp from "fs/promises";
 import path from "path";
 
 import log from "../utils/logger";
@@ -30,7 +31,9 @@ function isSuccessLog(name: string): boolean {
   return SUCCESS_PREFIXES.some((prefix) => name.startsWith(prefix));
 }
 
-export function readRecentRequestLogs(limit = 50): RequestLogEntry[] {
+export async function readRecentRequestLogs(
+  limit = 50,
+): Promise<RequestLogEntry[]> {
   const configDir = proxyManager.getConfigDir();
   const logDir = path.join(configDir, "logs");
 
@@ -38,22 +41,26 @@ export function readRecentRequestLogs(limit = 50): RequestLogEntry[] {
     return [];
   }
 
-  const files = fs
-    .readdirSync(logDir)
-    .filter((name) => isSuccessLog(name) || name.startsWith(ERROR_PREFIX))
-    .map((name) => {
+  const dirEntries = await fsp.readdir(logDir);
+  const candidates = dirEntries.filter(
+    (name) => isSuccessLog(name) || name.startsWith(ERROR_PREFIX),
+  );
+
+  const fileStats = await Promise.all(
+    candidates.map(async (name) => {
       const filePath = path.join(logDir, name);
-      const stat = fs.statSync(filePath);
+      const stat = await fsp.stat(filePath);
       const status: RequestLogStatus = isSuccessLog(name) ? "success" : "error";
       return { filePath, mtime: stat.mtimeMs, status };
-    })
-    .sort((a, b) => b.mtime - a.mtime)
-    .slice(0, limit);
+    }),
+  );
+
+  const files = fileStats.sort((a, b) => b.mtime - a.mtime).slice(0, limit);
 
   const entries: RequestLogEntry[] = [];
 
   for (const file of files) {
-    const entry = parseLogFile(file.filePath, file.status);
+    const entry = await parseLogFile(file.filePath, file.status);
     if (entry) {
       entries.push(entry);
     }
@@ -62,7 +69,10 @@ export function readRecentRequestLogs(limit = 50): RequestLogEntry[] {
   return entries;
 }
 
-export function deleteAllLogs(): { success: boolean; error?: string } {
+export async function deleteAllLogs(): Promise<{
+  success: boolean;
+  error?: string;
+}> {
   try {
     const configDir = proxyManager.getConfigDir();
     const logDir = path.join(configDir, "logs");
@@ -71,13 +81,12 @@ export function deleteAllLogs(): { success: boolean; error?: string } {
       return { success: true };
     }
 
-    const files = fs
-      .readdirSync(logDir)
-      .filter((name) => isSuccessLog(name) || name.startsWith(ERROR_PREFIX));
+    const dirEntries = await fsp.readdir(logDir);
+    const files = dirEntries.filter(
+      (name) => isSuccessLog(name) || name.startsWith(ERROR_PREFIX),
+    );
 
-    for (const file of files) {
-      fs.unlinkSync(path.join(logDir, file));
-    }
+    await Promise.all(files.map((file) => fsp.unlink(path.join(logDir, file))));
 
     log.info(`[Logs] Deleted ${files.length} log files`);
     return { success: true };
@@ -87,12 +96,12 @@ export function deleteAllLogs(): { success: boolean; error?: string } {
   }
 }
 
-function parseLogFile(
+async function parseLogFile(
   filePath: string,
   status: RequestLogStatus,
-): RequestLogEntry | null {
+): Promise<RequestLogEntry | null> {
   try {
-    const content = fs.readFileSync(filePath, "utf-8");
+    const content = await fsp.readFile(filePath, "utf-8");
     const requestInfo = extractSection(content, "=== REQUEST INFO ===");
     const requestBodySection = extractSection(content, "=== REQUEST BODY ===");
     const apiRequestSection = findFirstApiRequestSection(content);

@@ -224,7 +224,7 @@ export async function fetchAntigravityUsage(
         throw new Error("Failed to get project ID from loadCodeAssist");
       }
 
-      updateTokenFile(token.filePath, {
+      await updateTokenFile(token.filePath, {
         project_id: projectId,
         tier_id: tier?.id,
         tier_name: tier?.name,
@@ -255,7 +255,7 @@ export async function fetchAntigravityUsage(
       const newTokens = await refreshAntigravityToken(token.refreshToken);
       accessToken = newTokens.access_token;
 
-      updateTokenFile(token.filePath, {
+      await updateTokenFile(token.filePath, {
         access_token: newTokens.access_token,
         expires_in: newTokens.expires_in,
         timestamp: Date.now(),

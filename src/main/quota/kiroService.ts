@@ -171,7 +171,7 @@ export async function getKiroUsage(
         const usage = await fetchKiroUsage(newAccessToken);
         const expiresAt = getAssumedKiroExpiresAt();
 
-        updateTokenFile(token.filePath, {
+        await updateTokenFile(token.filePath, {
           // Keep both schemas in sync (cliproxy uses snake_case;
           // older imports and our UI may still produce camelCase).
           access_token: newAccessToken,
@@ -217,7 +217,7 @@ export async function isKiroTokenValid(
 
         await fetchKiroUsage(newAccessToken);
         const expiresAt = getAssumedKiroExpiresAt();
-        updateTokenFile(token.filePath, {
+        await updateTokenFile(token.filePath, {
           access_token: newAccessToken,
           accessToken: newAccessToken,
           expires_at: expiresAt,
@@ -248,7 +248,7 @@ export async function refreshKiroTokenManually(
 
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
 
-    updateTokenFile(token.filePath, {
+    await updateTokenFile(token.filePath, {
       access_token: newAccessToken,
       accessToken: newAccessToken,
       expires_at: expiresAt,

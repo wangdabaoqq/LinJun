@@ -20,7 +20,8 @@ function shouldRefreshKiroToken(
 
 async function refreshKiroTokensOnce(): Promise<void> {
   const nowMs = Date.now();
-  const tokens = scanTokenFiles().filter((t) => t.provider === "kiro");
+  const allTokens = await scanTokenFiles();
+  const tokens = allTokens.filter((t) => t.provider === "kiro");
 
   for (const token of tokens) {
     if (!shouldRefreshKiroToken(token, nowMs)) continue;

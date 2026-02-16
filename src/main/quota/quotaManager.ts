@@ -453,14 +453,14 @@ function createErrorQuotaAccount(
 }
 
 export async function getProviders(): Promise<ProviderInfo[]> {
-  const summary = getProviderSummary();
+  const summary = await getProviderSummary();
   const results: ProviderInfo[] = [];
 
   for (const { provider, accountCount } of summary) {
     let validCount = accountCount;
 
     if (provider === "kiro") {
-      const tokens = getTokensByProvider(provider);
+      const tokens = await getTokensByProvider(provider);
       let validKiroCount = 0;
       for (const token of tokens) {
         if (isKiroRefreshBlocked(token.filePath)) {
@@ -500,7 +500,7 @@ export async function getProviders(): Promise<ProviderInfo[]> {
 export async function getQuotaByProvider(
   provider: ProviderType,
 ): Promise<QuotaAccount[]> {
-  const tokens = getTokensByProvider(provider);
+  const tokens = await getTokensByProvider(provider);
   const results: QuotaAccount[] = [];
   const providerCounts = new Map<string, number>();
 
@@ -695,7 +695,7 @@ export async function refreshQuota(
       return createCustomAccountError(email, getCustomUsageErrorMessage(error));
     }
   }
-  const tokens = scanTokenFiles();
+  const tokens = await scanTokenFiles();
   const token = tokens.find(
     (t) => t.provider === provider && t.email === email,
   );

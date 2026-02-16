@@ -97,7 +97,7 @@ export async function fetchCodexUsage(
 
       const newTokens = await refreshCodexToken(token.refreshToken);
 
-      updateTokenFile(token.filePath, {
+      await updateTokenFile(token.filePath, {
         access_token: newTokens.access_token,
         refresh_token: newTokens.refresh_token,
       });

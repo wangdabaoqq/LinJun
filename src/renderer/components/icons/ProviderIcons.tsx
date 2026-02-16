@@ -26,6 +26,15 @@ import Stepfun from "@lobehub/icons/es/Stepfun";
 import Ollama from "@lobehub/icons/es/Ollama";
 import ZenMux from "@lobehub/icons/es/ZenMux";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type LobehubIcon = Record<string, any> & React.ComponentType<any>;
+
+function colorVariant(
+  icon: LobehubIcon,
+): React.ComponentType<{ size?: number }> {
+  return (icon.Color || icon) as React.ComponentType<{ size?: number }>;
+}
+
 export {
   Claude,
   OpenAI,
@@ -153,99 +162,124 @@ export function getProviderIcon(
 
   switch (id) {
     case "claude":
-    case "anthropic":
-      const ClaudeIcon = (Claude as any).Color || Claude;
-      return <ClaudeIcon size={size} />;
+    case "anthropic": {
+      const ClaudeColor = colorVariant(Claude);
+      return <ClaudeColor size={size} />;
+    }
     case "codex":
-    case "openai":
-      const OpenAIIcon = (OpenAI as any).Color || OpenAI;
-      return <OpenAIIcon size={size} />;
+    case "openai": {
+      const OpenAIColor = colorVariant(OpenAI);
+      return <OpenAIColor size={size} />;
+    }
     case "gemini":
-    case "google":
-      const GeminiIcon = (Gemini as any).Color || Gemini;
-      return <GeminiIcon size={size} />;
+    case "google": {
+      const GeminiColor = colorVariant(Gemini);
+      return <GeminiColor size={size} />;
+    }
     case "antigravity":
       return <AntigravityIcon className={className} />;
-    case "copilot":
-      const CopilotIcon = (GithubCopilot as any).Color || GithubCopilot;
-      return <CopilotIcon size={size} />;
-    case "qwen":
-      const QwenIcon = (Qwen as any).Color || Qwen;
-      return <QwenIcon size={size} />;
-    case "deepseek":
-      const DeepSeekIcon = (DeepSeek as any).Color || DeepSeek;
-      return <DeepSeekIcon size={size} />;
+    case "copilot": {
+      const CopilotColor = colorVariant(GithubCopilot);
+      return <CopilotColor size={size} />;
+    }
+    case "qwen": {
+      const QwenColor = colorVariant(Qwen);
+      return <QwenColor size={size} />;
+    }
+    case "deepseek": {
+      const DeepSeekColor = colorVariant(DeepSeek);
+      return <DeepSeekColor size={size} />;
+    }
     case "meta":
-    case "llama":
-      const MetaIcon = (Meta as any).Color || Meta;
-      return <MetaIcon size={size} />;
-    case "mistral":
-      const MistralIcon = (Mistral as any).Color || Mistral;
-      return <MistralIcon size={size} />;
-    case "perplexity":
-      const PerplexityIcon = (Perplexity as any).Color || Perplexity;
-      return <PerplexityIcon size={size} />;
+    case "llama": {
+      const MetaColor = colorVariant(Meta);
+      return <MetaColor size={size} />;
+    }
+    case "mistral": {
+      const MistralColor = colorVariant(Mistral);
+      return <MistralColor size={size} />;
+    }
+    case "perplexity": {
+      const PerplexityColor = colorVariant(Perplexity);
+      return <PerplexityColor size={size} />;
+    }
     case "grok":
-    case "xai":
-      const GrokIcon = (Grok as any).Color || Grok;
-      return <GrokIcon size={size} />;
+    case "xai": {
+      const GrokColor = colorVariant(Grok);
+      return <GrokColor size={size} />;
+    }
     case "zhipu":
     case "glm":
-    case "zai":
-      const ZAI_Icon = (ZAI as any).Color || ZAI;
-      return <ZAI_Icon size={size} />;
-    case "minimax":
-      const MinimaxIcon = (Minimax as any).Color || Minimax;
-      return <MinimaxIcon size={size} />;
+    case "zai": {
+      const ZAIColor = colorVariant(ZAI);
+      return <ZAIColor size={size} />;
+    }
+    case "minimax": {
+      const MinimaxColor = colorVariant(Minimax);
+      return <MinimaxColor size={size} />;
+    }
     case "huggingface":
     case "hf":
-    case "hugging":
-      const HF_Icon = (HuggingFace as any).Color || HuggingFace;
-      return <HF_Icon size={size} />;
-    case "nvidia":
-      const NvidiaIcon = (Nvidia as any).Color || Nvidia;
-      return <NvidiaIcon size={size} />;
+    case "hugging": {
+      const HFColor = colorVariant(HuggingFace);
+      return <HFColor size={size} />;
+    }
+    case "nvidia": {
+      const NvidiaColor = colorVariant(Nvidia);
+      return <NvidiaColor size={size} />;
+    }
     case "amazon":
-    case "bedrock":
-      const BedrockIcon = (Bedrock as any).Color || Bedrock;
-      return <BedrockIcon size={size} />;
-    case "azure":
-      const AzureIcon = (Azure as any).Color || Azure;
-      return <AzureIcon size={size} />;
+    case "bedrock": {
+      const BedrockColor = colorVariant(Bedrock);
+      return <BedrockColor size={size} />;
+    }
+    case "azure": {
+      const AzureColor = colorVariant(Azure);
+      return <AzureColor size={size} />;
+    }
     case "siliconcloud":
-    case "silicon":
-      const SiliconIcon = (SiliconCloud as any).Color || SiliconCloud;
-      return <SiliconIcon size={size} />;
-    case "vercel":
-      const VercelIcon = (Vercel as any).Color || Vercel;
-      return <VercelIcon size={size} />;
+    case "silicon": {
+      const SiliconColor = colorVariant(SiliconCloud);
+      return <SiliconColor size={size} />;
+    }
+    case "vercel": {
+      const VercelColor = colorVariant(Vercel);
+      return <VercelColor size={size} />;
+    }
     case "kimi":
-    case "kim":
-      const KimiIcon = (Kimi as any).Color || Kimi;
-      return <KimiIcon size={size} />;
-    case "moonshot":
-      const MoonshotIcon = (Moonshot as any).Color || Moonshot;
-      return <MoonshotIcon size={size} />;
+    case "kim": {
+      const KimiColor = colorVariant(Kimi);
+      return <KimiColor size={size} />;
+    }
+    case "moonshot": {
+      const MoonshotColor = colorVariant(Moonshot);
+      return <MoonshotColor size={size} />;
+    }
     case "xiaomimimo":
     case "mimo":
       return <XiaomiMiMoIcon className={className} />;
-    case "baichuan":
-      const BaichuanIcon = (Baichuan as any).Color || Baichuan;
-      return <BaichuanIcon size={size} />;
+    case "baichuan": {
+      const BaichuanColor = colorVariant(Baichuan);
+      return <BaichuanColor size={size} />;
+    }
     case "spark":
-    case "xfyun":
-      const SparkIcon = (Spark as any).Color || Spark;
-      return <SparkIcon size={size} />;
+    case "xfyun": {
+      const SparkColor = colorVariant(Spark);
+      return <SparkColor size={size} />;
+    }
     case "stepfun":
-    case "step":
-      const StepfunIcon = (Stepfun as any).Color || Stepfun;
-      return <StepfunIcon size={size} />;
-    case "ollama":
-      const OllamaIcon = (Ollama as any).Color || Ollama;
-      return <OllamaIcon size={size} />;
-    case "zenmux":
-      const ZenMuxIcon = (ZenMux as any).Color || ZenMux;
-      return <ZenMuxIcon size={size} />;
+    case "step": {
+      const StepfunColor = colorVariant(Stepfun);
+      return <StepfunColor size={size} />;
+    }
+    case "ollama": {
+      const OllamaColor = colorVariant(Ollama);
+      return <OllamaColor size={size} />;
+    }
+    case "zenmux": {
+      const ZenMuxColor = colorVariant(ZenMux);
+      return <ZenMuxColor size={size} />;
+    }
 
     case "kiro":
       return <KiroIcon className={className} />;
@@ -253,12 +287,13 @@ export function getProviderIcon(
       return <IFlowIcon className={className} />;
     case "custom":
       return <CustomIcon className={className} />;
-    default:
+    default: {
       const inferred = inferProviderFromLabel(providerId);
       if (inferred !== "custom") {
         return getProviderIcon(inferred, className, size);
       }
       return <CustomIcon className={className} />;
+    }
   }
 }
 
@@ -270,19 +305,23 @@ export function getCustomProviderIcon(
   const protocol = (type || "").toLowerCase();
 
   switch (protocol) {
-    case "openai":
-      const OpenAIIcon = (OpenAI as any).Color || OpenAI;
+    case "openai": {
+      const OpenAIIcon = colorVariant(OpenAI);
       return <OpenAIIcon size={size} />;
-    case "claude":
-      const ClaudeIcon = (Claude as any).Color || Claude;
+    }
+    case "claude": {
+      const ClaudeIcon = colorVariant(Claude);
       return <ClaudeIcon size={size} />;
+    }
     case "gemini":
-    case "google":
-      const GeminiIcon = (Gemini as any).Color || Gemini;
+    case "google": {
+      const GeminiIcon = colorVariant(Gemini);
       return <GeminiIcon size={size} />;
-    case "codex":
-      const OpenAIIcon2 = (OpenAI as any).Color || OpenAI;
-      return <OpenAIIcon2 size={size} />;
+    }
+    case "codex": {
+      const CodexIcon = colorVariant(OpenAI);
+      return <CodexIcon size={size} />;
+    }
     case "ampcode":
       return <CustomIcon className={className} />;
     default:

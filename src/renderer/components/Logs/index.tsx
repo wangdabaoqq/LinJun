@@ -1,6 +1,5 @@
-import { useState, useEffect, useRef, useMemo, useCallback, memo } from "react";
+import { useState, useRef, useMemo, useCallback, memo } from "react";
 import log from "@renderer/utils/logger";
-import { createPortal } from "react-dom";
 import {
   RotateCw,
   Trash2,
@@ -19,6 +18,14 @@ import { getProviderIcon } from "../icons/ProviderIcons";
 import { useRequestLogs } from "../../hooks/useRequestLogs";
 import { RequestLogEntry } from "../../types/logs";
 import { ConfirmModal } from "../ui/ConfirmModal";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+  SelectSeparator,
+} from "../ui/select";
 
 const JsonViewer = ({ data }: { data: string }) => {
   const t = useTranslations();
@@ -245,13 +252,6 @@ export function Logs() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [isProviderOpen, setIsProviderOpen] = useState(false);
-  const providerButtonRef = useRef<HTMLButtonElement>(null);
-  const [dropdownPosition, setDropdownPosition] = useState({
-    top: 0,
-    left: 0,
-    width: 0,
-  });
   const { logs, refresh } = useRequestLogs(200);
   const scrollParentRef = useRef<HTMLDivElement>(null);
 
@@ -282,46 +282,6 @@ export function Logs() {
   const handleSelectLog = useCallback((entry: RequestLogEntry) => {
     setSelectedLog(entry);
   }, []);
-
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        providerButtonRef.current &&
-        !providerButtonRef.current.contains(event.target as Node) &&
-        !(event.target as Element).closest(".provider-dropdown")
-      ) {
-        setIsProviderOpen(false);
-      }
-    }
-
-    if (isProviderOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-      window.addEventListener("scroll", updateDropdownPosition, true);
-      window.addEventListener("resize", updateDropdownPosition);
-      updateDropdownPosition();
-    } else {
-      document.removeEventListener("mousedown", handleClickOutside);
-      window.removeEventListener("scroll", updateDropdownPosition, true);
-      window.removeEventListener("resize", updateDropdownPosition);
-    }
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-      window.removeEventListener("scroll", updateDropdownPosition, true);
-      window.removeEventListener("resize", updateDropdownPosition);
-    };
-  }, [isProviderOpen]);
-
-  const updateDropdownPosition = () => {
-    if (providerButtonRef.current) {
-      const rect = providerButtonRef.current.getBoundingClientRect();
-      setDropdownPosition({
-        top: rect.bottom + 8,
-        left: rect.left,
-        width: Math.max(rect.width, 192),
-      });
-    }
-  };
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -458,87 +418,35 @@ export function Logs() {
 
           <div className="h-6 w-px bg-[var(--glass-border)] hidden sm:block mx-1 opacity-50" />
 
-          <div className="relative">
-            <button
-              ref={providerButtonRef}
-              onClick={() => {
-                if (!isProviderOpen) updateDropdownPosition();
-                setIsProviderOpen(!isProviderOpen);
-              }}
-              className={`relative pl-4 pr-10 py-2 rounded-xl text-xs font-medium transition-all duration-300 border backdrop-blur-md min-w-[140px] text-left group outline-none focus:outline-none focus:ring-0 ${
-                isProviderOpen
-                  ? "bg-[var(--accent-primary)]/10 border-[var(--accent-primary)]/30 text-[var(--accent-primary)] shadow-[0_0_15px_-5px_var(--accent-primary)]"
-                  : "bg-[var(--bg-secondary)]/30 border-[var(--glass-border)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]/50 hover:border-[var(--glass-border-hover)] shadow-sm"
-              }`}
-            >
-              <span className="block truncate">
+          <Select value={providerFilter} onValueChange={setProviderFilter}>
+            <SelectTrigger className="relative pl-4 pr-10 py-2 rounded-xl text-xs font-medium transition-all duration-300 border backdrop-blur-md min-w-[140px] text-left h-auto bg-[var(--bg-secondary)]/30 border-[var(--glass-border)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]/50 hover:border-[var(--glass-border-hover)] shadow-sm data-[state=open]:bg-[var(--accent-primary)]/10 data-[state=open]:border-[var(--accent-primary)]/30 data-[state=open]:text-[var(--accent-primary)] data-[state=open]:shadow-[0_0_15px_-5px_var(--accent-primary)] outline-none focus:outline-none focus:ring-0">
+              <SelectValue>
                 {providerFilter === "all"
                   ? t.logs.allProviders
                   : providerFilter}
-              </span>
-              <ChevronDown
-                className={`absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 transition-transform duration-300 ${
-                  isProviderOpen
-                    ? "rotate-180 text-[var(--accent-primary)]"
-                    : "text-[var(--text-dim)] group-hover:text-[var(--text-muted)]"
-                }`}
-              />
-            </button>
-
-            {isProviderOpen &&
-              createPortal(
-                <div
-                  className="provider-dropdown fixed max-h-[300px] overflow-y-auto custom-scrollbar bg-[var(--bg-primary)]/95 backdrop-blur-xl border border-[var(--glass-border)] rounded-xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.8)] z-[100] py-1 animate-in fade-in zoom-in-95 duration-200 ring-1 ring-[var(--glass-border)]"
-                  style={{
-                    top: dropdownPosition.top,
-                    left: dropdownPosition.left,
-                    minWidth: dropdownPosition.width,
-                  }}
-                >
-                  <div
-                    onClick={() => {
-                      setProviderFilter("all");
-                      setIsProviderOpen(false);
-                    }}
-                    className={`px-3 py-2 text-xs cursor-pointer transition-colors flex items-center justify-between group ${
-                      providerFilter === "all"
-                        ? "bg-[var(--accent-primary)]/10 text-[var(--accent-primary)]"
-                        : "text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--accent-primary)]/5"
-                    }`}
-                  >
-                    <span>{t.logs.allProviders}</span>
-                    {providerFilter === "all" && (
-                      <Check className="w-3 h-3 text-[var(--accent-primary)]" />
-                    )}
-                  </div>
-
-                  {uniqueProviders.length > 0 && (
-                    <div className="h-px bg-[var(--glass-border)] mx-2 my-1 opacity-50" />
-                  )}
-
-                  {uniqueProviders.map((provider) => (
-                    <div
-                      key={provider}
-                      onClick={() => {
-                        setProviderFilter(provider);
-                        setIsProviderOpen(false);
-                      }}
-                      className={`px-3 py-2 text-xs cursor-pointer transition-colors flex items-center justify-between group ${
-                        providerFilter === provider
-                          ? "bg-[var(--accent-primary)]/10 text-[var(--accent-primary)]"
-                          : "text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--accent-primary)]/5"
-                      }`}
-                    >
-                      <span className="truncate">{provider}</span>
-                      {providerFilter === provider && (
-                        <Check className="w-3 h-3 text-[var(--accent-primary)]" />
-                      )}
-                    </div>
-                  ))}
-                </div>,
-                document.body,
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent className="max-h-[300px] overflow-y-auto custom-scrollbar bg-[var(--bg-primary)]/95 backdrop-blur-xl border border-[var(--glass-border)] rounded-xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.8)] z-[100] ring-1 ring-[var(--glass-border)]">
+              <SelectItem
+                value="all"
+                className="px-3 py-2 text-xs cursor-pointer transition-colors data-[state=checked]:bg-[var(--accent-primary)]/10 data-[state=checked]:text-[var(--accent-primary)] text-[var(--text-muted)] focus:text-[var(--text-primary)] focus:bg-[var(--accent-primary)]/5"
+              >
+                {t.logs.allProviders}
+              </SelectItem>
+              {uniqueProviders.length > 0 && (
+                <SelectSeparator className="mx-2 my-1 opacity-50" />
               )}
-          </div>
+              {uniqueProviders.map((provider) => (
+                <SelectItem
+                  key={provider}
+                  value={provider}
+                  className="px-3 py-2 text-xs cursor-pointer transition-colors data-[state=checked]:bg-[var(--accent-primary)]/10 data-[state=checked]:text-[var(--accent-primary)] text-[var(--text-muted)] focus:text-[var(--text-primary)] focus:bg-[var(--accent-primary)]/5"
+                >
+                  {provider}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
           <div className="flex items-center gap-2 ml-auto xl:ml-0 pl-2">
             <button

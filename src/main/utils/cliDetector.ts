@@ -1,6 +1,7 @@
 import { exec } from "child_process";
 import { promisify } from "util";
 import fs from "fs";
+import fsp from "fs/promises";
 import path from "path";
 import os from "os";
 import http, { IncomingMessage } from "http";
@@ -237,7 +238,7 @@ export async function readCLIConfig(toolName: string): Promise<CLIConfig> {
 
   if (configPath && fs.existsSync(configPath)) {
     try {
-      result.configContent = fs.readFileSync(configPath, "utf-8");
+      result.configContent = await fsp.readFile(configPath, "utf-8");
     } catch (error) {
       log.error(`[CLIDetector] Failed to read config: ${configPath}`, error);
     }
@@ -245,7 +246,7 @@ export async function readCLIConfig(toolName: string): Promise<CLIConfig> {
 
   if (authPath && fs.existsSync(authPath)) {
     try {
-      result.authContent = fs.readFileSync(authPath, "utf-8");
+      result.authContent = await fsp.readFile(authPath, "utf-8");
     } catch (error) {
       log.error(`[CLIDetector] Failed to read auth: ${authPath}`, error);
     }
@@ -257,7 +258,7 @@ export async function readCLIConfig(toolName: string): Promise<CLIConfig> {
 /**
  * 备份配置文件
  */
-export function backupConfig(filePath: string): string | null {
+export async function backupConfig(filePath: string): Promise<string | null> {
   if (!fs.existsSync(filePath)) {
     return null;
   }
@@ -266,7 +267,7 @@ export function backupConfig(filePath: string): string | null {
   const backupPath = `${filePath}.backup-${timestamp}`;
 
   try {
-    fs.copyFileSync(filePath, backupPath);
+    await fsp.copyFile(filePath, backupPath);
     log.info(`[CLIDetector] Backed up ${filePath} to ${backupPath}`);
     return backupPath;
   } catch (error) {
@@ -278,26 +279,23 @@ export function backupConfig(filePath: string): string | null {
 /**
  * 写入配置文件（会先备份现有文件）
  */
-export function writeConfig(
+export async function writeConfig(
   filePath: string,
   content: string,
   backup = true,
-): { success: boolean; backupPath?: string; error?: string } {
+): Promise<{ success: boolean; backupPath?: string; error?: string }> {
   try {
-    // 确保目录存在
     const dir = path.dirname(filePath);
     if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
+      await fsp.mkdir(dir, { recursive: true });
     }
 
-    // 备份现有文件
     let backupPath: string | null = null;
     if (backup && fs.existsSync(filePath)) {
-      backupPath = backupConfig(filePath);
+      backupPath = await backupConfig(filePath);
     }
 
-    // 写入新配置
-    fs.writeFileSync(filePath, content, "utf-8");
+    await fsp.writeFile(filePath, content, "utf-8");
     log.info(`[CLIDetector] Wrote config to ${filePath}`);
 
     return {
