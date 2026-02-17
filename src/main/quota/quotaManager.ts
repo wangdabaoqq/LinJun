@@ -286,6 +286,7 @@ function convertAntigravityUsageToQuotaAccount(
 
   const preferredModelOrder = [
     "gemini-3-pro-image",
+    "claude-opus-4-6-thinking",
     "claude-opus-4-5-thinking",
     "gemini-3-flash",
     "gemini-3-pro-high",
