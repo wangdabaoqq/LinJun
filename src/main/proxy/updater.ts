@@ -570,24 +570,38 @@ async function extractArchive(
 
   if (lower.endsWith(".zip")) {
     if (process.platform === "win32") {
+      const escapedArchivePath = archivePath.replace(/'/g, "''");
+      const escapedExtractDir = extractDir.replace(/'/g, "''");
+      const powershellCommand = `Expand-Archive -LiteralPath '${escapedArchivePath}' -DestinationPath '${escapedExtractDir}' -Force`;
+
       const powershellResult = spawnSync(
-        "powershell",
-        [
-          "-NoProfile",
-          "-NonInteractive",
-          "-Command",
-          "Expand-Archive -LiteralPath $args[0] -DestinationPath $args[1] -Force",
-          archivePath,
-          extractDir,
-        ],
+        "powershell.exe",
+        ["-NoProfile", "-NonInteractive", "-Command", powershellCommand],
         {
-          stdio: "ignore",
+          stdio: "pipe",
+          encoding: "utf-8",
           timeout: 60000,
         },
       );
 
       if (powershellResult.status !== 0) {
-        throw new Error("Failed to extract zip archive");
+        const tarResult = spawnSync(
+          "tar",
+          ["-xf", archivePath, "-C", extractDir],
+          {
+            stdio: "pipe",
+            encoding: "utf-8",
+            timeout: 60000,
+          },
+        );
+
+        if (tarResult.status !== 0) {
+          const powershellError = (powershellResult.stderr || "").trim();
+          const tarError = (tarResult.stderr || "").trim();
+          throw new Error(
+            `Failed to extract zip archive (powershell: ${powershellError || "unknown"}; tar: ${tarError || "unknown"})`,
+          );
+        }
       }
 
       return;
