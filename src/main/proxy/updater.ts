@@ -809,7 +809,7 @@ export async function updateProxyBinaryAndRestart(
       await proxyManager.start();
     }
 
-    const latestInfo = await checkProxyBinaryUpdate();
+    const updatedVersion = getCurrentBinaryVersion();
     reportProgress(onProgress, {
       stage: "completed",
       percent: 100,
@@ -817,8 +817,10 @@ export async function updateProxyBinaryAndRestart(
     });
 
     return {
-      ...latestInfo,
       hasUpdate: false,
+      currentVersion: updatedVersion,
+      latestVersion: checkResult.latestVersion,
+      releaseUrl: checkResult.releaseUrl,
       success: true,
       updated: true,
       restarted: wasRunning,
