@@ -75,7 +75,8 @@ linux:
         - "!.DS_Store"
         - "!.gitkeep"
         - "!static"
-  icon: resources/icon.png
+  icon: resources/icons/icons
+  executableName: linjun
   category: Development
   target:
     - target: AppImage
