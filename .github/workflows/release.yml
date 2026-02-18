@@ -89,9 +89,9 @@ jobs:
             SRC_NAME="cli-proxy-api-plus"
           fi
 
-          LATEST_TAG=$(curl -sH "Authorization: token $GH_TOKEN" \
-            https://api.github.com/repos/router-for-me/CLIProxyAPIPlus/releases/latest \
-            | grep -o '"tag_name": "[^"]*"' | cut -d'"' -f4)
+          LATEST_TAG=$(curl -sIL -o /dev/null -w '%{url_effective}' \
+            https://github.com/router-for-me/CLIProxyAPIPlus/releases/latest \
+            | grep -o '[^/]*$')
           VERSION="${LATEST_TAG#v}"
 
           DOWNLOAD_URL="https://github.com/router-for-me/CLIProxyAPIPlus/releases/download/${LATEST_TAG}/CLIProxyAPIPlus_${VERSION}_${{ matrix.cli-platform }}_${{ matrix.cli-arch }}.${EXT}"
