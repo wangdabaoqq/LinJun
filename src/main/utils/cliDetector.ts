@@ -1,4 +1,4 @@
-import { exec } from "child_process";
+import { exec, execSync } from "child_process";
 import { promisify } from "util";
 import fs from "fs";
 import fsp from "fs/promises";
@@ -10,6 +10,92 @@ import https from "https";
 import log from "./logger";
 
 const execAsync = promisify(exec);
+
+/**
+ * 查找 npm 全局 bin 目录
+ */
+function findNpmGlobalBin(): string | null {
+  try {
+    const prefix = execSync("npm config get prefix", {
+      timeout: 5000,
+      encoding: "utf-8",
+      env: {
+        ...process.env,
+        PATH: process.env.PATH || "/usr/local/bin:/usr/bin:/bin",
+      },
+    }).trim();
+    if (prefix) {
+      const binDir = path.join(prefix, "bin");
+      if (fs.existsSync(binDir)) {
+        return binDir;
+      }
+    }
+  } catch {
+    // npm not available
+  }
+  return null;
+}
+
+/**
+ * 查找 fnm 管理的默认 node 版本 bin 目录
+ * fnm 运行时路径 /run/user/<uid>/Fnm_multishells/ 是临时的，
+ * 需要从 fnm 安装目录找到 default alias 对应的实际版本 bin。
+ */
+function findFnmNodeBin(): string | null {
+  const homeDir = os.homedir();
+  const fnmDir =
+    process.env.FNM_DIR || path.join(homeDir, ".local", "share", "fnm");
+  const aliasDir = path.join(fnmDir, "aliases", "default");
+
+  if (fs.existsSync(aliasDir)) {
+    try {
+      const resolved = fs.realpathSync(aliasDir);
+      const binPath = path.join(resolved, "bin");
+      if (fs.existsSync(binPath)) {
+        return binPath;
+      }
+    } catch {
+      // alias symlink broken
+    }
+  }
+
+  const versionsDir = path.join(fnmDir, "node-versions");
+  if (!fs.existsSync(versionsDir)) {
+    return null;
+  }
+
+  try {
+    const versions = fs
+      .readdirSync(versionsDir)
+      .filter((v) => v.startsWith("v"))
+      .sort((a, b) => {
+        const parse = (v: string) =>
+          v
+            .slice(1)
+            .split(".")
+            .map((n) => parseInt(n, 10) || 0);
+        const [aM, am, ap] = parse(a);
+        const [bM, bm, bp] = parse(b);
+        return bM - aM || bm - am || bp - ap;
+      });
+
+    if (versions.length > 0) {
+      const binPath = path.join(
+        versionsDir,
+        versions[0],
+        "installation",
+        "bin",
+      );
+      if (fs.existsSync(binPath)) {
+        return binPath;
+      }
+    }
+  } catch {
+    // fnm versions not readable
+  }
+
+  return null;
+}
 
 /**
  * 查找 nvm 管理的最新 node 版本的 bin 目录
@@ -78,12 +164,23 @@ function getEnhancedPath(): string {
         `${homeDir}/.bun/bin`,
         "/usr/local/go/bin",
         `${homeDir}/go/bin`,
+        `${homeDir}/.volta/bin`,
+        `${homeDir}/.asdf/shims`,
+        `${homeDir}/.local/share/mise/shims`,
       ];
 
   if (!isWindows) {
     const nvmBin = process.env.NVM_BIN || findNvmNodeBin();
     if (nvmBin) {
       additionalPaths.push(nvmBin);
+    }
+    const fnmBin = findFnmNodeBin();
+    if (fnmBin) {
+      additionalPaths.push(fnmBin);
+    }
+    const npmBin = findNpmGlobalBin();
+    if (npmBin) {
+      additionalPaths.push(npmBin);
     }
   }
 
@@ -319,6 +416,9 @@ export async function writeConfig(
  * 检测所有支持的 CLI 工具
  */
 export async function detectAllCLITools(): Promise<CLIToolInfo[]> {
+  const enhancedPath = getEnhancedPath();
+  log.info("[CLIDetector] Enhanced PATH:", enhancedPath);
+
   const tools = [
     { name: "Claude Code", command: "claude" },
     { name: "Codex CLI", command: "codex" },
