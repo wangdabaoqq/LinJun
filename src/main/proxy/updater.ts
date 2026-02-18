@@ -133,6 +133,14 @@ function getCurrentTarget(): PlatformTarget {
     };
   }
 
+  if (platform === "linux" && arch === "arm64") {
+    return {
+      dir: "linux-arm64",
+      binaryName: "cliproxy",
+      matcher: /linux.*(arm64|aarch64)|(arm64|aarch64).*linux/i,
+    };
+  }
+
   if (platform === "win32" && arch === "x64") {
     return {
       dir: "win32-x64",

@@ -13,6 +13,7 @@ import { TrayWindow } from "./TrayWindow";
 import { APP_NAME_ZH } from "../../shared/constants";
 
 const isWindows = process.platform === "win32";
+const isLinux = process.platform === "linux";
 
 export class TrayManager {
   private static instance: TrayManager;
@@ -36,7 +37,9 @@ export class TrayManager {
     if (this.tray) return;
 
     this.mainWindow = mainWindow;
-    this.trayWindow = new TrayWindow();
+    if (!isLinux) {
+      this.trayWindow = new TrayWindow();
+    }
     this.isRunning = proxyManager.isRunning();
 
     const iconPath = app.isPackaged
@@ -90,17 +93,28 @@ export class TrayManager {
   private setupEventHandlers(): void {
     if (!this.tray) return;
 
-    this.tray.on("click", () => {
-      if (isWindows) {
+    if (isLinux) {
+      // Linux/Deepin: AppIndicator/SNI doesn't fire right-click events.
+      // Use setContextMenu so the DE can display it natively.
+      this.tray.setContextMenu(this.buildMenu());
+      this.tray.on("click", () => {
         this.openDashboard();
-      } else {
+      });
+    } else if (isWindows) {
+      this.tray.on("click", () => {
+        this.openDashboard();
+      });
+      this.tray.on("right-click", () => {
+        this.tray?.popUpContextMenu(this.buildMenu());
+      });
+    } else {
+      this.tray.on("click", () => {
         this.toggleWindow();
-      }
-    });
-
-    this.tray.on("right-click", () => {
-      this.tray?.popUpContextMenu(this.buildMenu());
-    });
+      });
+      this.tray.on("right-click", () => {
+        this.tray?.popUpContextMenu(this.buildMenu());
+      });
+    }
   }
 
   private setupIpcHandlers(): void {
@@ -180,6 +194,9 @@ export class TrayManager {
 
   private updateContextMenu(): void {
     if (!this.tray) return;
+    if (isLinux) {
+      this.tray.setContextMenu(this.buildMenu());
+    }
   }
 
   public destroy(): void {

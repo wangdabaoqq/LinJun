@@ -19,6 +19,8 @@ let mainWindow: BrowserWindow | null = null;
 let isQuitting = false;
 let statusChangeHandler: ((running: boolean) => void) | null = null;
 const isHiddenStart = process.argv.includes("--hidden");
+const isLinux = process.platform === "linux";
+const isMac = process.platform === "darwin";
 
 // Single instance lock - only enforce in production
 if (process.env.NODE_ENV !== "development") {
@@ -71,9 +73,12 @@ function createWindow(): void {
       contextIsolation: true,
       devTools: isDev,
     },
-    titleBarStyle: "hiddenInset",
-    ...(process.platform === "darwin"
+    // macOS: hidden inset title bar with traffic lights
+    // Linux: keep native title bar (hiddenInset not supported, causes missing icon)
+    // Windows: default frame
+    ...(isMac
       ? {
+          titleBarStyle: "hiddenInset" as const,
           trafficLightPosition: { x: 14, y: 20 },
         }
       : {}),
@@ -81,6 +86,11 @@ function createWindow(): void {
 
   // Windows: 移除菜单栏
   if (process.platform === "win32") {
+    mainWindow.setMenu(null);
+  }
+
+  // Linux: 移除菜单栏（避免显示默认 Electron 菜单）
+  if (isLinux) {
     mainWindow.setMenu(null);
   }
 
@@ -111,7 +121,11 @@ function createWindow(): void {
       return;
     }
 
-    if (process.platform === "darwin" || process.platform === "win32") {
+    if (
+      process.platform === "darwin" ||
+      process.platform === "win32" ||
+      isLinux
+    ) {
       event.preventDefault();
       mainWindow?.hide();
     }
@@ -144,9 +158,7 @@ app
   });
 
 app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") {
-    app.quit();
-  }
+  // All platforms: keep app alive (tray manages lifecycle)
 });
 
 app.on("before-quit", async () => {

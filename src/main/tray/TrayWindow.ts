@@ -3,6 +3,7 @@ import path from "path";
 
 const isWindows = process.platform === "win32";
 const isMac = process.platform === "darwin";
+const isLinux = process.platform === "linux";
 
 export class TrayWindow {
   private window: BrowserWindow | null = null;
@@ -77,8 +78,8 @@ export class TrayWindow {
 
     // Calculate Y position based on taskbar location
     let y: number;
-    if (isWindows) {
-      // Windows: taskbar usually at bottom, show window above tray icon
+    if (isWindows || isLinux) {
+      // Windows/Linux: taskbar usually at bottom, show window above tray icon
       const taskbarAtBottom = trayBounds.y > displayBounds.height / 2;
       if (taskbarAtBottom) {
         y = Math.round(trayBounds.y - windowBounds.height - 4);

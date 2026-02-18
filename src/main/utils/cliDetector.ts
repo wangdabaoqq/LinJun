@@ -68,8 +68,10 @@ function getEnhancedPath(): string {
       ]
     : [
         "/usr/local/bin",
+        "/usr/bin",
         "/opt/homebrew/bin",
         "/opt/homebrew/sbin",
+        "/snap/bin",
         `${homeDir}/.local/bin`,
         `${homeDir}/.npm-global/bin`,
         `${homeDir}/.cargo/bin`,
@@ -100,13 +102,15 @@ function getExecEnv(): NodeJS.ProcessEnv {
 
   if (!env.OPENCODE_BIN_PATH) {
     const homeDir = os.homedir();
+    const platform = process.platform === "win32" ? "win32" : process.platform;
+    const arch = process.arch;
     const opencodeBin = path.join(
       homeDir,
       ".bun",
       "install",
       "global",
       "node_modules",
-      "opencode-darwin-arm64",
+      `opencode-${platform}-${arch}`,
       "bin",
       "opencode",
     );
