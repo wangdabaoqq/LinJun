@@ -11,6 +11,7 @@ import path from "path";
 import { proxyManager } from "../proxy/manager";
 import { TrayWindow } from "./TrayWindow";
 import { APP_NAME_ZH } from "../../shared/constants";
+import { store } from "../utils/store";
 
 const isWindows = process.platform === "win32";
 const isLinux = process.platform === "linux";
@@ -152,15 +153,16 @@ export class TrayManager {
   }
 
   private buildMenu(): Menu {
+    const isZh = store.get("language") === "zh";
     const template: MenuItemConstructorOptions[] = [
       {
-        label: isWindows
+        label: isZh
           ? `状态: ${this.isRunning ? "运行中" : "已停止"}`
           : `Status: ${this.isRunning ? "Running" : "Stopped"}`,
         enabled: false,
       },
       {
-        label: isWindows
+        label: isZh
           ? this.isRunning
             ? "停止代理"
             : "启动代理"
@@ -177,11 +179,11 @@ export class TrayManager {
       },
       { type: "separator" },
       {
-        label: isWindows ? "打开主界面" : "Open Dashboard",
+        label: isZh ? "打开主界面" : "Open Dashboard",
         click: () => this.openDashboard(),
       },
       {
-        label: isWindows ? `退出${APP_NAME_ZH}` : "Quit LinJun",
+        label: isZh ? `退出${APP_NAME_ZH}` : "Quit LinJun",
         click: () => {
           this.destroy();
           app.quit();
