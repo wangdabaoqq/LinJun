@@ -65,8 +65,8 @@ win:
 
 linux:
   extraResources:
-    - from: "resources/binaries/linux-x64/"
-      to: "binaries/linux-x64/"
+    - from: "resources/binaries/linux-${arch}/"
+      to: "binaries/linux-${arch}/"
       filter:
         - "**/*"
         - "!LICENSE"
@@ -79,9 +79,9 @@ linux:
   category: Development
   target:
     - target: AppImage
-      arch: [x64]
+      arch: [x64, arm64]
     - target: deb
-      arch: [x64]
+      arch: [x64, arm64]
 
 nsis:
   oneClick: false

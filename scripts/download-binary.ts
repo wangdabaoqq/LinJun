@@ -102,6 +102,9 @@ function getAssetPlatformTokens(target: PlatformTarget): string[] {
   if (target.dir === "linux-x64") {
     return ["linux_amd64", "linux_x64"];
   }
+  if (target.dir === "linux-arm64") {
+    return ["linux_arm64", "linux_aarch64"];
+  }
   if (target.dir === "win32-x64") {
     return ["windows_amd64", "windows_x64", "win32_x64", "win_amd64"];
   }
@@ -196,6 +199,14 @@ function getCurrentTarget(): PlatformTarget {
       dir: "linux-x64",
       binaryName: "cliproxy",
       matcher: /linux.*(x64|amd64)|(x64|amd64).*linux/i,
+    };
+  }
+
+  if (platform === "linux" && arch === "arm64") {
+    return {
+      dir: "linux-arm64",
+      binaryName: "cliproxy",
+      matcher: /linux.*(arm64|aarch64)|(arm64|aarch64).*linux/i,
     };
   }
 
