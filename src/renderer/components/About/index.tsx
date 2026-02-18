@@ -644,11 +644,18 @@ export function About() {
               >
                 <div className="mt-4 pt-4 border-t border-[var(--glass-border)]">
                   {proxyUpdateStatus.result.error ? (
-                    <div className="flex items-center gap-2 text-[var(--accent-error)]">
-                      <AlertCircle className="w-4 h-4" />
-                      <span className="text-sm font-medium">
-                        {t.settings.checkFailed}
-                      </span>
+                    <div className="text-[var(--accent-error)]">
+                      <div className="flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4" />
+                        <span className="text-sm font-medium">
+                          {proxyUpdateStatus.result.hasUpdate
+                            ? t.about.proxyUpdateFailed
+                            : t.settings.checkFailed}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-xs opacity-80 break-all">
+                        {proxyUpdateStatus.result.error}
+                      </p>
                     </div>
                   ) : !proxyUpdateStatus.result.hasUpdate ? (
                     <div className="flex items-center gap-2 text-[var(--accent-success)]">

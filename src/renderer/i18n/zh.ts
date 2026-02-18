@@ -650,6 +650,7 @@ export const zh: Translations = {
     updateAndRestartProxy: "更新并重启",
     updatingProxy: "下载并更新中...",
     proxyUpdated: "CLIProxyAPIPlus 更新成功",
+    proxyUpdateFailed: "CLIProxyAPIPlus 更新失败",
     restartServiceQuestion: "更新已下载完成，是否立即重启代理服务？",
     restartingService: "重启中...",
     proxyAutoRestarted: "代理服务已自动重启",

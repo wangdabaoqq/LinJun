@@ -670,6 +670,7 @@ export const en = {
     updateAndRestartProxy: "Update and Restart",
     updatingProxy: "Downloading and updating...",
     proxyUpdated: "CLIProxyAPIPlus updated successfully",
+    proxyUpdateFailed: "CLIProxyAPIPlus update failed",
     restartServiceQuestion: "Update downloaded. Restart proxy service now?",
     restartingService: "Restarting...",
     proxyAutoRestarted: "Proxy service restarted automatically",

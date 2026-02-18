@@ -43,7 +43,9 @@ export function setupProxyHandlers(): void {
 
   ipcMain.handle("proxy:updateBinary", async (event) => {
     return await updateProxyBinaryAndRestart((progress) => {
-      event.sender.send("proxy:updateBinaryProgress", progress);
+      if (!event.sender.isDestroyed()) {
+        event.sender.send("proxy:updateBinaryProgress", progress);
+      }
     });
   });
 }

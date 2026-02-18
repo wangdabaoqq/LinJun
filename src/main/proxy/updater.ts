@@ -27,6 +27,9 @@ const CLIPROXY_PROXY_PREFIX = (
   process.env.CLIPROXY_PROXY_PREFIX || "https://g-proxy.940703.xyz"
 ).replace(/\/+$/, "");
 
+const DOWNLOAD_TIMEOUT_MS = 5 * 60 * 1000;
+const DOWNLOAD_RETRY_ATTEMPTS = 3;
+
 interface PlatformTarget {
   dir: string;
   binaryName: string;
@@ -453,15 +456,22 @@ async function downloadFile(
   outputPath: string,
   onProgress?: (downloadedBytes: number, totalBytes: number) => void,
 ): Promise<void> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => {
+    controller.abort(new Error("Download timed out"));
+  }, DOWNLOAD_TIMEOUT_MS);
+
   const response = await fetch(url, {
     headers: {
       "User-Agent": "LinJun-App",
       Accept: "application/octet-stream",
     },
     redirect: "follow",
+    signal: controller.signal,
   });
 
   if (!response.ok || !response.body) {
+    clearTimeout(timeoutId);
     throw new Error(`Failed to download ${url}, status: ${response.status}`);
   }
 
@@ -505,9 +515,27 @@ async function downloadFile(
       fileStream.on("finish", resolve);
       fileStream.on("error", reject);
     });
+
+    if (totalBytes > 0 && downloadedBytes !== totalBytes) {
+      throw new Error(
+        `Downloaded file size mismatch: expected ${totalBytes}, got ${downloadedBytes}`,
+      );
+    }
   } catch (error) {
     fileStream.destroy();
+    if (fs.existsSync(outputPath)) {
+      try {
+        fs.unlinkSync(outputPath);
+      } catch (cleanupError) {
+        log.warn(
+          "[ProxyUpdater] Failed to clean up partial download:",
+          cleanupError,
+        );
+      }
+    }
     throw error;
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
 
@@ -541,8 +569,33 @@ async function extractArchive(
   const lower = archivePath.toLowerCase();
 
   if (lower.endsWith(".zip")) {
+    if (process.platform === "win32") {
+      const powershellResult = spawnSync(
+        "powershell",
+        [
+          "-NoProfile",
+          "-NonInteractive",
+          "-Command",
+          "Expand-Archive -LiteralPath $args[0] -DestinationPath $args[1] -Force",
+          archivePath,
+          extractDir,
+        ],
+        {
+          stdio: "ignore",
+          timeout: 60000,
+        },
+      );
+
+      if (powershellResult.status !== 0) {
+        throw new Error("Failed to extract zip archive");
+      }
+
+      return;
+    }
+
     const result = spawnSync("unzip", ["-o", archivePath, "-d", extractDir], {
       stdio: "ignore",
+      timeout: 60000,
     });
     if (result.status !== 0) {
       throw new Error("Failed to extract zip archive");
@@ -553,6 +606,7 @@ async function extractArchive(
   if (lower.endsWith(".tar.gz") || lower.endsWith(".tgz")) {
     const result = spawnSync("tar", ["-xzf", archivePath, "-C", extractDir], {
       stdio: "ignore",
+      timeout: 60000,
     });
     if (result.status !== 0) {
       throw new Error("Failed to extract tar archive");
@@ -696,26 +750,49 @@ async function downloadLatestBinary(
     message: "Downloading update package",
   });
 
-  await downloadFile(
-    toProxyUrl(asset.browser_download_url),
-    tempAssetPath,
-    (downloadedBytes, totalBytes) => {
-      const base = 10;
-      const range = 70;
-      const percent =
-        totalBytes > 0
-          ? base + (downloadedBytes / totalBytes) * range
-          : base + Math.min(range - 5, downloadedBytes / (1024 * 1024 * 2));
+  const downloadUrl = toProxyUrl(asset.browser_download_url);
+  let lastDownloadError: unknown;
+  for (let attempt = 1; attempt <= DOWNLOAD_RETRY_ATTEMPTS; attempt += 1) {
+    try {
+      await downloadFile(
+        downloadUrl,
+        tempAssetPath,
+        (downloadedBytes, totalBytes) => {
+          const base = 10;
+          const range = 70;
+          const percent =
+            totalBytes > 0
+              ? base + (downloadedBytes / totalBytes) * range
+              : base + Math.min(range - 5, downloadedBytes / (1024 * 1024 * 2));
+
+          reportProgress(onProgress, {
+            stage: "downloading",
+            percent,
+            message: "Downloading update package",
+            downloadedBytes,
+            totalBytes: totalBytes > 0 ? totalBytes : undefined,
+          });
+        },
+      );
+      lastDownloadError = undefined;
+      break;
+    } catch (error) {
+      lastDownloadError = error;
+      if (attempt >= DOWNLOAD_RETRY_ATTEMPTS) {
+        break;
+      }
 
       reportProgress(onProgress, {
         stage: "downloading",
-        percent,
-        message: "Downloading update package",
-        downloadedBytes,
-        totalBytes: totalBytes > 0 ? totalBytes : undefined,
+        percent: 10,
+        message: `Download interrupted, retrying (${attempt}/${DOWNLOAD_RETRY_ATTEMPTS - 1})`,
       });
-    },
-  );
+    }
+  }
+
+  if (lastDownloadError) {
+    throw lastDownloadError;
+  }
 
   const managedBinaryPath = proxyManager.getManagedBinaryPath();
   ensureDir(path.dirname(managedBinaryPath));
