@@ -234,7 +234,10 @@ async function fetchLatestProxyRelease(): Promise<{
   });
 
   const finalUrl =
-    response.request?.res?.responseUrl || response.config.url || "";
+    response.request?.res?.responseUrl ||
+    response.request?.responseUrl ||
+    response.config.url ||
+    "";
   const tag = parseReleaseTagFromUrl(finalUrl);
   if (!tag) {
     throw new Error("Failed to parse latest CLIProxyAPIPlus release tag");
