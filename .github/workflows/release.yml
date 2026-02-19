@@ -36,7 +36,7 @@ jobs:
             arch: x64
             cli-arch: amd64
             cli-platform: linux
-            electron-args: --linux zip --x64
+            electron-args: --linux --x64
           - os: ubuntu-latest
             platform: linux
             arch: arm64
