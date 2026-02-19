@@ -79,10 +79,12 @@ linux:
   executableName: linjun
   category: Development
   target:
+    - target: zip
+      arch: [x64]
     - target: AppImage
-      arch: [x64, arm64]
+      arch: [arm64]
     - target: deb
-      arch: [x64, arm64]
+      arch: [arm64]
 
 nsis:
   oneClick: false
