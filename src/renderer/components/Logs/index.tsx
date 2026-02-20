@@ -419,28 +419,28 @@ export function Logs() {
           <div className="h-6 w-px bg-[var(--glass-border)] hidden sm:block mx-1 opacity-50" />
 
           <Select value={providerFilter} onValueChange={setProviderFilter}>
-            <SelectTrigger className="relative pl-4 pr-10 py-2 rounded-xl text-xs font-medium transition-all duration-300 border backdrop-blur-md min-w-[140px] text-left h-auto bg-[var(--bg-secondary)]/30 border-[var(--glass-border)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]/50 hover:border-[var(--glass-border-hover)] shadow-sm data-[state=open]:bg-[var(--accent-primary)]/10 data-[state=open]:border-[var(--accent-primary)]/30 data-[state=open]:text-[var(--accent-primary)] data-[state=open]:shadow-[0_0_15px_-5px_var(--accent-primary)] outline-none focus:outline-none focus:ring-0">
+            <SelectTrigger className="w-auto min-w-[140px] shrink-0 h-auto pl-4 pr-10 py-2 rounded-xl text-xs font-medium transition-all duration-300 border backdrop-blur-md text-left outline-none focus:outline-none focus:ring-0 bg-[var(--bg-secondary)]/30 border-[var(--glass-border)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]/50 hover:border-[var(--glass-border-hover)] shadow-sm data-[state=open]:bg-[var(--accent-primary)]/10 data-[state=open]:border-[var(--accent-primary)]/30 data-[state=open]:text-[var(--accent-primary)] data-[state=open]:shadow-[0_0_15px_-5px_var(--accent-primary)]">
               <SelectValue>
                 {providerFilter === "all"
                   ? t.logs.allProviders
                   : providerFilter}
               </SelectValue>
             </SelectTrigger>
-            <SelectContent className="max-h-[300px] overflow-y-auto custom-scrollbar bg-[var(--bg-primary)]/95 backdrop-blur-xl border border-[var(--glass-border)] rounded-xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.8)] z-[100] ring-1 ring-[var(--glass-border)]">
+            <SelectContent className="max-h-[300px] overflow-y-auto custom-scrollbar bg-[var(--bg-primary)]/95 backdrop-blur-xl border border-[var(--glass-border)] rounded-xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.8)] z-[100] py-1 ring-1 ring-[var(--glass-border)]">
               <SelectItem
                 value="all"
-                className="px-3 py-2 text-xs cursor-pointer transition-colors data-[state=checked]:bg-[var(--accent-primary)]/10 data-[state=checked]:text-[var(--accent-primary)] text-[var(--text-muted)] focus:text-[var(--text-primary)] focus:bg-[var(--accent-primary)]/5"
+                className="py-2 text-xs cursor-pointer transition-colors data-[highlighted]:bg-[var(--accent-primary)]/5 data-[highlighted]:text-[var(--text-primary)] data-[state=checked]:bg-[var(--accent-primary)]/10 data-[state=checked]:text-[var(--accent-primary)] text-[var(--text-muted)]"
               >
                 {t.logs.allProviders}
               </SelectItem>
               {uniqueProviders.length > 0 && (
-                <SelectSeparator className="mx-2 my-1 opacity-50" />
+                <SelectSeparator className="h-px bg-[var(--glass-border)] mx-2 my-1 opacity-50" />
               )}
               {uniqueProviders.map((provider) => (
                 <SelectItem
                   key={provider}
                   value={provider}
-                  className="px-3 py-2 text-xs cursor-pointer transition-colors data-[state=checked]:bg-[var(--accent-primary)]/10 data-[state=checked]:text-[var(--accent-primary)] text-[var(--text-muted)] focus:text-[var(--text-primary)] focus:bg-[var(--accent-primary)]/5"
+                  className="py-2 text-xs cursor-pointer transition-colors data-[highlighted]:bg-[var(--accent-primary)]/5 data-[highlighted]:text-[var(--text-primary)] data-[state=checked]:bg-[var(--accent-primary)]/10 data-[state=checked]:text-[var(--accent-primary)] text-[var(--text-muted)]"
                 >
                   {provider}
                 </SelectItem>
