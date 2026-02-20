@@ -419,7 +419,10 @@ export function Logs() {
           <div className="h-6 w-px bg-[var(--glass-border)] hidden sm:block mx-1 opacity-50" />
 
           <Select value={providerFilter} onValueChange={setProviderFilter}>
-            <SelectTrigger className="w-auto min-w-[140px] shrink-0 h-auto pl-4 pr-10 py-2 rounded-xl text-xs font-medium transition-all duration-300 border backdrop-blur-md text-left outline-none focus:outline-none focus:ring-0 bg-[var(--bg-secondary)]/30 border-[var(--glass-border)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]/50 hover:border-[var(--glass-border-hover)] shadow-sm data-[state=open]:bg-[var(--accent-primary)]/10 data-[state=open]:border-[var(--accent-primary)]/30 data-[state=open]:text-[var(--accent-primary)] data-[state=open]:shadow-[0_0_15px_-5px_var(--accent-primary)]">
+            <SelectTrigger
+              style={{ borderRadius: "12px" }}
+              className="w-auto min-w-[140px] shrink-0 h-8 pl-4 pr-10 py-0 text-xs font-medium transition-all duration-300 border backdrop-blur-md text-left outline-none focus:outline-none focus:ring-0 bg-[var(--bg-secondary)]/30 border-[var(--glass-border)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]/50 hover:border-[var(--glass-border-hover)] shadow-sm data-[state=open]:bg-[var(--accent-primary)]/10 data-[state=open]:border-[var(--accent-primary)]/30 data-[state=open]:text-[var(--accent-primary)] data-[state=open]:shadow-[0_0_15px_-5px_var(--accent-primary)]"
+            >
               <SelectValue>
                 {providerFilter === "all"
                   ? t.logs.allProviders
