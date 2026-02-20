@@ -70,13 +70,26 @@ export async function checkForUpdates(): Promise<UpdateInfo> {
 }
 
 function compareVersions(a: string, b: string): number {
-  const pa = a.split(".").map(Number);
-  const pb = b.split(".").map(Number);
-  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
-    const na = pa[i] || 0;
-    const nb = pb[i] || 0;
+  const parseVersion = (v: string) => {
+    const [corePart, pre] = v.split("-");
+    const core = corePart.split(".").map(Number);
+    return { core, pre: pre ?? null };
+  };
+
+  const va = parseVersion(a);
+  const vb = parseVersion(b);
+
+  for (let i = 0; i < Math.max(va.core.length, vb.core.length); i++) {
+    const na = va.core[i] ?? 0;
+    const nb = vb.core[i] ?? 0;
     if (na > nb) return 1;
     if (na < nb) return -1;
+  }
+
+  if (va.pre === null && vb.pre !== null) return 1;
+  if (va.pre !== null && vb.pre === null) return -1;
+  if (va.pre !== null && vb.pre !== null) {
+    return va.pre.localeCompare(vb.pre, undefined, { numeric: true });
   }
   return 0;
 }
