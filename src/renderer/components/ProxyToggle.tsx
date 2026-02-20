@@ -8,9 +8,30 @@ import {
   fetchProxyStatus,
   useTranslations,
 } from "../stores/settings";
+import { toast } from "../stores/toast";
 import { cn } from "@renderer/lib/utils";
 import { PauseIcon } from "./ui/pause";
 import { PlayIcon } from "./ui/play";
+
+function resolveProxyError(
+  t: ReturnType<typeof useTranslations>,
+  code: string,
+  port: number,
+): string {
+  const msg = (() => {
+    switch (code) {
+      case "portInUse":
+        return t.tray.errPortInUse;
+      case "permissionDenied":
+        return t.tray.errPermissionDenied;
+      case "binaryNotFound":
+        return t.tray.errBinaryNotFound;
+      default:
+        return t.tray.errStartFailed;
+    }
+  })();
+  return msg.replace("{port}", String(port));
+}
 
 export function ProxyToggle() {
   const t = useTranslations();
@@ -33,17 +54,19 @@ export function ProxyToggle() {
     initStatus();
 
     if (
-      typeof window !== "undefined" &&
-      window.electronAPI?.proxy?.onStatusChange
+      typeof window === "undefined" ||
+      !window.electronAPI?.proxy?.onStatusChange
     ) {
-      const unsubscribe = window.electronAPI.proxy.onStatusChange((running) => {
-        setLocalRunning(running);
-        setProxyRunning(running);
-      });
-      return () => {
-        unsubscribe();
-      };
+      return;
     }
+
+    const unsubscribe = window.electronAPI.proxy.onStatusChange((running) => {
+      setLocalRunning(running);
+      setProxyRunning(running);
+    });
+    return () => {
+      unsubscribe();
+    };
   }, [setProxyRunning]);
 
   const handleToggle = async () => {
@@ -58,10 +81,15 @@ export function ProxyToggle() {
           setProxyRunning(false);
         }
       } else {
-        const success = await startProxy();
-        if (success) {
+        const result = await startProxy();
+        if (result.success) {
           setLocalRunning(true);
           setProxyRunning(true);
+        } else if (result.error) {
+          toast(
+            resolveProxyError(t, result.error, result.port ?? port),
+            "error",
+          );
         }
       }
     } finally {

@@ -373,14 +373,19 @@ export async function fetchProxyStatus(): Promise<boolean> {
   }
 }
 
-export async function startProxy(): Promise<boolean> {
-  if (typeof window === "undefined" || !window.electronAPI) return false;
+export async function startProxy(): Promise<{
+  success: boolean;
+  error?: string;
+  port?: number;
+}> {
+  if (typeof window === "undefined" || !window.electronAPI)
+    return { success: false };
   try {
     const result = await window.electronAPI.proxy.start();
-    return result.success;
+    return result;
   } catch (error) {
     log.error("[Proxy] Failed to start:", error);
-    return false;
+    return { success: false, error: "startFailed" };
   }
 }
 

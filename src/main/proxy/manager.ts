@@ -459,6 +459,38 @@ class ProxyManager extends EventEmitter {
     );
   }
 
+  private checkPortAvailable(port: number, host: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const server = net.createServer();
+      server.once("error", (err: NodeJS.ErrnoException) => {
+        server.close();
+        if (err.code === "EADDRINUSE") {
+          reject(
+            Object.assign(new Error("portInUse"), { code: "portInUse", port }),
+          );
+        } else if (err.code === "EACCES") {
+          reject(
+            Object.assign(new Error("permissionDenied"), {
+              code: "permissionDenied",
+              port,
+            }),
+          );
+        } else {
+          reject(
+            Object.assign(new Error("startFailed"), {
+              code: "startFailed",
+              port,
+            }),
+          );
+        }
+      });
+      server.once("listening", () => {
+        server.close(() => resolve());
+      });
+      server.listen(port, host || "127.0.0.1");
+    });
+  }
+
   async start(): Promise<void> {
     if (this.process) {
       throw new Error("Proxy already running");
@@ -483,32 +515,112 @@ class ProxyManager extends EventEmitter {
     const binaryPath = this.getBinaryPath();
     const configPath = this.getConfigPath();
 
+    log.info("[ProxyManager] Checking port availability:", this.port);
+    try {
+      await this.checkPortAvailable(this.port, this.host);
+    } catch (portError) {
+      const code = (portError as { code?: string }).code ?? "startFailed";
+      log.error("[ProxyManager] Port check failed:", code, "port:", this.port);
+      throw Object.assign(new Error(code), { code, port: this.port });
+    }
+
     log.info("[ProxyManager] Starting proxy with config:", configPath);
 
-    this.process = spawn(binaryPath, ["--config", configPath], {
-      stdio: ["ignore", "pipe", "pipe"],
-      detached: false,
-    });
+    return new Promise((resolve, reject) => {
+      const proc = spawn(binaryPath, ["--config", configPath], {
+        stdio: ["ignore", "pipe", "pipe"],
+        detached: false,
+      });
 
-    this.process.stdout?.on("data", (data) => {
-      log.info(`[Proxy] ${data}`);
-      this.emit("log", { type: "stdout", data: data.toString() });
-    });
+      const stderrChunks: string[] = [];
+      let settled = false;
 
-    this.process.stderr?.on("data", (data) => {
-      log.error(`[Proxy Error] ${data}`);
-      this.emit("log", { type: "stderr", data: data.toString() });
-    });
+      const settle = (success: boolean, errorMessage?: string) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(stabilityTimer);
 
-    this.process.on("exit", (code) => {
-      log.info(`Proxy exited with code ${code}`);
-      this.process = null;
-      this.stopHealthCheck();
-      this.emit("statusChange", false);
-    });
+        if (success) {
+          proc.removeListener("exit", onEarlyExit);
+          proc.on("exit", (code) => {
+            log.info(`Proxy exited with code ${code}`);
+            this.process = null;
+            this.stopHealthCheck();
+            this.emit("statusChange", false);
+          });
+          this.process = proc;
+          this.emit("statusChange", true);
+          this.startHealthCheck();
+          resolve();
+        } else {
+          this.process = null;
+          this.stopHealthCheck();
+          this.emit("proxyError", errorMessage!);
+          this.emit("statusChange", false);
+          reject(new Error(errorMessage));
+        }
+      };
 
-    this.emit("statusChange", true);
-    this.startHealthCheck();
+      proc.stdout?.on("data", (data) => {
+        const text = data.toString();
+        log.info(`[Proxy] ${text}`);
+        this.emit("log", { type: "stdout", data: text });
+        if (text.includes("API server started successfully")) {
+          settle(true);
+        }
+      });
+
+      proc.stderr?.on("data", (data) => {
+        const text = data.toString();
+        log.error(`[Proxy Error] ${text}`);
+        stderrChunks.push(text);
+        this.emit("log", { type: "stderr", data: text });
+      });
+
+      const onEarlyExit = (code: number | null) => {
+        const stderr = stderrChunks.join("");
+        const errorMessage = this.classifyStartError(stderr, code);
+        log.error("[ProxyManager] Process exited early:", errorMessage);
+        settle(false, errorMessage);
+      };
+
+      proc.once("error", (err) => {
+        const errorMessage =
+          err.message.includes("ENOENT") || err.message.includes("spawn")
+            ? "Binary not found. Please download the proxy binary first."
+            : err.message;
+        settle(false, errorMessage);
+      });
+
+      proc.once("exit", onEarlyExit);
+
+      const stabilityTimer = setTimeout(() => {
+        if (!settled) {
+          settle(true);
+        }
+      }, 3000);
+    });
+  }
+
+  private classifyStartError(stderr: string, code: number | null): string {
+    const lower = stderr.toLowerCase();
+    if (
+      lower.includes("address already in use") ||
+      lower.includes("bind: address") ||
+      lower.includes("eaddrinuse")
+    ) {
+      return "portInUse";
+    }
+    if (lower.includes("permission denied") || lower.includes("eacces")) {
+      return "permissionDenied";
+    }
+    if (lower.includes("no such file") || lower.includes("enoent")) {
+      return "binaryNotFound";
+    }
+    if (code === 0) {
+      return "portInUse";
+    }
+    return "startFailed";
   }
 
   async stop(): Promise<void> {

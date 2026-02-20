@@ -697,6 +697,12 @@ export const en = {
     proxyStopped: "Proxy Stopped",
     startProxy: "Start Proxy",
     stopProxy: "Stop Proxy",
+    errPortInUse:
+      "Port {port} is already in use. Change it in Settings or stop the conflicting process.",
+    errPermissionDenied:
+      "Permission denied on port {port}. Ports below 1024 require elevated privileges.",
+    errBinaryNotFound: "Proxy binary not found. Please download it first.",
+    errStartFailed: "Proxy failed to start. Check the Logs tab for details.",
   },
 };
 

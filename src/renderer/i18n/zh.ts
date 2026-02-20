@@ -677,5 +677,10 @@ export const zh: Translations = {
     proxyStopped: "代理已停止",
     startProxy: "启动代理",
     stopProxy: "停止代理",
+    errPortInUse:
+      "端口 {port} 已被占用，请在设置中更换端口或停止占用该端口的进程。",
+    errPermissionDenied: "端口 {port} 权限不足，1024 以下端口需要管理员权限。",
+    errBinaryNotFound: "未找到代理程序，请先下载。",
+    errStartFailed: "代理启动失败，请查看日志标签页了解详情。",
   },
 };

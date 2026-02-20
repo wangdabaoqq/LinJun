@@ -13,7 +13,9 @@ export function setupProxyHandlers(): void {
       await proxyManager.start();
       return { success: true };
     } catch (error) {
-      return { success: false, error: String(error) };
+      const code = (error as { code?: string }).code ?? "startFailed";
+      const port = (error as { port?: number }).port ?? proxyManager.getPort();
+      return { success: false, error: code, port };
     }
   });
 

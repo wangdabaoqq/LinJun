@@ -60,6 +60,11 @@ const electronAPI = {
       ipcRenderer.on("proxy:statusChanged", handler);
       return () => ipcRenderer.removeListener("proxy:statusChanged", handler);
     },
+    onError: (callback: (message: string) => void) => {
+      const handler = (_event: unknown, message: string) => callback(message);
+      ipcRenderer.on("proxy:error", handler);
+      return () => ipcRenderer.removeListener("proxy:error", handler);
+    },
   },
   api: {
     cliLogin: (provider: string) =>

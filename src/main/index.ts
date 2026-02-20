@@ -18,6 +18,8 @@ import {
 let mainWindow: BrowserWindow | null = null;
 let isQuitting = false;
 let statusChangeHandler: ((running: boolean) => void) | null = null;
+let proxyErrorHandler: ((message: string) => void) | null = null;
+let pendingProxyError: string | null = null;
 const isHiddenStart = process.argv.includes("--hidden");
 const isLinux = process.platform === "linux";
 const isMac = process.platform === "darwin";
@@ -48,7 +50,9 @@ async function initializeApp(): Promise<void> {
       await proxyManager.start();
       log.info("[Main] Proxy auto-started on port:", proxyManager.getPort());
     } catch (error) {
-      log.error("[Main] Failed to auto-start proxy:", error);
+      const message = error instanceof Error ? error.message : String(error);
+      log.error("[Main] Failed to auto-start proxy:", message);
+      pendingProxyError = message;
     }
   }
 }
@@ -106,6 +110,10 @@ function createWindow(): void {
       proxyManager.off("statusChange", statusChangeHandler);
       statusChangeHandler = null;
     }
+    if (proxyErrorHandler) {
+      proxyManager.off("proxyError", proxyErrorHandler);
+      proxyErrorHandler = null;
+    }
     mainWindow = null;
   });
 
@@ -115,6 +123,20 @@ function createWindow(): void {
     }
   };
   proxyManager.on("statusChange", statusChangeHandler);
+
+  proxyErrorHandler = (message: string) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send("proxy:error", message);
+    }
+  };
+  proxyManager.on("proxyError", proxyErrorHandler);
+
+  mainWindow.webContents.once("did-finish-load", () => {
+    if (pendingProxyError && mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send("proxy:error", pendingProxyError);
+      pendingProxyError = null;
+    }
+  });
 
   mainWindow.on("close", (event) => {
     if (isQuitting) {

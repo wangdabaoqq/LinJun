@@ -157,6 +157,7 @@ function BokehBackground() {
 }
 
 import { IntroPage } from "./components/Intro/IntroPage";
+import { ToastContainer } from "./components/ui/ToastContainer";
 
 export default function App() {
   const [isTrayMode, setIsTrayMode] = useState(
@@ -224,6 +225,7 @@ export default function App() {
 
   return (
     <div className="flex flex-col h-screen relative">
+      <ToastContainer />
       <AnimatePresence>
         {showIntro && <IntroPage onComplete={handleIntroComplete} />}
       </AnimatePresence>
