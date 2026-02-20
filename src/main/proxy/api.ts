@@ -15,7 +15,9 @@ class ManagementAPI {
 
   private get baseURL(): string {
     const port = (store.get("port") as number) || proxyManager.getPort();
-    return `http://127.0.0.1:${port}`;
+    const bindHost = proxyManager.getHost();
+    const localConnectHost = bindHost || "127.0.0.1";
+    return `http://${localConnectHost}:${port}`;
   }
 
   private getAuthHeaders(): Record<string, string> {

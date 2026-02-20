@@ -79,6 +79,7 @@ const electronAPI = {
       ipcRenderer.invoke("settings:setAutoLaunch", enabled),
     syncToYaml: (updates: {
       port?: number;
+      host?: string;
       apiKey?: string;
       managementSecret?: string;
       routingStrategy?: "round-robin" | "fill-first";

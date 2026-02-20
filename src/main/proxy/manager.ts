@@ -151,7 +151,7 @@ export interface ProxyConfig {
 
 function getDefaultConfig(authDir: string, secret: string): string {
   const config = {
-    host: "127.0.0.1",
+    host: "",
     port: DEFAULT_PORT,
     "auth-dir": authDir,
     "api-keys": [],
@@ -222,6 +222,7 @@ function shouldMigrateLegacyWindowsAuthDir(
 class ProxyManager extends EventEmitter {
   private process: ChildProcess | null = null;
   private port: number = DEFAULT_PORT;
+  private host: string = "";
   private healthCheckInterval: NodeJS.Timeout | null = null;
   private lastKnownRunning: boolean = false;
 
@@ -472,6 +473,12 @@ class ProxyManager extends EventEmitter {
       );
       this.port = config.port;
     }
+    if (config?.host !== undefined && config.host !== this.host) {
+      log.info(
+        `[ProxyManager] Syncing host from config: "${this.host}" -> "${config.host}"`,
+      );
+      this.host = config.host;
+    }
 
     const binaryPath = this.getBinaryPath();
     const configPath = this.getConfigPath();
@@ -547,6 +554,14 @@ class ProxyManager extends EventEmitter {
     this.port = port;
   }
 
+  getHost(): string {
+    return this.host;
+  }
+
+  setHost(host: string): void {
+    this.host = host;
+  }
+
   /**
    * Perform health check by verifying TCP connectivity
    */
@@ -577,7 +592,7 @@ class ProxyManager extends EventEmitter {
         resolve(false);
       });
 
-      socket.connect(this.port, "127.0.0.1");
+      socket.connect(this.port, this.host || "127.0.0.1");
     });
   }
 
@@ -711,7 +726,7 @@ class ProxyManager extends EventEmitter {
 
       // Build repaired config with defaults and extracted values
       const repairedConfig: ProxyConfig = {
-        host: existingConfig.host ?? "127.0.0.1",
+        host: existingConfig.host ?? "",
         port: existingConfig.port ?? DEFAULT_PORT,
         "auth-dir": extractedAuthDir ?? this.getAuthDir(),
         "api-keys": existingConfig["api-keys"] ?? [],
@@ -759,6 +774,11 @@ class ProxyManager extends EventEmitter {
     if (typeof config.port === "number") {
       this.setPort(config.port);
       store.set("port", config.port);
+    }
+
+    if (typeof config.host === "string") {
+      this.setHost(config.host);
+      store.set("host", config.host);
     }
 
     if (config.routing?.strategy) {
@@ -819,6 +839,10 @@ class ProxyManager extends EventEmitter {
 
     if (updates.port !== undefined && !this.isRunning()) {
       this.setPort(updates.port);
+    }
+
+    if (updates.host !== undefined) {
+      this.setHost(updates.host);
     }
 
     try {

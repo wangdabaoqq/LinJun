@@ -32,6 +32,7 @@ export function setupSettingsHandlers(): void {
     return {
       ...storeData,
       port: config?.port ?? storeData.port,
+      host: config?.host ?? storeData.host ?? "",
       routingStrategy: config?.routing?.strategy ?? storeData.routingStrategy,
       requestRetry: config?.["request-retry"] ?? storeData.requestRetry ?? 3,
       maxRetryInterval:
@@ -48,6 +49,7 @@ export function setupSettingsHandlers(): void {
       _event,
       updates: {
         port?: number;
+        host?: string;
         apiKey?: string;
         routingStrategy?: "round-robin" | "fill-first";
         requestRetry?: number;
@@ -64,6 +66,11 @@ export function setupSettingsHandlers(): void {
         if (updates.port !== undefined) {
           yamlUpdates.port = updates.port;
           store.set("port", updates.port);
+        }
+
+        if (updates.host !== undefined) {
+          yamlUpdates.host = updates.host;
+          store.set("host", updates.host);
         }
 
         if (updates.apiKey !== undefined) {

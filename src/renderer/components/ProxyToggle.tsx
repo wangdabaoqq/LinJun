@@ -20,6 +20,7 @@ export function ProxyToggle() {
     setProxyRunning,
     setProxyLoading,
     port,
+    host,
   } = useProxy();
   const [localRunning, setLocalRunning] = useState(false);
 
@@ -97,7 +98,7 @@ export function ProxyToggle() {
               : "text-[var(--text-muted)]",
           )}
         >
-          127.0.0.1:{port}
+          {host || "127.0.0.1"}:{port}
         </span>
         <button
           onClick={handleToggle}

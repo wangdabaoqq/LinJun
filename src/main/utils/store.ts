@@ -58,6 +58,7 @@ interface CustomProviderDrafts {
 
 interface StoreSchema {
   port: number;
+  host: string;
   autoStart: boolean;
   autoLaunch: boolean;
   routingStrategy: "round-robin" | "fill-first";
@@ -76,6 +77,7 @@ interface StoreSchema {
 export const store = new Store<StoreSchema>({
   defaults: {
     port: DEFAULT_PORT,
+    host: "",
     autoStart: true,
     autoLaunch: false,
     routingStrategy: "round-robin",

@@ -8,6 +8,7 @@ export type ThemeType = "dark" | "light";
 
 interface MainSettings {
   port?: number;
+  host?: string;
   endpoint?: string;
   managementSecret?: string;
   autoStart?: boolean;
@@ -25,6 +26,7 @@ interface SettingsState {
   language: Language;
   theme: ThemeType;
   port: number;
+  host: string;
   endpoint: string;
   managementSecret: string;
   autoStart: boolean;
@@ -43,6 +45,7 @@ interface SettingsState {
   setLanguage: (lang: Language) => void;
   setTheme: (theme: ThemeType) => void;
   setPort: (port: number) => void;
+  setHost: (host: string) => void;
   setEndpoint: (endpoint: string) => void;
   getEffectiveEndpoint: () => string;
   setManagementSecret: (secret: string) => void;
@@ -105,6 +108,7 @@ export const useSettingsStore = create<SettingsState>()(
       language: "zh",
       theme: DEFAULT_THEME,
       port: DEFAULT_PORT,
+      host: "",
       endpoint: "",
       managementSecret: "",
       autoStart: true,
@@ -137,6 +141,12 @@ export const useSettingsStore = create<SettingsState>()(
           window.electronAPI.settings.syncToYaml({ port });
         }
       },
+      setHost: (host) => {
+        set({ host });
+        if (typeof window !== "undefined" && window.electronAPI) {
+          window.electronAPI.settings.syncToYaml({ host });
+        }
+      },
       setEndpoint: (endpoint) => {
         set({ endpoint });
       },
@@ -145,7 +155,8 @@ export const useSettingsStore = create<SettingsState>()(
         if (state.endpoint && state.endpoint.trim()) {
           return state.endpoint.trim();
         }
-        return `http://127.0.0.1:${state.port}/v1`;
+        const displayHost = state.host || "127.0.0.1";
+        return `http://${displayHost}:${state.port}/v1`;
       },
       setManagementSecret: (secret) => {
         set({ managementSecret: secret });
@@ -227,6 +238,7 @@ export const useSettingsStore = create<SettingsState>()(
 
         set({
           ...(settings.port !== undefined && { port: settings.port }),
+          ...(settings.host !== undefined && { host: settings.host }),
           managementSecret: newSecret,
           ...(settings.autoStart !== undefined && {
             autoStart: settings.autoStart,
@@ -345,6 +357,7 @@ export function useProxy() {
     setProxyRunning: state.setProxyRunning,
     setProxyLoading: state.setProxyLoading,
     port: state.port,
+    host: state.host,
     apiKey: state.managementSecret,
   }));
 }

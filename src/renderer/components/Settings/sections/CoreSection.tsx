@@ -12,6 +12,7 @@ import {
   AlertTriangle,
   Loader2,
   Link,
+  Network,
 } from "lucide-react";
 import {
   useSettingsStore,
@@ -23,13 +24,34 @@ import { SettingCard } from "../shared/SettingCard";
 import { SectionHeader } from "../shared/SectionHeader";
 import { SettingRow } from "../shared/SettingRow";
 
+const IPV4_RE = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
+const IPV6_BARE_RE = /^[\da-fA-F:]+$/;
+const HOSTNAME_RE =
+  /^(?!.*\.\.)(?!\d+$)[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*$/;
+
+function isValidBindHost(value: string): boolean {
+  const ipv4Match = value.match(IPV4_RE);
+  if (ipv4Match) {
+    return ipv4Match.slice(1).every((octet) => Number(octet) <= 255);
+  }
+  if (value.startsWith("[") && value.endsWith("]")) {
+    return IPV6_BARE_RE.test(value.slice(1, -1));
+  }
+  if (value.includes(":") && IPV6_BARE_RE.test(value)) {
+    return true;
+  }
+  return HOSTNAME_RE.test(value);
+}
+
 export function CoreSection() {
   const t = useTranslations();
   const {
     port,
+    host,
     managementSecret,
     proxyRunning,
     setPort,
+    setHost,
     getEffectiveEndpoint,
     generateManagementSecret,
   } = useSettingsStore();
@@ -41,6 +63,9 @@ export function CoreSection() {
   const [isRestarting, setIsRestarting] = useState(false);
   const [portInput, setPortInput] = useState(String(port));
   const [portError, setPortError] = useState<string | null>(null);
+  const [hostInput, setHostInput] = useState(host);
+  const [hostError, setHostError] = useState<string | null>(null);
+  const [showHostRestartPrompt, setShowHostRestartPrompt] = useState(false);
 
   const handleRestart = async () => {
     setIsRestarting(true);
@@ -48,6 +73,7 @@ export function CoreSection() {
       await stopProxy();
       await startProxy();
       setShowRestartPrompt(false);
+      setShowHostRestartPrompt(false);
     } catch (error) {
       log.error("Failed to restart proxy:", error);
     } finally {
@@ -72,6 +98,27 @@ export function CoreSection() {
       setPort(newPort);
       if (proxyRunning) {
         setShowRestartPrompt(true);
+      }
+    }
+  };
+
+  const handleHostChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setHostInput(e.target.value);
+    setHostError(null);
+  };
+
+  const handleHostBlur = () => {
+    const newHost = hostInput.trim();
+
+    if (newHost !== "" && !isValidBindHost(newHost)) {
+      setHostError(t.settings.bindHostError);
+      return;
+    }
+
+    if (newHost !== host) {
+      setHost(newHost);
+      if (proxyRunning) {
+        setShowHostRestartPrompt(true);
       }
     }
   };
@@ -262,6 +309,98 @@ export function CoreSection() {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setShowRestartPrompt(false)}
+                    className="px-4 py-2 text-xs font-semibold text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 rounded-xl transition-all"
+                  >
+                    {t.settings.restartLater}
+                  </button>
+                  <button
+                    onClick={handleRestart}
+                    disabled={isRestarting}
+                    className="flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-xl transition-all shadow-lg shadow-amber-500/20 hover:shadow-amber-500/30 hover:-translate-y-0.5 active:scale-95 disabled:opacity-70 disabled:pointer-events-none"
+                  >
+                    {isRestarting && (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    )}
+                    {t.settings.restartNow}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </SettingCard>
+
+      {/* Bind Address Configuration */}
+      <SettingCard variant="teal">
+        <SectionHeader
+          title={t.settings.bindHost}
+          description={t.settings.bindHostDesc}
+          icon={Network}
+          accentColor="teal"
+        />
+        <SettingRow label={t.settings.bindHost} icon={Network}>
+          <input
+            type="text"
+            value={hostInput}
+            onChange={handleHostChange}
+            onBlur={handleHostBlur}
+            className={`glass-input w-full font-mono text-lg py-3.5 px-5 bg-black/5 dark:bg-black/20 border-transparent focus:ring-2 ${
+              hostError
+                ? "border-red-500/50 focus:border-red-500/40 focus:ring-red-500/15"
+                : "focus:border-teal-500/40 focus:ring-teal-500/15"
+            }`}
+            placeholder={t.settings.bindHostPlaceholder}
+          />
+        </SettingRow>
+
+        <AnimatePresence>
+          {hostError && (
+            <motion.div
+              initial={{ opacity: 0, height: 0, marginTop: 0 }}
+              animate={{ opacity: 1, height: "auto", marginTop: 8 }}
+              exit={{ opacity: 0, height: 0, marginTop: 0 }}
+              className="text-sm text-red-500 pl-1 overflow-hidden"
+            >
+              {hostError}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {showHostRestartPrompt && (
+            <motion.div
+              initial={{ opacity: 0, height: 0, marginTop: 0, scale: 0.98 }}
+              animate={{ opacity: 1, height: "auto", marginTop: 16, scale: 1 }}
+              exit={{ opacity: 0, height: 0, marginTop: 0, scale: 0.98 }}
+              transition={{ type: "spring", stiffness: 500, damping: 30 }}
+              className="relative overflow-hidden bg-amber-500/5 dark:bg-amber-500/10 backdrop-blur-md border border-amber-500/20 dark:border-amber-500/30 rounded-2xl p-4"
+            >
+              <div className="flex items-center justify-between relative z-10">
+                <div className="flex items-center gap-4">
+                  <div className="p-2.5 bg-amber-500/20 rounded-xl text-amber-500 shadow-lg shadow-amber-500/10">
+                    <motion.div
+                      animate={{ scale: [1, 1.1, 1] }}
+                      transition={{
+                        duration: 2,
+                        repeat: Infinity,
+                        ease: "easeInOut",
+                      }}
+                    >
+                      <AlertTriangle className="w-5 h-5" />
+                    </motion.div>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-amber-600 dark:text-amber-400">
+                      {t.settings.bindHostChanged}
+                    </h4>
+                    <p className="text-[11px] text-amber-600/70 dark:text-amber-400/70 leading-relaxed mt-0.5">
+                      {t.settings.bindHostChangedDesc}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setShowHostRestartPrompt(false)}
                     className="px-4 py-2 text-xs font-semibold text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 rounded-xl transition-all"
                   >
                     {t.settings.restartLater}

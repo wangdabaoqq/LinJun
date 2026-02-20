@@ -269,8 +269,11 @@ function setCachedTools(tools: CLIToolInfo[]): void {
 function ConfigModal({ tool, onClose }: ConfigModalProps) {
   const t = useTranslations();
   const port = useSettingsStore((s) => s.port);
+  const host = useSettingsStore((s) => s.host);
   const [saving, setSaving] = useState(false);
-  const [proxyUrl, setProxyUrl] = useState(`http://127.0.0.1:${port}`);
+  const [proxyUrl, setProxyUrl] = useState(
+    `http://${host || "127.0.0.1"}:${port}`,
+  );
   const [apiKey, setApiKey] = useState("");
   const [activeProviders, setActiveProviders] = useState<string[]>([]);
   const [testingConnection, setTestingConnection] = useState(false);
@@ -380,8 +383,8 @@ function ConfigModal({ tool, onClose }: ConfigModalProps) {
 
   // 监听端口变化，自动更新 proxyUrl
   useEffect(() => {
-    setProxyUrl(`http://127.0.0.1:${port}`);
-  }, [port]);
+    setProxyUrl(`http://${host || "127.0.0.1"}:${port}`);
+  }, [port, host]);
 
   useEffect(() => {
     const loadApiKey = async () => {
@@ -983,7 +986,7 @@ export IFLOW_modelName="claude-sonnet-4-5"`;
                     value={proxyUrl}
                     onChange={(e) => setProxyUrl(e.target.value)}
                     className="glass-input w-full font-mono text-sm"
-                    placeholder={`http://127.0.0.1:${DEFAULT_PORT}`}
+                    placeholder={`http://${host || "127.0.0.1"}:${DEFAULT_PORT}`}
                   />
                 </div>
 

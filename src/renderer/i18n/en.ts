@@ -588,6 +588,13 @@ export const en = {
     portChangedDesc: "Restart proxy to apply new port?",
     restartNow: "Restart Now",
     restartLater: "Later",
+    bindHost: "Bind Address",
+    bindHostDesc:
+      "Network interface to bind. Leave empty to listen on all interfaces (enables VM/Docker access)",
+    bindHostPlaceholder: "Empty = bind all interfaces (0.0.0.0)",
+    bindHostError: "Enter a valid IPv4, IPv6, hostname, or leave empty",
+    bindHostChanged: "Bind Address Changed",
+    bindHostChangedDesc: "Restart proxy to apply new bind address?",
     endpoint: "API Endpoint",
     endpointDesc: "Custom API endpoint URL",
     endpointPlaceholder: `http://127.0.0.1:${DEFAULT_PORT}/v1`,

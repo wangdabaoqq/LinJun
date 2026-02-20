@@ -134,6 +134,7 @@ export function TrayView() {
   const t = useTranslations();
   const { theme, toggleTheme } = useTheme();
   const port = useSettingsStore((s) => s.port);
+  const host = useSettingsStore((s) => s.host);
   const proxyRunning = useSettingsStore((s) => s.proxyRunning);
   const [copied, setCopied] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -186,7 +187,7 @@ export function TrayView() {
   };
 
   const handleCopyUrl = async () => {
-    const url = `http://127.0.0.1:${port}`;
+    const url = `http://${host || "127.0.0.1"}:${port}`;
     await navigator.clipboard.writeText(url);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -260,7 +261,7 @@ export function TrayView() {
                 className="flex items-center gap-2 group transition-opacity active:opacity-60"
               >
                 <code className="text-[13px] font-bold font-mono text-slate-700 dark:text-white/80">
-                  127.0.0.1:{port}
+                  {host || "127.0.0.1"}:{port}
                 </code>
                 {copied ? (
                   <Check size={12} className="text-emerald-500" />

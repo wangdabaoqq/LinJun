@@ -571,6 +571,13 @@ export const zh: Translations = {
     portChangedDesc: "重启代理以应用新端口？",
     restartNow: "立即重启",
     restartLater: "稍后",
+    bindHost: "监听地址",
+    bindHostDesc:
+      "代理服务器绑定的网络接口地址，留空则监听所有接口（支持 VM/Docker 访问）",
+    bindHostPlaceholder: "留空绑定所有接口（0.0.0.0）",
+    bindHostError: "请输入有效的 IPv4、IPv6 地址、主机名或留空",
+    bindHostChanged: "监听地址已更改",
+    bindHostChangedDesc: "重启代理以应用新的监听地址？",
     endpoint: "API 端点",
     endpointDesc: "自定义 API 端点地址",
     endpointPlaceholder: `http://127.0.0.1:${DEFAULT_PORT}/v1`,
