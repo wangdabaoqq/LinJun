@@ -26,10 +26,9 @@ import { SettingRow } from "../shared/SettingRow";
 
 const IPV4_RE = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
 const IPV6_BARE_RE = /^[\da-fA-F:]+$/;
-const HOSTNAME_RE =
-  /^(?!.*\.\.)(?!\d+$)[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*$/;
 
 function isValidBindHost(value: string): boolean {
+  if (value === "localhost") return true;
   const ipv4Match = value.match(IPV4_RE);
   if (ipv4Match) {
     return ipv4Match.slice(1).every((octet) => Number(octet) <= 255);
@@ -40,7 +39,7 @@ function isValidBindHost(value: string): boolean {
   if (value.includes(":") && IPV6_BARE_RE.test(value)) {
     return true;
   }
-  return HOSTNAME_RE.test(value);
+  return false;
 }
 
 export function CoreSection() {

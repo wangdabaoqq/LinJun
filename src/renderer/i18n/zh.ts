@@ -575,7 +575,7 @@ export const zh: Translations = {
     bindHostDesc:
       "代理服务器绑定的网络接口地址，留空则监听所有接口（支持 VM/Docker 访问）",
     bindHostPlaceholder: "留空绑定所有接口（0.0.0.0）",
-    bindHostError: "请输入有效的 IPv4、IPv6 地址、主机名或留空",
+    bindHostError: "请输入有效的 IPv4、IPv6 地址或留空",
     bindHostChanged: "监听地址已更改",
     bindHostChangedDesc: "重启代理以应用新的监听地址？",
     endpoint: "API 端点",
@@ -681,6 +681,6 @@ export const zh: Translations = {
       "端口 {port} 已被占用，请在设置中更换端口或停止占用该端口的进程。",
     errPermissionDenied: "端口 {port} 权限不足，1024 以下端口需要管理员权限。",
     errBinaryNotFound: "未找到代理程序，请先下载。",
-    errStartFailed: "代理启动失败，请查看日志标签页了解详情。",
+    errStartFailed: "代理启动失败，请确认二进制文件正常且端口未被占用。",
   },
 };

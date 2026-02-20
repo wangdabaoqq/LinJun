@@ -592,7 +592,7 @@ export const en = {
     bindHostDesc:
       "Network interface to bind. Leave empty to listen on all interfaces (enables VM/Docker access)",
     bindHostPlaceholder: "Empty = bind all interfaces (0.0.0.0)",
-    bindHostError: "Enter a valid IPv4, IPv6, hostname, or leave empty",
+    bindHostError: "Enter a valid IPv4 or IPv6 address, or leave empty",
     bindHostChanged: "Bind Address Changed",
     bindHostChangedDesc: "Restart proxy to apply new bind address?",
     endpoint: "API Endpoint",
@@ -702,7 +702,8 @@ export const en = {
     errPermissionDenied:
       "Permission denied on port {port}. Ports below 1024 require elevated privileges.",
     errBinaryNotFound: "Proxy binary not found. Please download it first.",
-    errStartFailed: "Proxy failed to start. Check the Logs tab for details.",
+    errStartFailed:
+      "Proxy failed to start. Make sure the binary is valid and the port is not in use.",
   },
 };
 
