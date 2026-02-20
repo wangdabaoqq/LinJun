@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useRef, useEffect } from "react";
 import { motion } from "motion/react";
 import { getProviderIcon } from "../icons/ProviderIcons";
 
@@ -22,6 +22,22 @@ export function ProviderTabs({
 }: ProviderTabsProps) {
   const tabsRef = useRef<HTMLDivElement>(null);
 
+  useEffect(() => {
+    const el = tabsRef.current;
+    if (!el) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      if (el.scrollWidth <= el.clientWidth) return;
+      if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+      if (e.deltaY === 0) return;
+      e.preventDefault();
+      el.scrollLeft += e.deltaY * 1.8;
+    };
+
+    el.addEventListener("wheel", handleWheel, { passive: false });
+    return () => el.removeEventListener("wheel", handleWheel);
+  }, []);
+
   return (
     <div className="flex justify-center max-w-full">
       <div className="relative max-w-full group/tabs">
@@ -31,14 +47,6 @@ export function ProviderTabs({
         <div
           ref={tabsRef}
           className="flex items-center p-1.5 bg-[var(--glass-bg)]/60 backdrop-blur-2xl rounded-2xl border border-[var(--glass-border)] shadow-xl overflow-x-auto no-scrollbar scroll-smooth"
-          onWheel={(e) => {
-            const el = tabsRef.current;
-            if (!el || el.scrollWidth <= el.clientWidth) return;
-            if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
-            if (e.deltaY === 0) return;
-            e.preventDefault();
-            el.scrollLeft += e.deltaY * 1.8;
-          }}
         >
           {providers.map((provider) => {
             const isSelected = selected === provider.id;
