@@ -21,12 +21,7 @@ import {
   AntigravityModelQuota,
 } from "./antigravityService";
 import { store } from "../utils/store";
-import {
-  getKiroUsage,
-  isKiroTokenValid,
-  isKiroRefreshBlocked,
-  KiroUsageResponse,
-} from "./kiroService";
+import { getKiroUsage, KiroUsageResponse } from "./kiroService";
 import {
   fetchCustomUserSelf,
   fetchCustomPricing,
@@ -242,6 +237,18 @@ function convertCodexUsageToQuotaAccount(
   token: TokenReadResult,
   usage: CodexUsageResponse,
 ): QuotaAccount {
+  const formatCodexWindowLabel = (
+    seconds?: number,
+    fallback = "Usage Window",
+  ): string => {
+    if (!seconds || seconds <= 0) return fallback;
+    if (seconds >= 7 * 24 * 3600) return "7-Day Window";
+    if (seconds >= 24 * 3600) return "24-Hour Window";
+    if (seconds >= 5 * 3600) return "5-Hour Window";
+    if (seconds >= 3600) return "1-Hour Window";
+    return fallback;
+  };
+
   const isLimited =
     usage.rate_limit.limit_reached ||
     usage.rate_limit.primary_window.used_percent > 95;
@@ -254,7 +261,10 @@ function convertCodexUsageToQuotaAccount(
     status: isLimited ? "limited" : "active",
     rateLimits: {
       primary: {
-        label: "5-Hour Window",
+        label: formatCodexWindowLabel(
+          usage.rate_limit.primary_window.limit_window_seconds,
+          "Primary Window",
+        ),
         usedPercent: usage.rate_limit.primary_window.used_percent,
         resetIn: formatResetTime(
           usage.rate_limit.primary_window.reset_after_seconds,
@@ -263,7 +273,10 @@ function convertCodexUsageToQuotaAccount(
       },
       secondary: usage.rate_limit.secondary_window
         ? {
-            label: "7-Day Window",
+            label: formatCodexWindowLabel(
+              usage.rate_limit.secondary_window.limit_window_seconds,
+              "Secondary Window",
+            ),
             usedPercent: usage.rate_limit.secondary_window.used_percent,
             resetIn: formatResetTime(
               usage.rate_limit.secondary_window.reset_after_seconds,
@@ -462,15 +475,7 @@ export async function getProviders(): Promise<ProviderInfo[]> {
 
     if (provider === "kiro") {
       const tokens = await getTokensByProvider(provider);
-      let validKiroCount = 0;
-      for (const token of tokens) {
-        if (isKiroRefreshBlocked(token.filePath)) {
-          continue;
-        }
-        const isValid = await isKiroTokenValid(token);
-        if (isValid) validKiroCount++;
-      }
-      validCount = validKiroCount;
+      validCount = tokens.length;
     }
 
     if (validCount > 0) {
@@ -596,9 +601,6 @@ export async function getQuotaByProvider(
         );
       }
     } else if (provider === "kiro") {
-      if (isKiroRefreshBlocked(token.filePath)) {
-        continue;
-      }
       try {
         const usage = await getKiroUsage(token);
         let displayEmail = token.email || usage.userInfo?.email || "";
@@ -616,10 +618,13 @@ export async function getQuotaByProvider(
           convertKiroUsageToQuotaAccount(token, usage, safeName, accountId),
         );
       } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
         log.error(
-          `[QuotaManager] Skipping Kiro account ${token.filePath}:`,
-          error instanceof Error ? error.message : String(error),
+          `[QuotaManager] Failed to fetch Kiro quota for ${token.filePath}:`,
+          errorMessage,
         );
+        results.push(createErrorQuotaAccount(token, errorMessage));
       }
     } else {
       results.push({
@@ -641,6 +646,61 @@ export async function getQuotaByProvider(
   }
 
   return results;
+}
+
+async function fetchCodexAccountWithConcurrency(
+  token: import("./tokenReader").TokenReadResult,
+): Promise<QuotaAccount> {
+  try {
+    const usage = await fetchCodexUsage(token);
+    return convertCodexUsageToQuotaAccount(token, usage);
+  } catch (error) {
+    return createErrorQuotaAccount(
+      token,
+      error instanceof Error ? error.message : "Unknown error",
+    );
+  }
+}
+
+async function runWithConcurrency<T>(
+  items: T[],
+  concurrency: number,
+  fn: (item: T) => Promise<QuotaAccount>,
+  onBatch: (batch: QuotaAccount[]) => void,
+): Promise<void> {
+  const batchSize = concurrency;
+  for (let i = 0; i < items.length; i += batchSize) {
+    const chunk = items.slice(i, i + batchSize);
+    const results = await Promise.all(chunk.map(fn));
+    onBatch(results);
+  }
+}
+
+export async function getQuotaByProviderStream(
+  provider: ProviderType,
+  onBatch: (accounts: QuotaAccount[], done: boolean) => void,
+): Promise<void> {
+  if (provider !== "codex") {
+    const accounts = await getQuotaByProvider(provider);
+    onBatch(accounts, true);
+    return;
+  }
+
+  const tokens = await getTokensByProvider(provider);
+  if (tokens.length === 0) {
+    onBatch([], true);
+    return;
+  }
+
+  await runWithConcurrency(
+    tokens,
+    10,
+    fetchCodexAccountWithConcurrency,
+    (batch) => {
+      onBatch(batch, false);
+    },
+  );
+  onBatch([], true);
 }
 
 export async function refreshQuota(

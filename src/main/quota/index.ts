@@ -31,5 +31,10 @@ export type {
   KiroRefreshResult,
 } from "./kiroService";
 
-export { getProviders, getQuotaByProvider, refreshQuota } from "./quotaManager";
+export {
+  getProviders,
+  getQuotaByProvider,
+  getQuotaByProviderStream,
+  refreshQuota,
+} from "./quotaManager";
 export type { QuotaAccount, QuotaWindow, ProviderInfo } from "./quotaManager";

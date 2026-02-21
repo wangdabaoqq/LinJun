@@ -1,8 +1,8 @@
-import type { IncomingMessage } from "http";
-
+import axios from "axios";
 import { ipcMain } from "electron";
 
 import { proxyManager, type ProxyConfig } from "../proxy/manager";
+import { managementAPI } from "../proxy/api";
 import log from "../utils/logger";
 import { store } from "../utils/store";
 
@@ -117,7 +117,139 @@ function registerCompatHandlers(channel: string, configKey: string): void {
   );
 }
 
+function extractModelsFromApiCallPayload(payload: unknown): {
+  id: string;
+  owned_by?: string;
+}[] {
+  if (Array.isArray(payload)) {
+    return payload.filter(
+      (item): item is { id: string; owned_by?: string } =>
+        !!item &&
+        typeof item === "object" &&
+        typeof (item as { id?: unknown }).id === "string",
+    );
+  }
+
+  if (payload && typeof payload === "object") {
+    const objectPayload = payload as {
+      data?: unknown;
+      models?: unknown;
+      object?: unknown;
+      success?: unknown;
+    };
+
+    if (Array.isArray(objectPayload.data)) {
+      return extractModelsFromApiCallPayload(objectPayload.data);
+    }
+
+    if (Array.isArray(objectPayload.models)) {
+      return extractModelsFromApiCallPayload(objectPayload.models);
+    }
+  }
+
+  return [];
+}
+
+function buildModelsUrl(baseUrl: string): string {
+  const normalized = baseUrl.trim().replace(/\/+$/, "");
+  if (/\/v\d+$/i.test(normalized)) {
+    return `${normalized}/models`;
+  }
+  return `${normalized}/v1/models`;
+}
+
+function buildChatCompletionsUrl(baseUrl: string): string {
+  const normalized = baseUrl.trim().replace(/\/+$/, "");
+  if (/\/v\d+$/i.test(normalized)) {
+    return `${normalized}/chat/completions`;
+  }
+  return `${normalized}/v1/chat/completions`;
+}
+
 export function setupCustomProvidersHandlers(): void {
+  ipcMain.removeHandler("customProvider:fetchModels");
+  ipcMain.handle(
+    "customProvider:fetchModels",
+    async (
+      _event,
+      params: {
+        baseUrl: string;
+        apiKey: string;
+        headers?: Record<string, string>;
+      },
+    ) => {
+      try {
+        const baseUrl = params.baseUrl.trim().replace(/\/+$/, "");
+        const apiKey = params.apiKey.trim();
+        const inputHeaders = Object.fromEntries(
+          Object.entries(params.headers || {}).filter(
+            ([key, value]) => key.trim().length > 0 && value.trim().length > 0,
+          ),
+        );
+        const hasAuthorizationHeader = Object.entries(inputHeaders).some(
+          ([key, value]) =>
+            key.trim().toLowerCase() === "authorization" &&
+            value.trim().length > 0,
+        );
+
+        if (!baseUrl) {
+          return { success: false, models: [], error: "Base URL is required" };
+        }
+
+        if (!apiKey && !hasAuthorizationHeader) {
+          return {
+            success: false,
+            models: [],
+            error: "API key or Authorization header is required",
+          };
+        }
+
+        const headers: Record<string, string> = { ...inputHeaders };
+        if (apiKey && !hasAuthorizationHeader) {
+          headers.Authorization = `Bearer ${apiKey}`;
+        }
+
+        const modelsUrl = buildModelsUrl(baseUrl);
+
+        let payload: unknown;
+        try {
+          payload = await managementAPI.callManagementApi({
+            method: "GET",
+            url: modelsUrl,
+            header: headers,
+          });
+        } catch (error) {
+          const status = axios.isAxiosError(error)
+            ? error.response?.status
+            : undefined;
+
+          if (status === 404) {
+            const direct = await axios.get(modelsUrl, {
+              headers,
+              timeout: 15000,
+            });
+            payload = direct.data;
+          } else {
+            throw error;
+          }
+        }
+
+        const models = extractModelsFromApiCallPayload(payload).map(
+          (model) => ({
+            id: model.id,
+            ownedBy:
+              typeof model.owned_by === "string" ? model.owned_by : "custom",
+          }),
+        );
+
+        return { success: true, models };
+      } catch (error) {
+        log.error("[IPC] Failed to fetch custom provider models:", error);
+        return { success: false, models: [], error: String(error) };
+      }
+    },
+  );
+
   ipcMain.handle(
     "customProviders:import",
     (
@@ -129,6 +261,7 @@ export function setupCustomProvidersHandlers(): void {
           "api-key-entries": { "api-key": string; "proxy-url"?: string }[];
           "system-access-token"?: string;
           "new-api-user"?: string;
+          headers?: Record<string, string>;
           models?: { name: string; alias?: string }[];
           prefix?: string;
         }[];
@@ -138,6 +271,7 @@ export function setupCustomProvidersHandlers(): void {
           "base-url"?: string;
           "proxy-url"?: string;
           "system-access-token"?: string;
+          headers?: Record<string, string>;
           models?: { name: string; alias?: string }[];
           prefix?: string;
         }[];
@@ -157,6 +291,7 @@ export function setupCustomProvidersHandlers(): void {
           "base-url"?: string;
           "proxy-url"?: string;
           "system-access-token"?: string;
+          headers?: Record<string, string>;
           models?: { name: string; alias?: string }[];
           prefix?: string;
         }[];
@@ -181,6 +316,8 @@ export function setupCustomProvidersHandlers(): void {
             "base-url": string;
             "api-key-entries": { "api-key": string; "proxy-url"?: string }[];
             "system-access-token"?: string;
+            "new-api-user"?: string;
+            headers?: Record<string, string>;
             models?: { name: string; alias?: string }[];
             prefix?: string;
           }[],
@@ -589,157 +726,103 @@ export function setupCustomProvidersHandlers(): void {
         baseUrl: string;
         apiKey: string;
         newApiUser?: string;
+        headers?: Record<string, string>;
       },
     ) => {
-      const { baseUrl, apiKey, newApiUser } = params;
+      const { baseUrl, apiKey, headers } = params;
 
-      if (!baseUrl || !apiKey) {
-        return { success: false, error: "Base URL and API Key are required" };
+      if (!baseUrl) {
+        return { success: false, error: "Base URL is required" };
       }
 
-      const normalizedUrl = baseUrl.replace(/\/+$/, "");
+      const inputHeaders = Object.fromEntries(
+        Object.entries(headers || {}).filter(
+          ([key, value]) => key.trim().length > 0 && value.trim().length > 0,
+        ),
+      );
+      const hasAuthorizationHeader = Object.entries(inputHeaders).some(
+        ([key, value]) =>
+          key.trim().toLowerCase() === "authorization" &&
+          value.trim().length > 0,
+      );
+
+      if (!apiKey.trim() && !hasAuthorizationHeader) {
+        return {
+          success: false,
+          error: "API key or Authorization header is required",
+        };
+      }
+
+      const requestHeaders: Record<string, string> = {
+        "Content-Type": "application/json",
+        ...inputHeaders,
+      };
+      if (apiKey.trim() && !hasAuthorizationHeader) {
+        requestHeaders.Authorization = `Bearer ${apiKey.trim()}`;
+      }
+
+      const requestUrl = buildChatCompletionsUrl(baseUrl);
       const startTime = Date.now();
 
-      const tryEndpoint = (
-        testUrl: string,
-        headers: Record<string, string>,
-      ): Promise<{
-        success: boolean;
-        statusCode: number;
-        latency: number;
-      }> => {
-        return new Promise(async (resolve) => {
-          try {
-            const urlObj = new URL(testUrl);
-            const isHttps = urlObj.protocol === "https:";
-            const httpModule = await import(isHttps ? "https" : "http");
-
-            const options = {
-              hostname: urlObj.hostname,
-              port: urlObj.port || (isHttps ? 443 : 80),
-              path: urlObj.pathname + urlObj.search,
-              method: "GET",
-              headers,
-              timeout: 10000,
-            };
-
-            const req = httpModule.request(options, (res: IncomingMessage) => {
-              const latency = Date.now() - startTime;
-              res.on("data", () => {});
-              res.on("end", () => {
-                resolve({
-                  success:
-                    (res.statusCode || 0) >= 200 && (res.statusCode || 0) < 300,
-                  statusCode: res.statusCode || 0,
-                  latency,
-                });
-              });
-            });
-
-            req.on("error", () => {
-              resolve({
-                success: false,
-                statusCode: 0,
-                latency: Date.now() - startTime,
-              });
-            });
-
-            req.on("timeout", () => {
-              req.destroy();
-              resolve({
-                success: false,
-                statusCode: 0,
-                latency: Date.now() - startTime,
-              });
-            });
-
-            req.end();
-          } catch {
-            resolve({
-              success: false,
-              statusCode: 0,
-              latency: Date.now() - startTime,
-            });
-          }
-        });
-      };
-
       try {
-        const newApiHeaders: Record<string, string> = {
-          Authorization: `Bearer ${apiKey}`,
-        };
-        if (newApiUser) {
-          newApiHeaders["New-Api-User"] = newApiUser;
+        let payload: unknown;
+        try {
+          payload = await managementAPI.callManagementApi({
+            method: "POST",
+            url: requestUrl,
+            header: requestHeaders,
+            body: {
+              model: "gpt-5-nano",
+              messages: [{ role: "user", content: "Hi" }],
+              stream: false,
+              max_tokens: 5,
+            },
+          });
+        } catch (error) {
+          const status = axios.isAxiosError(error)
+            ? error.response?.status
+            : undefined;
+
+          if (status === 404) {
+            const direct = await axios.post(
+              requestUrl,
+              {
+                model: "gpt-5-nano",
+                messages: [{ role: "user", content: "Hi" }],
+                stream: false,
+                max_tokens: 5,
+              },
+              {
+                headers: requestHeaders,
+                timeout: 15000,
+              },
+            );
+            payload = direct.data;
+          } else {
+            throw error;
+          }
         }
 
-        const newApiResult = await tryEndpoint(
-          `${normalizedUrl}/api/pricing`,
-          newApiHeaders,
-        );
+        const objectPayload =
+          payload && typeof payload === "object" && !Array.isArray(payload)
+            ? (payload as Record<string, unknown>)
+            : null;
 
-        if (newApiResult.success) {
-          return {
-            success: true,
-            latency: newApiResult.latency,
-            serviceType: "new-api" as const,
-          };
-        }
-
-        if (newApiResult.statusCode === 404) {
-          const openRouterResult = await tryEndpoint(
-            `${normalizedUrl}/api/v1/key`,
-            { Authorization: `Bearer ${apiKey}` },
-          );
-
-          if (openRouterResult.success) {
-            return {
-              success: true,
-              latency: openRouterResult.latency,
-              serviceType: "openrouter" as const,
-            };
-          }
-
-          if (openRouterResult.statusCode === 404) {
-            return {
-              success: false,
-              error: "Unsupported service (neither New API nor OpenRouter)",
-              latency: openRouterResult.latency,
-            };
-          }
-
-          if (
-            openRouterResult.statusCode === 401 ||
-            openRouterResult.statusCode === 403
-          ) {
-            return {
-              success: false,
-              error: `Authentication failed (HTTP ${openRouterResult.statusCode})`,
-              latency: openRouterResult.latency,
-            };
-          }
-
+        if (objectPayload?.success === false) {
           return {
             success: false,
-            error: `Connection failed (HTTP ${openRouterResult.statusCode})`,
-            latency: openRouterResult.latency,
-          };
-        }
-
-        if (
-          newApiResult.statusCode === 401 ||
-          newApiResult.statusCode === 403
-        ) {
-          return {
-            success: false,
-            error: `Authentication failed (HTTP ${newApiResult.statusCode})`,
-            latency: newApiResult.latency,
+            error:
+              typeof objectPayload.error === "string"
+                ? objectPayload.error
+                : "Connection test failed",
+            latency: Date.now() - startTime,
           };
         }
 
         return {
-          success: false,
-          error: `Connection failed (HTTP ${newApiResult.statusCode})`,
-          latency: newApiResult.latency,
+          success: true,
+          latency: Date.now() - startTime,
+          serviceType: "custom" as const,
         };
       } catch (error) {
         log.error("[IPC] Failed to test custom provider connection:", error);

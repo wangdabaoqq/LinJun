@@ -1,5 +1,6 @@
 import axios from "axios";
 
+import { managementAPI } from "../proxy/api";
 import log from "../utils/logger";
 import { TokenReadResult, updateTokenFile } from "./tokenReader";
 
@@ -145,94 +146,84 @@ async function fetchKiroUsage(accessToken: string): Promise<KiroUsageResponse> {
   return response.data;
 }
 
+function extractKiroUsageFromManagementPayload(
+  payload: unknown,
+): KiroUsageResponse {
+  let parsedPayload: unknown = payload;
+  if (typeof parsedPayload === "string") {
+    try {
+      parsedPayload = JSON.parse(parsedPayload);
+    } catch {
+      throw new Error("Invalid management api-call payload for Kiro usage");
+    }
+  }
+
+  if (!parsedPayload || typeof parsedPayload !== "object") {
+    throw new Error("Invalid management api-call payload for Kiro usage");
+  }
+
+  const objectPayload = parsedPayload as Record<string, unknown>;
+  if (objectPayload.success === false) {
+    throw new Error(
+      typeof objectPayload.error === "string"
+        ? objectPayload.error
+        : "Kiro management api-call failed",
+    );
+  }
+
+  const candidate =
+    objectPayload.data && typeof objectPayload.data === "object"
+      ? objectPayload.data
+      : objectPayload;
+
+  if (
+    candidate &&
+    typeof candidate === "object" &&
+    ("usageBreakdownList" in candidate || "subscriptionInfo" in candidate)
+  ) {
+    return candidate as KiroUsageResponse;
+  }
+
+  throw new Error("Unexpected Kiro usage payload from management api-call");
+}
+
+async function fetchKiroUsageViaManagement(
+  authIndex: string,
+): Promise<KiroUsageResponse> {
+  const payload = await managementAPI.callManagementApi({
+    method: "GET",
+    url: KIRO_USAGE_URL,
+    authIndex,
+    header: {
+      Authorization: "Bearer $TOKEN$",
+      "User-Agent": KIRO_USER_AGENT,
+      "x-amz-user-agent": KIRO_AMZ_USER_AGENT,
+    },
+  });
+
+  return extractKiroUsageFromManagementPayload(payload);
+}
+
 export async function getKiroUsage(
   token: TokenReadResult,
 ): Promise<KiroUsageResponse> {
-  try {
-    return await fetchKiroUsage(token.accessToken);
-  } catch (error) {
-    if (
-      axios.isAxiosError(error) &&
-      (error.response?.status === 401 || error.response?.status === 403)
-    ) {
-      if (!canAttemptKiroRefresh(token.filePath)) {
-        log.warn(
-          `[Kiro] Refresh retry limit reached for ${token.filePath}. Skipping refresh.`,
-        );
-        throw new Error("Kiro refresh retry limit reached");
-      }
-      try {
-        const newAccessToken = await refreshKiroToken(token.refreshToken);
-        if (!newAccessToken) {
-          recordKiroRefreshAttempt(token.filePath, false);
-          throw new Error("Failed to refresh Kiro access token");
-        }
-
-        const usage = await fetchKiroUsage(newAccessToken);
-        const expiresAt = getAssumedKiroExpiresAt();
-
-        await updateTokenFile(token.filePath, {
-          // Keep both schemas in sync (cliproxy uses snake_case;
-          // older imports and our UI may still produce camelCase).
-          access_token: newAccessToken,
-          accessToken: newAccessToken,
-          expires_at: expiresAt,
-          expiresAt: expiresAt,
-        });
-        recordKiroRefreshAttempt(token.filePath, true);
-        return usage;
-      } catch (refreshError) {
-        recordKiroRefreshAttempt(token.filePath, false);
-        throw refreshError;
-      }
-    }
-
-    throw error;
+  if (token.authIndex) {
+    return await fetchKiroUsageViaManagement(token.authIndex);
   }
+
+  return await fetchKiroUsage(token.accessToken);
 }
 
 export async function isKiroTokenValid(
   token: TokenReadResult,
 ): Promise<boolean> {
   try {
-    await fetchKiroUsage(token.accessToken);
+    await getKiroUsage(token);
     return true;
   } catch (error) {
-    if (
-      axios.isAxiosError(error) &&
-      (error.response?.status === 401 || error.response?.status === 403)
-    ) {
-      if (!canAttemptKiroRefresh(token.filePath)) {
-        log.warn(
-          `[Kiro] Refresh retry limit reached for ${token.filePath}. Skipping validation refresh.`,
-        );
-        return false;
-      }
-      try {
-        const newAccessToken = await refreshKiroToken(token.refreshToken);
-        if (!newAccessToken) {
-          recordKiroRefreshAttempt(token.filePath, false);
-          return false;
-        }
-
-        await fetchKiroUsage(newAccessToken);
-        const expiresAt = getAssumedKiroExpiresAt();
-        await updateTokenFile(token.filePath, {
-          access_token: newAccessToken,
-          accessToken: newAccessToken,
-          expires_at: expiresAt,
-          expiresAt: expiresAt,
-        });
-        recordKiroRefreshAttempt(token.filePath, true);
-        return true;
-      } catch (refreshError) {
-        recordKiroRefreshAttempt(token.filePath, false);
-        log.warn(
-          `[Kiro] Validation refresh failed for ${token.filePath}: ${formatKiroErrorForLog(refreshError)}`,
-        );
-        return false;
-      }
-    }
+    log.warn(
+      `[Kiro] Token validation failed for ${token.filePath}: ${formatKiroErrorForLog(error)}`,
+    );
     return false;
   }
 }
@@ -240,28 +231,34 @@ export async function isKiroTokenValid(
 export async function refreshKiroTokenManually(
   token: TokenReadResult,
 ): Promise<KiroRefreshResult> {
-  try {
-    const newAccessToken = await refreshKiroToken(token.refreshToken);
-    if (!newAccessToken) {
-      return { success: false, error: "Failed to get new access token" };
+  if (token.authIndex) {
+    try {
+      await fetchKiroUsageViaManagement(token.authIndex);
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: formatKiroErrorForLog(error),
+      };
     }
+  }
 
-    const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
-
-    await updateTokenFile(token.filePath, {
-      access_token: newAccessToken,
-      accessToken: newAccessToken,
-      expires_at: expiresAt,
-      expiresAt: expiresAt,
-    });
-
-    log.info(`[Kiro] Token refreshed successfully: ${token.filePath}`);
-    return { success: true, accessToken: newAccessToken, expiresAt };
-  } catch (error) {
-    log.error("[Kiro] Failed to refresh token:", formatKiroErrorForLog(error));
+  try {
+    await fetchKiroUsage(token.accessToken);
     return {
       success: false,
-      error: formatKiroErrorForLog(error),
+      error:
+        "Kiro refresh is managed by CLIProxyAPIPlus. Re-import token via management auth-files if needed.",
+    };
+  } catch (error) {
+    log.error(
+      "[Kiro] Manual refresh is disabled:",
+      formatKiroErrorForLog(error),
+    );
+    return {
+      success: false,
+      error:
+        "Kiro refresh is managed by CLIProxyAPIPlus. Re-import token via management auth-files if needed.",
     };
   }
 }

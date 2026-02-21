@@ -1,19 +1,33 @@
 import { memo, useState } from "react";
-import { Globe, Box, Key, Eye, EyeOff, User, Activity } from "lucide-react";
+import {
+  Globe,
+  Box,
+  Key,
+  Eye,
+  EyeOff,
+  User,
+  Activity,
+  Download,
+} from "lucide-react";
 import { useTranslations } from "../../../stores/settings";
 import { ClaudeApiKeyEntry, ModelEntry } from "./types";
 import { ModelEntryList } from "./ModelEntryList";
+import { HeaderEntryList } from "./HeaderEntryList";
 
 interface ClaudeProtocolFormProps {
   entry: ClaudeApiKeyEntry;
+  isFetchingModels?: boolean;
+  onFetchModels: () => Promise<void>;
   onUpdate: (
     field: keyof ClaudeApiKeyEntry,
-    value: string | boolean | ModelEntry[] | undefined,
+    value: string | boolean | ModelEntry[] | Record<string, string> | undefined,
   ) => void;
 }
 
 export const ClaudeProtocolForm = memo(function ClaudeProtocolForm({
   entry,
+  isFetchingModels,
+  onFetchModels,
   onUpdate,
 }: ClaudeProtocolFormProps) {
   const t = useTranslations();
@@ -212,10 +226,34 @@ export const ClaudeProtocolForm = memo(function ClaudeProtocolForm({
         </div>
       </div>
       <div className="space-y-3">
+        <HeaderEntryList
+          headers={entry.headers}
+          onChange={(headers) => onUpdate("headers", headers)}
+        />
+
         <label className="flex items-center gap-2 text-xs font-bold text-[var(--text-primary)] uppercase tracking-widest px-1">
           <Box className="w-3.5 h-3.5" />
           {t.providers.customModels} ({t.providers.optional})
         </label>
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={() => void onFetchModels()}
+            disabled={isFetchingModels}
+            className="px-3 py-2 rounded-xl border border-[var(--glass-border)] text-[11px] font-bold text-[var(--text-dim)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 transition-all disabled:opacity-60"
+          >
+            <span className="inline-flex items-center gap-2">
+              {isFetchingModels ? (
+                <div className="w-3.5 h-3.5 border-2 border-current/30 border-t-current rounded-full animate-spin" />
+              ) : (
+                <Download className="w-3.5 h-3.5" />
+              )}
+              {isFetchingModels
+                ? t.providers.customFetchingModels
+                : t.providers.customFetchModels}
+            </span>
+          </button>
+        </div>
         <ModelEntryList
           models={entry.models || []}
           onUpdate={updateModel}

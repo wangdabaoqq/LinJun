@@ -8,6 +8,7 @@ export interface OpenAICompatibilityEntry {
   "new-api-user"?: string;
   "enable-usage-query"?: boolean;
   prefix?: string;
+  headers?: Record<string, string>;
   models?: { name: string; alias?: string }[];
 }
 
@@ -20,6 +21,7 @@ export interface ClaudeCompatibilityEntry {
   "new-api-user"?: string;
   "enable-usage-query"?: boolean;
   prefix?: string;
+  headers?: Record<string, string>;
   models?: { name: string; alias?: string }[];
 }
 
@@ -45,6 +47,7 @@ export interface CodexCompatibilityEntry {
   "new-api-user"?: string;
   "enable-usage-query"?: boolean;
   prefix?: string;
+  headers?: Record<string, string>;
   models?: { name: string; alias?: string }[];
 }
 

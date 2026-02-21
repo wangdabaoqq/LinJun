@@ -51,6 +51,7 @@ export interface ClaudeApiKeyEntry {
   "new-api-user"?: string;
   "enable-usage-query"?: boolean;
   prefix?: string;
+  headers?: Record<string, string>;
   models?: OpenAICompatibilityModel[];
 }
 
@@ -76,6 +77,7 @@ export interface CodexApiKeyEntry {
   "new-api-user"?: string;
   "enable-usage-query"?: boolean;
   prefix?: string;
+  headers?: Record<string, string>;
   models?: OpenAICompatibilityModel[];
 }
 
@@ -106,6 +108,7 @@ export interface OpenAICompatibilityProvider {
   "system-access-token"?: string;
   "new-api-user"?: string;
   "enable-usage-query"?: boolean;
+  headers?: Record<string, string>;
   models?: OpenAICompatibilityModel[];
 }
 

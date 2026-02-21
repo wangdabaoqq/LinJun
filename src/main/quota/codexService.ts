@@ -1,5 +1,6 @@
 import axios from "axios";
 
+import { managementAPI } from "../proxy/api";
 import log from "../utils/logger";
 import { TokenReadResult, updateTokenFile } from "./tokenReader";
 
@@ -77,11 +78,78 @@ async function fetchUsageWithToken(
   return response.data;
 }
 
+function extractCodexUsageFromManagementPayload(
+  payload: unknown,
+): CodexUsageResponse {
+  let parsedPayload: unknown = payload;
+  if (typeof parsedPayload === "string") {
+    try {
+      parsedPayload = JSON.parse(parsedPayload);
+    } catch {
+      throw new Error("Invalid management api-call payload for Codex usage");
+    }
+  }
+
+  if (!parsedPayload || typeof parsedPayload !== "object") {
+    throw new Error("Invalid management api-call payload for Codex usage");
+  }
+
+  const objectPayload = parsedPayload as Record<string, unknown>;
+  if (objectPayload.success === false) {
+    throw new Error(
+      typeof objectPayload.error === "string"
+        ? objectPayload.error
+        : "Codex management api-call failed",
+    );
+  }
+
+  const candidate =
+    objectPayload.data && typeof objectPayload.data === "object"
+      ? objectPayload.data
+      : objectPayload;
+
+  if (candidate && typeof candidate === "object" && "rate_limit" in candidate) {
+    return candidate as CodexUsageResponse;
+  }
+
+  throw new Error("Unexpected Codex usage payload from management api-call");
+}
+
+async function fetchCodexUsageViaManagement(
+  token: TokenReadResult,
+): Promise<CodexUsageResponse> {
+  if (!token.authIndex) {
+    throw new Error("Codex account missing authIndex");
+  }
+  if (!token.accountId) {
+    throw new Error("Codex token missing account_id");
+  }
+
+  const payload = await managementAPI.callManagementApi({
+    method: "GET",
+    url: CHATGPT_USAGE_URL,
+    authIndex: token.authIndex,
+    header: {
+      Authorization: "Bearer $TOKEN$",
+      Accept: "application/json",
+      "ChatGPT-Account-Id": token.accountId,
+    },
+  });
+
+  return extractCodexUsageFromManagementPayload(payload);
+}
+
 export async function fetchCodexUsage(
   token: TokenReadResult,
 ): Promise<CodexUsageResponse> {
   if (!token.accountId) {
-    throw new Error("Codex token missing account_id");
+    throw new Error(
+      "Codex account metadata missing account_id. Re-import this auth file from management auth-files.",
+    );
+  }
+
+  if (token.authIndex) {
+    return await fetchCodexUsageViaManagement(token);
   }
 
   try {

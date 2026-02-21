@@ -142,6 +142,28 @@ const electronAPI = {
     refresh: (accountId: string) =>
       ipcRenderer.invoke("quota:refresh", accountId),
     refreshAll: () => ipcRenderer.invoke("quota:refreshAll"),
+    streamByProvider: (provider: Provider) =>
+      ipcRenderer.send("quota:getByProviderStream", provider),
+    onStreamBatch: (
+      callback: (data: {
+        provider: Provider;
+        accounts: unknown[];
+        done: boolean;
+        error?: string;
+      }) => void,
+    ) => {
+      const handler = (
+        _event: unknown,
+        data: {
+          provider: Provider;
+          accounts: unknown[];
+          done: boolean;
+          error?: string;
+        },
+      ) => callback(data);
+      ipcRenderer.on("quota:streamBatch", handler);
+      return () => ipcRenderer.removeListener("quota:streamBatch", handler);
+    },
   },
   models: {
     fetch: () => ipcRenderer.invoke("models:fetch"),
@@ -170,6 +192,21 @@ const electronAPI = {
       ipcRenderer.invoke("providers:setAccountEnabled", filePath, enabled),
     removeAccount: (filePath: string) =>
       ipcRenderer.invoke("providers:removeAccount", filePath),
+    getAccountPreview: (filePath: string) =>
+      ipcRenderer.invoke("providers:getAccountPreview", filePath),
+    updateAccountMetadata: (
+      filePath: string,
+      updates: {
+        priority?: number;
+        prefix?: string;
+        proxyUrl?: string;
+      },
+    ) =>
+      ipcRenderer.invoke("providers:updateAccountMetadata", filePath, updates),
+    getAccountModels: (filePath: string) =>
+      ipcRenderer.invoke("providers:getAccountModels", filePath),
+    importOAuthFile: (fileName: string, payload: unknown) =>
+      ipcRenderer.invoke("providers:importOAuthFile", fileName, payload),
   },
   customProviders: {
     getAll: () => ipcRenderer.invoke("customProviders:getAll"),
@@ -184,6 +221,7 @@ const electronAPI = {
               "system-access-token"?: string;
               "new-api-user"?: string;
               "enable-usage-query"?: boolean;
+              headers?: Record<string, string>;
               models?: { name: string; alias?: string }[];
               prefix?: string;
             }
@@ -212,6 +250,7 @@ const electronAPI = {
             "system-access-token"?: string;
             "new-api-user"?: string;
             "enable-usage-query"?: boolean;
+            headers?: Record<string, string>;
             models?: { name: string; alias?: string }[];
             prefix?: string;
           }
@@ -388,13 +427,23 @@ const electronAPI = {
       protocol: "openai" | "claude" | "gemini" | "codex";
       baseUrl: string;
       apiKey: string;
-      newApiUser?: string;
+      headers?: Record<string, string>;
     }) =>
       ipcRenderer.invoke("customProvider:testConnection", params) as Promise<{
         success: boolean;
         error?: string;
         latency?: number;
-        serviceType?: "new-api" | "openrouter";
+        serviceType?: "new-api" | "openrouter" | "custom";
+      }>,
+    fetchModels: (params: {
+      baseUrl: string;
+      apiKey: string;
+      headers?: Record<string, string>;
+    }) =>
+      ipcRenderer.invoke("customProvider:fetchModels", params) as Promise<{
+        success: boolean;
+        models: Array<{ id: string; ownedBy: string }>;
+        error?: string;
       }>,
   },
   tray: {

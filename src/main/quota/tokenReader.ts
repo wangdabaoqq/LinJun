@@ -2,6 +2,7 @@ import fs from "fs";
 import fsp from "fs/promises";
 import path from "path";
 
+import { managementAPI } from "../proxy/api";
 import log from "../utils/logger";
 import { proxyManager } from "../proxy/manager";
 
@@ -73,6 +74,8 @@ export interface TokenFile {
 
   "oauth-source"?: string;
   oauth_source?: string;
+  auth_index?: string;
+  authIndex?: string;
 }
 
 export interface TokenReadResult {
@@ -81,6 +84,7 @@ export interface TokenReadResult {
   accountKey: string;
   accountId?: string;
   oauthSourceKey?: string;
+  authIndex?: string;
   accessToken: string;
   refreshToken: string;
   expired: Date;
@@ -90,8 +94,7 @@ export interface TokenReadResult {
 }
 
 export async function scanTokenFiles(): Promise<TokenReadResult[]> {
-  const authDir = getActiveAuthDir();
-  return readTokenFilesFromDir(authDir, true, true);
+  return await readTokenFilesFromManagement();
 }
 
 export async function scanProviderTokenFiles(): Promise<TokenReadResult[]> {
@@ -145,6 +148,136 @@ async function readTokenFilesFromDir(
     `[TokenReader] Found ${tokenFiles.length} token files in ${authDir} (enabled=${enabled})`,
   );
   return tokenFiles;
+}
+
+function parseTokenPayload(payload: unknown): TokenFile | null {
+  if (!payload || typeof payload !== "object") {
+    return null;
+  }
+
+  const recordPayload = payload as Record<string, unknown>;
+  const nested = recordPayload.data;
+  if (nested && typeof nested === "object" && !Array.isArray(nested)) {
+    return nested as TokenFile;
+  }
+
+  return payload as TokenFile;
+}
+
+async function readTokenFilesFromManagement(): Promise<TokenReadResult[]> {
+  try {
+    const authFiles = await managementAPI.listAuthFiles();
+    const remoteTokens: TokenReadResult[] = [];
+
+    for (const authFile of authFiles) {
+      const name =
+        (typeof authFile.name === "string" && authFile.name.trim()) ||
+        (typeof authFile.id === "string" && authFile.id.trim()) ||
+        "";
+      if (!name.endsWith(".json")) {
+        continue;
+      }
+      if (authFile.disabled === true) {
+        continue;
+      }
+
+      const payload = await managementAPI.downloadAuthFile(name);
+      const tokenData = parseTokenPayload(payload);
+      if (!tokenData) {
+        continue;
+      }
+
+      const remoteFilePath =
+        (typeof authFile.path === "string" && authFile.path.trim()) ||
+        path.join(getActiveAuthDir(), name);
+
+      const parsed = parseTokenFileData(
+        remoteFilePath,
+        tokenData,
+        true,
+        authFile.auth_index,
+        authFile.email || authFile.account || authFile.label,
+      );
+      if (parsed) {
+        remoteTokens.push(parsed);
+      }
+    }
+
+    if (remoteTokens.length > 0) {
+      log.info(
+        `[TokenReader] Loaded ${remoteTokens.length} token files from management auth-files`,
+      );
+    }
+
+    return remoteTokens;
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    log.warn("[TokenReader] Failed to read management auth-files:", error);
+    throw new Error(
+      `Management auth-files unavailable: ${reason}. Ensure CLIProxyAPIPlus is running and management API is reachable.`,
+    );
+  }
+}
+
+function parseTokenFileData(
+  filePath: string,
+  data: TokenFile,
+  enabled: boolean,
+  authIndex?: string,
+  fallbackEmail?: string,
+): TokenReadResult | null {
+  const filename = path.basename(filePath);
+  const provider: ProviderType | null =
+    parseProviderFromFilename(filename) ||
+    (data.type === "github-copilot" ? "copilot" : data.type) ||
+    null;
+
+  const accessToken =
+    data.access_token || data.token?.access_token || data.accessToken;
+  const refreshToken =
+    data.refresh_token || data.token?.refresh_token || data.refreshToken;
+  const expiredStr =
+    data.expired || data.expires_at || data.token?.expiry || data.expiresAt;
+
+  const isCopilot = provider === "copilot";
+  const requiresRefreshToken = provider === "kiro";
+  if (
+    !provider ||
+    !accessToken ||
+    (requiresRefreshToken && !refreshToken && !isCopilot)
+  ) {
+    log.warn(`[TokenReader] Invalid token file: ${filePath}`);
+    return null;
+  }
+
+  const oauthSourceKey =
+    sanitizeOAuthSourceKey(data["oauth-source"] || data.oauth_source) ||
+    getDefaultOAuthSourceKey(provider);
+  const resolvedAuthIndex =
+    authIndex || data.auth_index || data.authIndex || undefined;
+  const normalizedFallbackEmail =
+    typeof fallbackEmail === "string" && fallbackEmail.trim()
+      ? fallbackEmail.trim()
+      : undefined;
+
+  return {
+    provider,
+    email:
+      data.email ||
+      data.username ||
+      normalizedFallbackEmail ||
+      path.basename(filePath, ".json"),
+    accountKey: buildAccountKey(provider, filePath),
+    accountId: data.account_id,
+    oauthSourceKey,
+    authIndex: resolvedAuthIndex,
+    accessToken,
+    refreshToken: refreshToken || "",
+    expired: expiredStr ? new Date(expiredStr) : new Date(),
+    filePath,
+    enabled,
+    raw: data,
+  };
 }
 
 /**
@@ -208,42 +341,7 @@ async function readTokenFile(
   try {
     const content = await fsp.readFile(filePath, "utf-8");
     const data: TokenFile = JSON.parse(content);
-    const filename = path.basename(filePath);
-    const provider: ProviderType | null =
-      parseProviderFromFilename(filename) ||
-      (data.type === "github-copilot" ? "copilot" : data.type) ||
-      null;
-
-    const accessToken =
-      data.access_token || data.token?.access_token || data.accessToken;
-    const refreshToken =
-      data.refresh_token || data.token?.refresh_token || data.refreshToken;
-    const expiredStr =
-      data.expired || data.expires_at || data.token?.expiry || data.expiresAt;
-
-    const isCopilot = provider === "copilot";
-    if (!provider || !accessToken || (!refreshToken && !isCopilot)) {
-      log.warn(`[TokenReader] Invalid token file: ${filePath}`);
-      return null;
-    }
-
-    const oauthSourceKey =
-      sanitizeOAuthSourceKey(data["oauth-source"] || data.oauth_source) ||
-      getDefaultOAuthSourceKey(provider);
-
-    return {
-      provider,
-      email: data.email || data.username || path.basename(filePath, ".json"),
-      accountKey: buildAccountKey(provider, filePath),
-      accountId: data.account_id,
-      oauthSourceKey,
-      accessToken,
-      refreshToken: refreshToken || "",
-      expired: expiredStr ? new Date(expiredStr) : new Date(),
-      filePath,
-      enabled,
-      raw: data,
-    };
+    return parseTokenFileData(filePath, data, enabled);
   } catch (error) {
     log.error(`[TokenReader] Failed to read token file: ${filePath}`, error);
     return null;

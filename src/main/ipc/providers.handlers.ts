@@ -8,15 +8,9 @@ import { app, ipcMain } from "electron";
 
 import { managementAPI } from "../proxy/api";
 import { proxyManager } from "../proxy/manager";
-import {
-  isKiroRefreshBlocked,
-  isKiroTokenValid,
-  refreshKiroTokenManually,
-  scanProviderTokenFiles,
-  scanTokenFiles,
-} from "../quota";
+import { refreshKiroTokenManually, scanTokenFiles } from "../quota";
 import log from "../utils/logger";
-import { isPathSafe, validateApiKey } from "../utils/validation";
+import { validateApiKey } from "../utils/validation";
 
 import {
   OAuthAccountExcludedModelsConfig,
@@ -24,50 +18,12 @@ import {
   OAUTH_SOURCE_OPTIONS_BY_PROVIDER,
 } from "./types";
 
-function getManagedAuthDirs(): {
-  activeAuthDir: string;
-  disabledAuthDir: string;
-} {
-  const config = proxyManager.loadConfigFromYaml();
-  const activeAuthDir = config?.["auth-dir"] || proxyManager.getAuthDir();
-  const disabledAuthDir = path.join(
-    path.dirname(activeAuthDir),
-    "auth-disabled",
-  );
-  return { activeAuthDir, disabledAuthDir };
-}
-
-function isTokenPathInDirectory(filePath: string, baseDir: string): boolean {
-  const relativePath = path.relative(baseDir, filePath);
-  return isPathSafe(baseDir, relativePath);
-}
-
-async function moveTokenFileToDirectory(
-  sourcePath: string,
-  targetDir: string,
-): Promise<string> {
-  if (!fs.existsSync(targetDir)) {
-    await fsp.mkdir(targetDir, { recursive: true });
-  }
-
-  const sourceName = path.basename(sourcePath);
-  let targetPath = path.join(targetDir, sourceName);
-
-  if (fs.existsSync(targetPath)) {
-    const ext = path.extname(sourceName);
-    const base = path.basename(sourceName, ext);
-    const suffix = `${Date.now()}-${crypto.randomBytes(3).toString("hex")}`;
-    targetPath = path.join(targetDir, `${base}-${suffix}${ext}`);
-  }
-
-  try {
-    await fsp.rename(sourcePath, targetPath);
-  } catch {
-    await fsp.copyFile(sourcePath, targetPath);
-    await fsp.unlink(sourcePath);
-  }
-
-  return targetPath;
+function registerHandle(
+  channel: string,
+  handler: Parameters<typeof ipcMain.handle>[1],
+): void {
+  ipcMain.removeHandler(channel);
+  ipcMain.handle(channel, handler);
 }
 
 function normalizeOAuthSourceKey(source: unknown): string | null {
@@ -172,7 +128,7 @@ function resolveOAuthSourceKeyForAccount(
   }
 
   const normalizedTokenSourceKey = normalizeOAuthSourceKey(tokenSourceKey);
-  if (normalizedTokenSourceKey) {
+  if (normalizedTokenSourceKey && normalizedTokenSourceKey !== "file") {
     return normalizedTokenSourceKey;
   }
 
@@ -184,8 +140,62 @@ function buildAccountKey(providerId: string, filePath: string): string {
   return `${providerId}:${path.basename(filePath)}`;
 }
 
+function normalizeAuthFileName(value: string): string {
+  return path.basename(value || "").trim();
+}
+
+function isValidAuthFileName(value: string): boolean {
+  return /^[a-zA-Z0-9@._-]+\.json$/.test(value);
+}
+
+function resolveProviderId(value: {
+  provider?: string;
+  type?: string;
+  accountType?: string;
+  name?: string;
+}): string {
+  const knownProviders = new Set([
+    "codex",
+    "claude",
+    "gemini",
+    "qwen",
+    "iflow",
+    "antigravity",
+    "copilot",
+    "kiro",
+  ]);
+  const providerAliases: Record<string, string> = {
+    openai: "codex",
+    "openai-chatgpt": "codex",
+    chatgpt: "codex",
+    "github-copilot": "copilot",
+  };
+
+  const candidates = [value.provider, value.type, value.accountType].filter(
+    (item): item is string =>
+      typeof item === "string" && item.trim().length > 0,
+  );
+
+  for (const candidate of candidates) {
+    const normalizedCandidate = candidate.trim().toLowerCase();
+    if (knownProviders.has(normalizedCandidate)) {
+      return normalizedCandidate;
+    }
+    if (providerAliases[normalizedCandidate]) {
+      return providerAliases[normalizedCandidate];
+    }
+  }
+
+  const filename = (value.name || "").toLowerCase();
+  const matched = Array.from(knownProviders).find((provider) =>
+    filename.startsWith(provider),
+  );
+
+  return matched || "custom";
+}
+
 export function setupProvidersHandlers(): void {
-  ipcMain.handle("api:cliLogin", async (_event, provider: string) => {
+  registerHandle("api:cliLogin", async (_event, provider: string) => {
     try {
       return await proxyManager.runCliLogin(provider);
     } catch (error) {
@@ -193,7 +203,7 @@ export function setupProvidersHandlers(): void {
     }
   });
 
-  ipcMain.handle("api:startAuth", async (_event, provider: string) => {
+  registerHandle("api:startAuth", async (_event, provider: string) => {
     try {
       return await proxyManager.runCliLogin(provider);
     } catch (error) {
@@ -201,14 +211,14 @@ export function setupProvidersHandlers(): void {
     }
   });
 
-  ipcMain.handle(
+  registerHandle(
     "api:validateApiKey",
     async (_event, provider: string, apiKey: string) => {
       return validateApiKey(provider, apiKey);
     },
   );
 
-  ipcMain.handle("api:getUsage", async () => {
+  registerHandle("api:getUsage", async () => {
     try {
       return await managementAPI.getUsage();
     } catch (error) {
@@ -217,7 +227,7 @@ export function setupProvidersHandlers(): void {
     }
   });
 
-  ipcMain.handle("oauthRules:get", async () => {
+  registerHandle("oauthRules:get", async () => {
     try {
       const config = proxyManager.loadConfigFromYaml();
       const providerRules = normalizeOAuthExcludedModels(
@@ -244,7 +254,7 @@ export function setupProvidersHandlers(): void {
     }
   });
 
-  ipcMain.handle(
+  registerHandle(
     "oauthRules:setProviderRules",
     async (_event, sourceKey: string, patterns: unknown) => {
       try {
@@ -280,7 +290,7 @@ export function setupProvidersHandlers(): void {
     },
   );
 
-  ipcMain.handle(
+  registerHandle(
     "oauthRules:setAccountRules",
     async (
       _event,
@@ -338,7 +348,7 @@ export function setupProvidersHandlers(): void {
     },
   );
 
-  ipcMain.handle(
+  registerHandle(
     "oauthRules:clearAccountRules",
     async (_event, sourceKey: string, accountKey: string) => {
       try {
@@ -389,46 +399,69 @@ export function setupProvidersHandlers(): void {
     },
   );
 
-  ipcMain.handle("providers:getAccounts", async () => {
+  registerHandle("providers:getAccounts", async () => {
     try {
       const config = proxyManager.loadConfigFromYaml();
       const accountRules = normalizeOAuthAccountExcludedModels(
         config?.["oauth-account-excluded-models"],
       );
-      const tokens = await scanProviderTokenFiles();
+      const authFiles = await managementAPI.listAuthFiles();
       const accounts = [];
 
-      for (const token of tokens) {
-        if (token.enabled && token.provider === "kiro") {
-          if (isKiroRefreshBlocked(token.filePath)) {
-            continue;
-          }
-          const isValid = await isKiroTokenValid(token);
-          if (!isValid) {
-            log.info(`[IPC] Skipping expired Kiro account: ${token.filePath}`);
-            continue;
-          }
-        }
+      for (const authFile of authFiles) {
+        const fileName = normalizeAuthFileName(
+          authFile.name || authFile.id || "",
+        );
+        if (!fileName) continue;
+        const providerId = resolveProviderId({
+          provider: authFile.provider,
+          type: authFile.type,
+          accountType: authFile.account_type,
+          name: fileName,
+        });
+        const email =
+          (typeof authFile.email === "string" && authFile.email.trim()) ||
+          (typeof authFile.account === "string" && authFile.account.trim()) ||
+          fileName;
+        const accountName =
+          (typeof authFile.name === "string" && authFile.name.trim()) ||
+          fileName;
+        const accountKey = buildAccountKey(providerId, fileName);
+        const tokenSourceKey =
+          typeof authFile.source === "string" ? authFile.source : undefined;
+        const disabled = authFile.disabled === true;
+        const unavailable = authFile.unavailable === true;
+        const statusValue =
+          typeof authFile.status === "string"
+            ? authFile.status.toLowerCase()
+            : "";
+        const isEnabled = !disabled;
+        const isOnline =
+          isEnabled && !unavailable && statusValue !== "disabled";
+        const lastUsed =
+          authFile.updated_at ||
+          authFile.modtime ||
+          authFile.created_at ||
+          new Date().toISOString();
 
-        const accountKey =
-          token.accountKey || buildAccountKey(token.provider, token.filePath);
         const oauthSourceKey = resolveOAuthSourceKeyForAccount(
-          token.provider,
+          providerId,
           accountKey,
-          token.oauthSourceKey,
+          tokenSourceKey,
           accountRules,
         );
 
         accounts.push({
-          id: `${token.provider}-${token.email}`,
-          provider: token.provider,
-          email: token.email,
+          id: `${providerId}-${fileName}`,
+          provider: providerId,
+          nickname: accountName,
+          email,
           accountKey,
           oauthSourceKey,
-          status: token.enabled ? ("online" as const) : ("offline" as const),
-          enabled: token.enabled,
-          lastUsed: token.raw.last_refresh || token.expired,
-          filePath: token.filePath,
+          status: isOnline ? ("online" as const) : ("offline" as const),
+          enabled: isEnabled,
+          lastUsed,
+          filePath: fileName,
         });
       }
 
@@ -439,28 +472,15 @@ export function setupProvidersHandlers(): void {
     }
   });
 
-  ipcMain.handle(
+  registerHandle(
     "providers:removeAccount",
     async (_event, filePath: string) => {
       try {
-        const { activeAuthDir, disabledAuthDir } = getManagedAuthDirs();
-        const isInActiveDir = isTokenPathInDirectory(filePath, activeAuthDir);
-        const isInDisabledDir = isTokenPathInDirectory(
-          filePath,
-          disabledAuthDir,
-        );
-
-        if (!isInActiveDir && !isInDisabledDir) {
-          log.warn(
-            `[IPC] Rejected unsafe path for account removal: ${filePath}`,
-          );
-          return { success: false, error: "Invalid file path" };
+        const name = normalizeAuthFileName(filePath);
+        if (!name) {
+          return { success: false, error: "Invalid auth file name" };
         }
-        if (fs.existsSync(filePath)) {
-          await fsp.unlink(filePath);
-          return { success: true };
-        }
-        return { success: false, error: "Token file not found" };
+        return await managementAPI.removeAuthFile(name);
       } catch (error) {
         log.error("[IPC] Failed to remove account:", error);
         return { success: false, error: String(error) };
@@ -468,27 +488,19 @@ export function setupProvidersHandlers(): void {
     },
   );
 
-  ipcMain.handle(
+  registerHandle(
     "providers:setAccountEnabled",
     async (_event, filePath: string, enabled: boolean) => {
       try {
-        const { activeAuthDir, disabledAuthDir } = getManagedAuthDirs();
-        const sourceDir = enabled ? disabledAuthDir : activeAuthDir;
-        const targetDir = enabled ? activeAuthDir : disabledAuthDir;
-
-        if (!isTokenPathInDirectory(filePath, sourceDir)) {
-          log.warn(
-            `[IPC] Rejected unsafe path for account toggle: ${filePath}`,
-          );
-          return { success: false, error: "Invalid file path" };
+        const name = normalizeAuthFileName(filePath);
+        if (!name) {
+          return { success: false, error: "Invalid auth file name" };
         }
-
-        if (!fs.existsSync(filePath)) {
-          return { success: false, error: "Token file not found" };
+        const result = await managementAPI.setAuthFileStatus(name, !enabled);
+        if (!result.success) {
+          return result;
         }
-
-        const nextPath = await moveTokenFileToDirectory(filePath, targetDir);
-        return { success: true, filePath: nextPath };
+        return { success: true, filePath: name };
       } catch (error) {
         log.error("[IPC] Failed to toggle account enabled state:", error);
         return { success: false, error: String(error) };
@@ -496,7 +508,125 @@ export function setupProvidersHandlers(): void {
     },
   );
 
-  ipcMain.handle("qwen:getAuthUrl", async () => {
+  registerHandle(
+    "providers:getAccountPreview",
+    async (_event, filePath: string) => {
+      try {
+        const name = normalizeAuthFileName(filePath);
+        if (!name) {
+          return { success: false, error: "Invalid auth file name" };
+        }
+
+        const payload = await managementAPI.downloadAuthFile(name);
+        return { success: true, payload };
+      } catch (error) {
+        log.error("[IPC] Failed to get account preview:", error);
+        return { success: false, error: String(error) };
+      }
+    },
+  );
+
+  registerHandle(
+    "providers:updateAccountMetadata",
+    async (
+      _event,
+      filePath: string,
+      updates: {
+        priority?: number;
+        prefix?: string;
+        proxyUrl?: string;
+      },
+    ) => {
+      try {
+        const name = normalizeAuthFileName(filePath);
+        if (!name) {
+          return { success: false, error: "Invalid auth file name" };
+        }
+
+        const payload = await managementAPI.downloadAuthFile(name);
+        if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+          return { success: false, error: "Invalid auth file payload" };
+        }
+
+        const next = {
+          ...(payload as Record<string, unknown>),
+        };
+
+        if (
+          typeof updates.priority === "number" &&
+          Number.isFinite(updates.priority)
+        ) {
+          next.priority = Math.max(0, Math.floor(updates.priority));
+        }
+
+        if (typeof updates.prefix === "string") {
+          const trimmedPrefix = updates.prefix.trim();
+          if (trimmedPrefix) {
+            next.prefix = trimmedPrefix;
+          } else {
+            delete next.prefix;
+          }
+        }
+
+        if (typeof updates.proxyUrl === "string") {
+          const trimmedProxyUrl = updates.proxyUrl.trim();
+          if (trimmedProxyUrl) {
+            next.proxy_url = trimmedProxyUrl;
+          } else {
+            delete next.proxy_url;
+          }
+        }
+
+        return await managementAPI.uploadAuthFile(name, next);
+      } catch (error) {
+        log.error("[IPC] Failed to update account metadata:", error);
+        return { success: false, error: String(error) };
+      }
+    },
+  );
+
+  registerHandle(
+    "providers:getAccountModels",
+    async (_event, filePath: string) => {
+      try {
+        const name = normalizeAuthFileName(filePath);
+        if (!name) {
+          return {
+            success: false,
+            models: [],
+            error: "Invalid auth file name",
+          };
+        }
+
+        const models = await managementAPI.fetchAuthFileModels(name);
+        return { success: true, models };
+      } catch (error) {
+        log.error("[IPC] Failed to get account models:", error);
+        return { success: false, models: [], error: String(error) };
+      }
+    },
+  );
+
+  registerHandle(
+    "providers:importOAuthFile",
+    async (_event, fileName: string, payload: unknown) => {
+      try {
+        const name = normalizeAuthFileName(fileName);
+        if (!isValidAuthFileName(name)) {
+          return { success: false, error: "Invalid auth file name" };
+        }
+        if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+          return { success: false, error: "Invalid auth JSON payload" };
+        }
+        return await managementAPI.uploadAuthFile(name, payload);
+      } catch (error) {
+        log.error("[IPC] Failed to import oauth auth file:", error);
+        return { success: false, error: String(error) };
+      }
+    },
+  );
+
+  registerHandle("qwen:getAuthUrl", async () => {
     try {
       const result = await managementAPI.getQwenAuthUrl();
       return result;
@@ -506,7 +636,7 @@ export function setupProvidersHandlers(): void {
     }
   });
 
-  ipcMain.handle("antigravity:getAuthUrl", async () => {
+  registerHandle("antigravity:getAuthUrl", async () => {
     try {
       const result = await managementAPI.getAntigravityAuthUrl();
       return result;
@@ -516,7 +646,7 @@ export function setupProvidersHandlers(): void {
     }
   });
 
-  ipcMain.handle("iflow:getAuthUrl", async () => {
+  registerHandle("iflow:getAuthUrl", async () => {
     try {
       const result = await managementAPI.getIFlowAuthUrl();
       return result;
@@ -526,7 +656,7 @@ export function setupProvidersHandlers(): void {
     }
   });
 
-  ipcMain.handle("claude:getAuthUrl", async () => {
+  registerHandle("claude:getAuthUrl", async () => {
     try {
       const result = await managementAPI.getClaudeAuthUrl();
       return result;
@@ -536,7 +666,7 @@ export function setupProvidersHandlers(): void {
     }
   });
 
-  ipcMain.handle("gemini:getAuthUrl", async (_event, projectId?: string) => {
+  registerHandle("gemini:getAuthUrl", async (_event, projectId?: string) => {
     try {
       const result = await managementAPI.getGeminiAuthUrl(projectId);
       return result;
@@ -546,7 +676,7 @@ export function setupProvidersHandlers(): void {
     }
   });
 
-  ipcMain.handle("codex:getAuthUrl", async () => {
+  registerHandle("codex:getAuthUrl", async () => {
     try {
       const result = await managementAPI.getCodexAuthUrl();
       return result;
@@ -556,7 +686,7 @@ export function setupProvidersHandlers(): void {
     }
   });
 
-  ipcMain.handle("copilot:getAuthUrl", async () => {
+  registerHandle("copilot:getAuthUrl", async () => {
     try {
       return await managementAPI.getCopilotAuthUrl();
     } catch (error) {
@@ -571,7 +701,7 @@ export function setupProvidersHandlers(): void {
     }
   });
 
-  ipcMain.handle(
+  registerHandle(
     "kiro:getAuthUrl",
     async (
       _event,
@@ -587,7 +717,7 @@ export function setupProvidersHandlers(): void {
     },
   );
 
-  ipcMain.handle("kiro:getAuthStatus", async (_event, state: string) => {
+  registerHandle("kiro:getAuthStatus", async (_event, state: string) => {
     try {
       return await managementAPI.getKiroAuthStatus(state);
     } catch (error) {
@@ -596,7 +726,7 @@ export function setupProvidersHandlers(): void {
     }
   });
 
-  ipcMain.handle("qwen:getAuthStatus", async (_event, state: string) => {
+  registerHandle("qwen:getAuthStatus", async (_event, state: string) => {
     try {
       return await managementAPI.getQwenAuthStatus(state);
     } catch (error) {
@@ -605,7 +735,7 @@ export function setupProvidersHandlers(): void {
     }
   });
 
-  ipcMain.handle("kiro:import", async () => {
+  registerHandle("kiro:import", async () => {
     try {
       const homeDir = app.getPath("home");
       const ssoDir = path.join(homeDir, ".aws", "sso", "cache");
@@ -694,7 +824,7 @@ export function setupProvidersHandlers(): void {
     }
   });
 
-  ipcMain.handle("kiro:importFromToken", async (_event, tokenJson: string) => {
+  registerHandle("kiro:importFromToken", async (_event, tokenJson: string) => {
     try {
       if (!tokenJson || !tokenJson.trim()) {
         return { success: false, error: "Token JSON is required" };
@@ -816,7 +946,7 @@ export function setupProvidersHandlers(): void {
     }
   });
 
-  ipcMain.handle("kiro:refreshToken", async (_event, filePath: string) => {
+  registerHandle("kiro:refreshToken", async (_event, filePath: string) => {
     try {
       const tokens = await scanTokenFiles();
       const token = tokens.find((t) => t.filePath === filePath);

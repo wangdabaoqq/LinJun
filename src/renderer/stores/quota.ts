@@ -50,6 +50,7 @@ interface QuotaState {
   cachedAccounts: Partial<Record<ProviderType, QuotaAccount[]>>;
   loadingProviders: Partial<Record<ProviderType, boolean>>;
   isLoading: boolean;
+  isStreaming: boolean;
   error: string | null;
   lastUpdated: Date | null;
 
@@ -66,6 +67,7 @@ export const useQuotaStore = create<QuotaState>((set, get) => ({
   cachedAccounts: {},
   loadingProviders: {},
   isLoading: false,
+  isStreaming: false,
   error: null,
   lastUpdated: null,
 
@@ -82,6 +84,13 @@ export const useQuotaStore = create<QuotaState>((set, get) => ({
             await get().selectProvider(firstWithAccounts.id);
           }
         }
+      } else {
+        set({
+          providers: [],
+          error:
+            result?.error ||
+            "Failed to load providers from management auth-files",
+        });
       }
     } catch (error) {
       log.error("[QuotaStore] Failed to load providers:", error);
@@ -97,6 +106,7 @@ export const useQuotaStore = create<QuotaState>((set, get) => ({
       selectedProvider: provider,
       accounts: cachedAccounts ?? [],
       isLoading: !hasCached,
+      isStreaming: false,
       error: null,
     });
 
@@ -105,47 +115,76 @@ export const useQuotaStore = create<QuotaState>((set, get) => ({
     }
 
     set({
-      loadingProviders: {
-        ...get().loadingProviders,
-        [provider]: true,
-      },
+      loadingProviders: { ...get().loadingProviders, [provider]: true },
     });
 
-    try {
-      const result = await window.electronAPI?.quota.getByProvider(provider);
-      if (result?.success) {
-        const accounts = (result.accounts as QuotaAccount[]).map((acc) => ({
-          ...acc,
-          lastUpdated: new Date(acc.lastUpdated),
-        }));
-        const updatedProviders = get().providers.map((p) =>
-          p.id === provider ? { ...p, accountCount: accounts.length } : p,
-        );
-        set({
-          providers: updatedProviders,
-          accounts:
-            provider === get().selectedProvider ? accounts : get().accounts,
-          lastUpdated: new Date(),
-          cachedAccounts: {
-            ...get().cachedAccounts,
-            [provider]: accounts,
-          },
+    const unsubscribe = window.electronAPI?.quota.onStreamBatch((data) => {
+      if (data.provider !== provider) return;
+
+      const incoming = (data.accounts as QuotaAccount[]).map((acc) => ({
+        ...acc,
+        lastUpdated: new Date(acc.lastUpdated),
+      }));
+
+      if (incoming.length > 0) {
+        set((state) => {
+          const existing = state.cachedAccounts[provider] ?? [];
+          const merged = [...existing, ...incoming];
+
+          if (state.selectedProvider !== provider) {
+            return {
+              cachedAccounts: {
+                ...state.cachedAccounts,
+                [provider]: merged,
+              },
+            };
+          }
+
+          return {
+            accounts: merged,
+            isStreaming: true,
+            cachedAccounts: {
+              ...state.cachedAccounts,
+              [provider]: merged,
+            },
+          };
         });
-      } else {
-        set({ error: result?.error || "Failed to load accounts" });
       }
-    } catch (error) {
-      log.error("[QuotaStore] Failed to select provider:", error);
-      set({ error: String(error) });
-    } finally {
-      set({
-        isLoading: false,
-        loadingProviders: {
-          ...get().loadingProviders,
-          [provider]: false,
-        },
-      });
-    }
+
+      if (data.done) {
+        unsubscribe?.();
+        const finalAccounts =
+          get().selectedProvider === provider
+            ? get().accounts
+            : (get().cachedAccounts[provider] ?? []);
+
+        set((state) => ({
+          isLoading: false,
+          isStreaming: false,
+          lastUpdated: new Date(),
+          loadingProviders: { ...state.loadingProviders, [provider]: false },
+          cachedAccounts: {
+            ...state.cachedAccounts,
+            [provider]:
+              state.selectedProvider === provider
+                ? state.accounts
+                : (state.cachedAccounts[provider] ?? []),
+          },
+          providers: state.providers.map((p) =>
+            p.id === provider
+              ? { ...p, accountCount: finalAccounts.length }
+              : p,
+          ),
+        }));
+
+        if (data.error) {
+          set({ error: data.error });
+        }
+        return;
+      }
+    });
+
+    window.electronAPI?.quota.streamByProvider(provider);
   },
 
   refreshAccount: async (accountId: string) => {

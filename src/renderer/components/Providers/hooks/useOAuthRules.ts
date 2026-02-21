@@ -44,7 +44,18 @@ interface UseOAuthRulesResult {
     account: Account,
   ) => Record<string, string[]>;
   handleOpenAccountModelRules: (providerId: string, account: Account) => void;
-  handleLoadModelCatalog: () => Promise<Array<{ id: string; ownedBy: string }>>;
+  handleLoadModelCatalog: (
+    accountFilePath?: string,
+  ) => Promise<Array<{ id: string; ownedBy: string }>>;
+  handleLoadAccountPreview: (filePath: string) => Promise<unknown>;
+  handleSaveAccountMetadata: (
+    filePath: string,
+    updates: {
+      priority?: number;
+      prefix?: string;
+      proxyUrl?: string;
+    },
+  ) => Promise<void>;
   handleSaveAccountModelRules: (
     sourceKey: string,
     accountPatterns: string[],
@@ -124,7 +135,9 @@ export function useOAuthRules(): UseOAuthRulesResult {
       }
 
       if (account.oauthSourceKey) {
-        return account.oauthSourceKey;
+        if (account.oauthSourceKey !== "file") {
+          return account.oauthSourceKey;
+        }
       }
 
       return getSourceOptionsForProvider(providerId)[0] || providerId;
@@ -190,38 +203,88 @@ export function useOAuthRules(): UseOAuthRulesResult {
     [],
   );
 
-  const handleLoadModelCatalog = useCallback(async (): Promise<
-    Array<{ id: string; ownedBy: string }>
-  > => {
-    const result = await window.electronAPI?.models?.fetch();
-    if (!result?.success) {
-      throw new Error(result?.error || t.providers.accountModelRulesLoadFailed);
+  const handleLoadModelCatalog = useCallback(
+    async (
+      accountFilePath?: string,
+    ): Promise<Array<{ id: string; ownedBy: string }>> => {
+      const result = accountFilePath
+        ? await window.electronAPI?.providers?.getAccountModels(accountFilePath)
+        : await window.electronAPI?.models?.fetch();
+      if (!result?.success) {
+        throw new Error(
+          result?.error || t.providers.accountModelRulesLoadFailed,
+        );
+      }
+
+      const models = Array.isArray(result.models) ? result.models : [];
+      const normalizedModels: Array<{ id: string; ownedBy: string }> =
+        models.map((model: unknown) => {
+          if (typeof model === "string") {
+            return { id: model, ownedBy: "" };
+          }
+          if (model && typeof model === "object" && "id" in model) {
+            const typedModel = model as { id?: string; owned_by?: string };
+            return {
+              id: String(typedModel.id || ""),
+              ownedBy: String(typedModel.owned_by || ""),
+            };
+          }
+          return { id: "", ownedBy: "" };
+        });
+
+      return normalizedModels
+        .map((model) => ({
+          id: model.id.trim(),
+          ownedBy: model.ownedBy.trim().toLowerCase(),
+        }))
+        .filter((model) => model.id.length > 0);
+    },
+    [t.providers.accountModelRulesLoadFailed],
+  );
+
+  const handleLoadAccountPreview = useCallback(async (filePath: string) => {
+    try {
+      const result =
+        await window.electronAPI?.providers?.getAccountPreview(filePath);
+      if (!result?.success) {
+        throw new Error(result?.error || "Failed to load account preview");
+      }
+      return result.payload;
+    } catch (error) {
+      const message = String(error);
+      if (
+        message.includes(
+          "No handler registered for 'providers:getAccountPreview'",
+        )
+      ) {
+        log.warn(
+          "[Providers] getAccountPreview IPC unavailable; opening edit modal without preview",
+        );
+        return null;
+      }
+      throw error;
     }
+  }, []);
 
-    const models = Array.isArray(result.models) ? result.models : [];
-    const normalizedModels: Array<{ id: string; ownedBy: string }> = models.map(
-      (model: unknown) => {
-        if (typeof model === "string") {
-          return { id: model, ownedBy: "" };
-        }
-        if (model && typeof model === "object" && "id" in model) {
-          const typedModel = model as { id?: string; owned_by?: string };
-          return {
-            id: String(typedModel.id || ""),
-            ownedBy: String(typedModel.owned_by || ""),
-          };
-        }
-        return { id: "", ownedBy: "" };
+  const handleSaveAccountMetadata = useCallback(
+    async (
+      filePath: string,
+      updates: {
+        priority?: number;
+        prefix?: string;
+        proxyUrl?: string;
       },
-    );
-
-    return normalizedModels
-      .map((model) => ({
-        id: model.id.trim(),
-        ownedBy: model.ownedBy.trim().toLowerCase(),
-      }))
-      .filter((model) => model.id.length > 0);
-  }, [t.providers.accountModelRulesLoadFailed]);
+    ) => {
+      const result = await window.electronAPI?.providers?.updateAccountMetadata(
+        filePath,
+        updates,
+      );
+      if (!result?.success) {
+        throw new Error(result?.error || "Failed to update account metadata");
+      }
+    },
+    [],
+  );
 
   const handleSaveAccountModelRules = useCallback(
     async (sourceKey: string, accountPatterns: string[]) => {
@@ -303,6 +366,8 @@ export function useOAuthRules(): UseOAuthRulesResult {
     getAccountRulesBySource,
     handleOpenAccountModelRules,
     handleLoadModelCatalog,
+    handleLoadAccountPreview,
+    handleSaveAccountMetadata,
     handleSaveAccountModelRules,
   };
 }

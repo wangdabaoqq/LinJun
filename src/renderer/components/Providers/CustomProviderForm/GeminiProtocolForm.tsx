@@ -3,20 +3,21 @@ import {
   Globe,
   Box,
   Key,
-  ArrowRight,
-  Trash2,
-  Plus,
   Eye,
   EyeOff,
   User,
   Activity,
+  Download,
 } from "lucide-react";
 import { useTranslations } from "../../../stores/settings";
 import { GeminiApiKeyEntry, ModelEntry } from "./types";
 import { ModelEntryList } from "./ModelEntryList";
+import { HeaderEntryList } from "./HeaderEntryList";
 
 interface GeminiProtocolFormProps {
   entry: GeminiApiKeyEntry;
+  isFetchingModels?: boolean;
+  onFetchModels: () => Promise<void>;
   onUpdate: (
     field: keyof GeminiApiKeyEntry,
     value: string | boolean | Record<string, string> | ModelEntry[] | undefined,
@@ -25,33 +26,13 @@ interface GeminiProtocolFormProps {
 
 export const GeminiProtocolForm = memo(function GeminiProtocolForm({
   entry,
+  isFetchingModels,
+  onFetchModels,
   onUpdate,
 }: GeminiProtocolFormProps) {
   const t = useTranslations();
   const [showApiKey, setShowApiKey] = useState(false);
   const [showSystemToken, setShowSystemToken] = useState(false);
-
-  const updateHeader = (oldKey: string, newKey: string, value: string) => {
-    const headers = { ...(entry.headers || {}) };
-    if (oldKey !== newKey) {
-      delete headers[oldKey];
-    }
-    if (newKey.trim()) {
-      headers[newKey] = value;
-    }
-    onUpdate("headers", Object.keys(headers).length > 0 ? headers : undefined);
-  };
-
-  const addHeader = () => {
-    const headers = { ...(entry.headers || {}), "": "" };
-    onUpdate("headers", headers);
-  };
-
-  const removeHeader = (key: string) => {
-    const headers = { ...(entry.headers || {}) };
-    delete headers[key];
-    onUpdate("headers", Object.keys(headers).length > 0 ? headers : undefined);
-  };
 
   const updateModel = (
     modelIndex: number,
@@ -241,56 +222,34 @@ export const GeminiProtocolForm = memo(function GeminiProtocolForm({
           </p>
         </div>
       </div>
-      <div className="space-y-3">
-        <label className="flex items-center gap-2 text-xs font-bold text-[var(--text-primary)] uppercase tracking-widest px-1">
-          <Box className="w-3.5 h-3.5" />
-          {t.providers.customHeaders} ({t.providers.optional})
-        </label>
-        <div className="bg-[var(--text-primary)]/[0.02] rounded-2xl border border-[var(--glass-border)] divide-y divide-[var(--glass-border)] overflow-hidden shadow-inner">
-          {Object.entries(entry.headers || {}).map(
-            ([key, value], headerIndex) => (
-              <div
-                key={headerIndex}
-                className="flex items-center gap-3 p-3 hover:bg-[var(--text-primary)]/[0.03] transition-all group"
-              >
-                <input
-                  type="text"
-                  value={key}
-                  onChange={(e) => updateHeader(key, e.target.value, value)}
-                  placeholder={t.providers.customHeaderKeyPlaceholder}
-                  className="flex-1 glass-input bg-[var(--text-primary)]/[0.03] border border-[var(--glass-border)] text-[var(--text-primary)] font-mono text-sm"
-                />
-                <ArrowRight className="w-4 h-4 text-[var(--text-primary)]/20 group-hover:text-[var(--text-primary)]/50" />
-                <input
-                  type="text"
-                  value={value}
-                  onChange={(e) => updateHeader(key, key, e.target.value)}
-                  placeholder={t.providers.customHeaderValuePlaceholder}
-                  className="flex-1 glass-input bg-[var(--text-primary)]/[0.03] border border-[var(--glass-border)] text-[var(--text-primary)] font-mono text-sm"
-                />
-                <button
-                  onClick={() => removeHeader(key)}
-                  className="p-2 text-red-500/40 hover:text-red-500 hover:scale-110 transition-all opacity-0 group-hover:opacity-100 active:scale-90"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-            ),
-          )}
-          <button
-            onClick={addHeader}
-            className="w-full py-3 bg-[var(--text-primary)]/[0.02] hover:bg-[var(--accent-primary)]/10 text-[var(--text-primary)]/80 hover:text-[var(--text-primary)] transition-all duration-300 flex items-center justify-center gap-2 text-sm font-bold border-t border-[var(--glass-border)] active:scale-[0.98] group shadow-inner"
-          >
-            <Plus className="w-4 h-4 group-hover:scale-125 group-hover:rotate-90 transition-all duration-300" />
-            {t.providers.customAddHeader}
-          </button>
-        </div>
-      </div>
+      <HeaderEntryList
+        headers={entry.headers}
+        onChange={(headers) => onUpdate("headers", headers)}
+      />
       <div className="space-y-3">
         <label className="flex items-center gap-2 text-xs font-bold text-[var(--text-primary)] uppercase tracking-widest px-1">
           <Box className="w-3.5 h-3.5" />
           {t.providers.customModels} ({t.providers.optional})
         </label>
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={() => void onFetchModels()}
+            disabled={isFetchingModels}
+            className="px-3 py-2 rounded-xl border border-[var(--glass-border)] text-[11px] font-bold text-[var(--text-dim)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 transition-all disabled:opacity-60"
+          >
+            <span className="inline-flex items-center gap-2">
+              {isFetchingModels ? (
+                <div className="w-3.5 h-3.5 border-2 border-current/30 border-t-current rounded-full animate-spin" />
+              ) : (
+                <Download className="w-3.5 h-3.5" />
+              )}
+              {isFetchingModels
+                ? t.providers.customFetchingModels
+                : t.providers.customFetchModels}
+            </span>
+          </button>
+        </div>
         <ModelEntryList
           models={entry.models || []}
           onUpdate={updateModel}

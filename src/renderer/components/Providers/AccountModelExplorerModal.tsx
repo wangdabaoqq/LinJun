@@ -20,8 +20,11 @@ interface AccountModelExplorerModalProps {
   providerId: string;
   sourceOptions: string[];
   initialSourceKey: string;
+  accountFilePath?: string;
   accountRulesBySource: Record<string, string[]>;
-  onLoadCatalog: () => Promise<Array<{ id: string; ownedBy: string }>>;
+  onLoadCatalog: (
+    accountFilePath?: string,
+  ) => Promise<Array<{ id: string; ownedBy: string }>>;
   onSave: (sourceKey: string, accountPatterns: string[]) => Promise<void>;
 }
 
@@ -85,10 +88,7 @@ function filterCatalogModelsByProvider(
   if (!providerLower) return models;
 
   if (providerLower === "codex") {
-    return models.filter((model) => {
-      const idLower = model.id.toLowerCase();
-      return model.ownedBy === "github-copilot" && idLower.includes("codex");
-    });
+    return models.filter((model) => model.id.toLowerCase().includes("codex"));
   }
 
   const config = PROVIDER_FILTER_CONFIG[providerLower];
@@ -147,6 +147,7 @@ export const AccountModelExplorerModal = memo(
     providerId,
     sourceOptions,
     initialSourceKey,
+    accountFilePath,
     accountRulesBySource,
     onLoadCatalog,
     onSave,
@@ -180,7 +181,7 @@ export const AccountModelExplorerModal = memo(
       setIsLoadingCatalog(true);
       setError(null);
       try {
-        const models = await onLoadCatalog();
+        const models = await onLoadCatalog(accountFilePath);
         const mergedModels = mergeUniqueCatalogModels(models);
         setCatalogModels(
           filterCatalogModelsByProvider(mergedModels, providerId),
@@ -190,7 +191,7 @@ export const AccountModelExplorerModal = memo(
       } finally {
         setIsLoadingCatalog(false);
       }
-    }, [onLoadCatalog, providerId]);
+    }, [accountFilePath, onLoadCatalog, providerId]);
 
     useEffect(() => {
       if (!isOpen) return;
@@ -235,8 +236,8 @@ export const AccountModelExplorerModal = memo(
 
         await onSave(sourceKey, normalizedPatterns);
         onClose();
-      } catch (err: any) {
-        const errorMsg = err?.message || String(err);
+      } catch (err: unknown) {
+        const errorMsg = err instanceof Error ? err.message : String(err);
         if (errorMsg === t.providers.accountModelRulesSaveFailed) {
           setError(errorMsg);
         } else {

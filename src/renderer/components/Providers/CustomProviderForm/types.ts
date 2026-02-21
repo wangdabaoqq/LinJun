@@ -90,6 +90,7 @@ export interface ClaudeApiKeyEntry {
   "new-api-user"?: string;
   "enable-usage-query"?: boolean;
   prefix?: string;
+  headers?: Record<string, string>;
   models?: ModelEntry[];
 }
 
@@ -115,6 +116,7 @@ export interface CodexApiKeyEntry {
   "new-api-user"?: string;
   "enable-usage-query"?: boolean;
   prefix?: string;
+  headers?: Record<string, string>;
   models?: ModelEntry[];
 }
 
@@ -144,6 +146,7 @@ export interface OpenAIProviderData {
   "api-key-entries": OpenAIApiKeyEntry[];
   "system-access-token"?: string;
   "new-api-user"?: string;
+  headers?: Record<string, string>;
   models?: ModelEntry[];
 }
 
@@ -156,6 +159,7 @@ export interface OpenAICompatProvider {
   "new-api-user"?: string;
   "enable-usage-query"?: boolean;
   prefix?: string;
+  headers?: Record<string, string>;
 }
 
 export interface ClaudeCompatProvider {
@@ -167,6 +171,7 @@ export interface ClaudeCompatProvider {
   "new-api-user"?: string;
   "enable-usage-query"?: boolean;
   prefix?: string;
+  headers?: Record<string, string>;
   models?: { name: string; alias?: string }[];
 }
 
@@ -192,6 +197,7 @@ export interface CodexCompatProvider {
   "new-api-user"?: string;
   "enable-usage-query"?: boolean;
   prefix?: string;
+  headers?: Record<string, string>;
   models?: { name: string; alias?: string }[];
 }
 

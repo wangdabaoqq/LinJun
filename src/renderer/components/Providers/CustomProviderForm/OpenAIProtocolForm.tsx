@@ -1,9 +1,10 @@
 import { memo, useState } from "react";
-import { Globe, Box, Key, Eye, EyeOff, Activity } from "lucide-react";
+import { Globe, Box, Key, Eye, EyeOff, Activity, Download } from "lucide-react";
 import { useTranslations } from "../../../stores/settings";
 import { OpenAIApiKeyEntry, ModelEntry } from "./types";
 import { ApiKeyEntryList } from "./ApiKeyEntryList";
 import { ModelEntryList } from "./ModelEntryList";
+import { HeaderEntryList } from "./HeaderEntryList";
 
 interface OpenAIProtocolFormProps {
   name: string;
@@ -14,6 +15,8 @@ interface OpenAIProtocolFormProps {
   systemAccessToken: string;
   newApiUser: string;
   enableUsageQuery: boolean;
+  headers?: Record<string, string>;
+  isFetchingModels?: boolean;
   isEditing: boolean;
   onNameChange: (val: string) => void;
   onBaseUrlChange: (val: string) => void;
@@ -23,6 +26,8 @@ interface OpenAIProtocolFormProps {
   onSystemAccessTokenChange: (val: string) => void;
   onNewApiUserChange: (val: string) => void;
   onEnableUsageQueryChange: (val: boolean) => void;
+  onHeadersChange: (val: Record<string, string> | undefined) => void;
+  onFetchModels: () => Promise<void>;
 }
 
 export const OpenAIProtocolForm = memo(function OpenAIProtocolForm({
@@ -34,6 +39,8 @@ export const OpenAIProtocolForm = memo(function OpenAIProtocolForm({
   systemAccessToken,
   newApiUser,
   enableUsageQuery,
+  headers,
+  isFetchingModels,
   isEditing,
   onNameChange,
   onBaseUrlChange,
@@ -43,6 +50,8 @@ export const OpenAIProtocolForm = memo(function OpenAIProtocolForm({
   onSystemAccessTokenChange,
   onNewApiUserChange,
   onEnableUsageQueryChange,
+  onHeadersChange,
+  onFetchModels,
 }: OpenAIProtocolFormProps) {
   const t = useTranslations();
   const [showSystemToken, setShowSystemToken] = useState(false);
@@ -227,10 +236,31 @@ export const OpenAIProtocolForm = memo(function OpenAIProtocolForm({
       )}
 
       <div className="space-y-4">
+        <HeaderEntryList headers={headers} onChange={onHeadersChange} />
+
         <label className="flex items-center gap-2 text-xs font-bold text-[var(--text-primary)] uppercase tracking-widest px-1">
           <Box className="w-3.5 h-3.5" />
           {t.providers.customModels}
         </label>
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={() => void onFetchModels()}
+            disabled={isFetchingModels}
+            className="px-3 py-2 rounded-xl border border-[var(--glass-border)] text-[11px] font-bold text-[var(--text-dim)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 transition-all disabled:opacity-60"
+          >
+            <span className="inline-flex items-center gap-2">
+              {isFetchingModels ? (
+                <div className="w-3.5 h-3.5 border-2 border-current/30 border-t-current rounded-full animate-spin" />
+              ) : (
+                <Download className="w-3.5 h-3.5" />
+              )}
+              {isFetchingModels
+                ? t.providers.customFetchingModels
+                : t.providers.customFetchModels}
+            </span>
+          </button>
+        </div>
         <ModelEntryList
           models={models}
           onUpdate={updateModel}

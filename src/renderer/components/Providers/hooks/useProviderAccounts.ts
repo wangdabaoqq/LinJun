@@ -38,6 +38,10 @@ interface UseProviderAccountsResult {
     accountId: string,
     enabled: boolean,
   ) => Promise<void>;
+  handleDownloadAccountJson: (
+    providerId: string,
+    accountId: string,
+  ) => Promise<void>;
   getAccountDisplay: (account: Account) => { main: string; sub: string };
 }
 
@@ -166,6 +170,54 @@ export function useProviderAccounts({
     [loadAccounts, providerAccounts],
   );
 
+  const handleDownloadAccountJson = useCallback(
+    async (providerId: string, accountId: string) => {
+      const account = providerAccounts.find(
+        (acc) => acc.provider === providerId && acc.id === accountId,
+      );
+
+      if (!account?.filePath) {
+        return;
+      }
+
+      try {
+        const result = await window.electronAPI?.providers?.getAccountPreview(
+          account.filePath,
+        );
+
+        if (!result?.success) {
+          log.error(
+            "[Providers] Failed to download account json:",
+            result?.error,
+          );
+          return;
+        }
+
+        const payload = result.payload;
+        const jsonText =
+          typeof payload === "string"
+            ? payload
+            : JSON.stringify(payload ?? {}, null, 2);
+
+        const fileName =
+          account.filePath.split(/[/\\]/).pop() || `${account.id}.json`;
+
+        const blob = new Blob([jsonText], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = fileName;
+        document.body.appendChild(anchor);
+        anchor.click();
+        document.body.removeChild(anchor);
+        URL.revokeObjectURL(url);
+      } catch (error) {
+        log.error("[Providers] Failed to download account json:", error);
+      }
+    },
+    [providerAccounts],
+  );
+
   const getAccountDisplay = useCallback((account: Account) => {
     let main = account.nickname || "";
     let sub = account.email || "";
@@ -230,6 +282,7 @@ export function useProviderAccounts({
       accounts.push({
         id: acc.id,
         email: acc.email,
+        nickname: acc.nickname,
         accountKey: acc.accountKey,
         oauthSourceKey: acc.oauthSourceKey,
         status: acc.status,
@@ -284,6 +337,7 @@ export function useProviderAccounts({
     handleRemoveAccount,
     performRemoveAccount,
     handleToggleAccountEnabled,
+    handleDownloadAccountJson,
     getAccountDisplay,
   };
 }

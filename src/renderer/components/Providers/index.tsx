@@ -6,13 +6,17 @@ import {
   Settings,
   Users,
   ShieldCheck,
+  Upload,
 } from "lucide-react";
 
 import { useTranslations } from "../../stores/settings";
 import { CustomProviderForm } from "./CustomProviderForm/index";
 import { CustomProviderImportModal } from "./CustomProviderImportModal";
+import { GlobalImportModal } from "./GlobalImportModal";
+import { OAuthImportModal } from "./OAuthImportModal";
 import { ConfirmModal } from "../ui/ConfirmModal";
 import {
+  Account,
   Provider,
   OpenAICompatProvider,
   ClaudeCompatProvider,
@@ -25,6 +29,7 @@ import { AddProviderModal } from "./AddProviderModal";
 import { CopilotAuthModal } from "./CopilotAuthModal";
 import { AmpcodeSettingsModal } from "./AmpcodeSettingsModal";
 import { AccountModelExplorerModal } from "./AccountModelExplorerModal";
+import { AccountEditModal } from "./AccountEditModal";
 import { CustomProvidersSection } from "./CustomProvidersSection";
 import { OfficialProvidersSection } from "./OfficialProvidersSection";
 import { RoutingProtocolSection } from "./RoutingProtocolSection";
@@ -53,6 +58,19 @@ export function Providers() {
   const [officialExpanded, setOfficialExpanded] = useState(false);
   const [routingExpanded, setRoutingExpanded] = useState(false);
   const [customExpanded, setCustomExpanded] = useState(false);
+  const [editingAccount, setEditingAccount] = useState<{
+    providerId: string;
+    account: Account;
+  } | null>(null);
+  const [showGlobalImportModal, setShowGlobalImportModal] = useState(false);
+  const [showOAuthImportModal, setShowOAuthImportModal] = useState(false);
+  const [isOAuthImporting, setIsOAuthImporting] = useState(false);
+  const [isRefreshingAllProviders, setIsRefreshingAllProviders] =
+    useState(false);
+  const [downloadConfirmAccount, setDownloadConfirmAccount] = useState<{
+    providerId: string;
+    accountId: string;
+  } | null>(null);
 
   const {
     customProviders,
@@ -95,6 +113,8 @@ export function Providers() {
     getAccountRulesBySource,
     handleOpenAccountModelRules,
     handleLoadModelCatalog,
+    handleLoadAccountPreview,
+    handleSaveAccountMetadata,
     handleSaveAccountModelRules,
   } = useOAuthRules();
 
@@ -110,6 +130,7 @@ export function Providers() {
     handleRemoveAccount,
     performRemoveAccount,
     handleToggleAccountEnabled,
+    handleDownloadAccountJson,
     getAccountDisplay,
   } = useProviderAccounts({ customProvidersCount: customProviders.length });
 
@@ -161,6 +182,73 @@ export function Providers() {
     await refreshAccounts();
   }, [addAccountProvider, refreshAccounts]);
 
+  const handleRefreshAllProviders = useCallback(async () => {
+    setIsRefreshingAllProviders(true);
+    try {
+      await Promise.all([refreshAccounts(), loadCustomProviders()]);
+    } finally {
+      setIsRefreshingAllProviders(false);
+    }
+  }, [loadCustomProviders, refreshAccounts]);
+
+  const handleOpenGlobalImport = useCallback(() => {
+    setShowGlobalImportModal(true);
+  }, []);
+
+  const handleSelectGlobalImportType = useCallback(
+    (type: "oauth" | "custom") => {
+      setShowGlobalImportModal(false);
+      if (type === "custom") {
+        handleImportClick();
+        return;
+      }
+      setShowOAuthImportModal(true);
+    },
+    [handleImportClick],
+  );
+
+  const handleOAuthImportConfirm = useCallback(
+    async (fileName: string, payload: unknown) => {
+      setIsOAuthImporting(true);
+      setImportStatus(null);
+      try {
+        const result = await window.electronAPI?.providers?.importOAuthFile(
+          fileName,
+          payload,
+        );
+        if (result?.success) {
+          setImportStatus({
+            type: "success",
+            message: t.providers.oauthImportSuccess,
+          });
+          setShowOAuthImportModal(false);
+          await handleRefreshAllProviders();
+        } else {
+          setImportStatus({
+            type: "error",
+            message: result?.error || t.providers.oauthImportFailed,
+          });
+        }
+      } catch (error) {
+        setImportStatus({
+          type: "error",
+          message:
+            error instanceof Error
+              ? error.message
+              : t.providers.oauthImportFailed,
+        });
+      } finally {
+        setIsOAuthImporting(false);
+      }
+    },
+    [
+      handleRefreshAllProviders,
+      setImportStatus,
+      t.providers.oauthImportFailed,
+      t.providers.oauthImportSuccess,
+    ],
+  );
+
   return (
     <div className="flex flex-col h-full bg-transparent overflow-hidden p-6">
       <div className="shrink-0 mb-8">
@@ -176,11 +264,13 @@ export function Providers() {
           <div className="flex items-center gap-3">
             <button
               className="p-2.5 text-[var(--text-dim)] hover:text-[var(--text-primary)] transition-colors group glass-card border-none bg-transparent hover:bg-[var(--text-primary)]/5"
-              onClick={() => void refreshAccounts()}
-              disabled={isLoading}
+              onClick={() => {
+                void handleRefreshAllProviders();
+              }}
+              disabled={isLoading || isRefreshingAllProviders}
             >
               <RotateCw
-                className={`w-4 h-4 ${isLoading ? "animate-spin" : "group-hover:rotate-180 transition-transform duration-500"}`}
+                className={`w-4 h-4 ${isLoading || isRefreshingAllProviders ? "animate-spin" : "group-hover:rotate-180 transition-transform duration-500"}`}
               />
             </button>
             <button
@@ -198,6 +288,18 @@ export function Providers() {
                   ? t.providers.connecting
                   : t.providers.addProvider}
               </span>
+            </button>
+            <button
+              className="glass-btn h-11 px-5 rounded-xl font-bold text-sm flex items-center gap-2 transition-all hover:scale-[1.02]"
+              onClick={handleOpenGlobalImport}
+              disabled={isImporting || isOAuthImporting}
+            >
+              {isImporting || isOAuthImporting ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Upload className="w-4 h-4 stroke-[2.5px]" />
+              )}
+              <span>{t.providers.globalImportAction}</span>
             </button>
           </div>
         </div>
@@ -287,8 +389,14 @@ export function Providers() {
             totalAccounts={stats.totalAccounts}
             providersWithAccounts={providersWithAccounts}
             pendingAccountToggles={pendingAccountToggles}
+            onEditAccount={(providerId, account) => {
+              setEditingAccount({ providerId, account });
+            }}
             onRemoveAccount={handleRemoveAccount}
             onToggleAccountEnabled={handleToggleAccountEnabled}
+            onDownloadAccountJson={(providerId, accountId) => {
+              setDownloadConfirmAccount({ providerId, accountId });
+            }}
             onEditAccountModelRules={handleOpenAccountModelRules}
             getAccountModelRulesMeta={getAccountModelRulesMeta}
           />
@@ -305,10 +413,8 @@ export function Providers() {
             customExpanded={customExpanded}
             setCustomExpanded={setCustomExpanded}
             customProviders={customProviders}
-            isImporting={isImporting}
             pendingCustomToggles={pendingCustomToggles}
             copiedProvider={copiedProvider}
-            onImportClick={handleImportClick}
             onToggleCustomProviderEnabled={(provider, enabled) => {
               void handleToggleCustomProviderEnabled(provider, enabled);
             }}
@@ -339,6 +445,23 @@ export function Providers() {
         />
       )}
 
+      {showGlobalImportModal && (
+        <GlobalImportModal
+          isOpen={showGlobalImportModal}
+          onClose={() => setShowGlobalImportModal(false)}
+          onSelect={handleSelectGlobalImportType}
+        />
+      )}
+
+      {showOAuthImportModal && (
+        <OAuthImportModal
+          isOpen={showOAuthImportModal}
+          isImporting={isOAuthImporting}
+          onClose={() => setShowOAuthImportModal(false)}
+          onConfirm={handleOAuthImportConfirm}
+        />
+      )}
+
       {showAddModal && (
         <AddProviderModal
           onClose={() => setShowAddModal(false)}
@@ -351,6 +474,18 @@ export function Providers() {
           provider={addAccountProvider}
           onClose={() => setAddAccountProvider(null)}
           onAdd={handleAccountAdded}
+        />
+      )}
+
+      {editingAccount && (
+        <AccountEditModal
+          isOpen={!!editingAccount}
+          onClose={() => setEditingAccount(null)}
+          accountLabel={getAccountDisplay(editingAccount.account).main}
+          providerId={editingAccount.providerId}
+          account={editingAccount.account}
+          onLoadAccountPreview={handleLoadAccountPreview}
+          onSaveAccountMetadata={handleSaveAccountMetadata}
         />
       )}
 
@@ -380,6 +515,7 @@ export function Providers() {
                 )
               : ""
           }
+          accountFilePath={editingAccountModelRules?.account.filePath}
           accountRulesBySource={
             editingAccountModelRules
               ? getAccountRulesBySource(
@@ -494,6 +630,25 @@ export function Providers() {
         cancelText={t.common.cancel}
         variant="danger"
         isLoading={isRemovingAccount}
+      />
+
+      <ConfirmModal
+        isOpen={!!downloadConfirmAccount}
+        onClose={() => setDownloadConfirmAccount(null)}
+        onConfirm={() => {
+          if (downloadConfirmAccount) {
+            void handleDownloadAccountJson(
+              downloadConfirmAccount.providerId,
+              downloadConfirmAccount.accountId,
+            );
+            setDownloadConfirmAccount(null);
+          }
+        }}
+        title={t.providers.downloadAccountJsonConfirmTitle}
+        description={t.providers.downloadAccountJsonConfirmDesc}
+        confirmText={t.providers.downloadAccountJsonConfirmAction}
+        cancelText={t.common.cancel}
+        variant="warning"
       />
     </div>
   );

@@ -220,6 +220,118 @@ class ManagementAPI {
     }
   }
 
+  async listAuthFiles(): Promise<ManagementAuthFileItem[]> {
+    try {
+      const res = await this.client.get(
+        `${this.baseURL}/v0/management/auth-files`,
+        {
+          headers: this.getAuthHeaders(),
+        },
+      );
+      const payload = res.data;
+
+      if (Array.isArray(payload)) {
+        return payload as ManagementAuthFileItem[];
+      }
+      if (payload && typeof payload === "object") {
+        const objectPayload = payload as {
+          data?: unknown;
+          items?: unknown;
+          files?: unknown;
+        };
+        if (Array.isArray(objectPayload.data)) {
+          return objectPayload.data as ManagementAuthFileItem[];
+        }
+        if (Array.isArray(objectPayload.items)) {
+          return objectPayload.items as ManagementAuthFileItem[];
+        }
+        if (Array.isArray(objectPayload.files)) {
+          return objectPayload.files as ManagementAuthFileItem[];
+        }
+      }
+
+      return [];
+    } catch (error) {
+      log.error("[ManagementAPI] Failed to list auth files:", error);
+      throw error;
+    }
+  }
+
+  async setAuthFileStatus(
+    name: string,
+    disabled: boolean,
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      await this.client.patch(
+        `${this.baseURL}/v0/management/auth-files/status`,
+        { name, disabled },
+        {
+          headers: this.getAuthHeaders(),
+        },
+      );
+      return { success: true };
+    } catch (error) {
+      log.error("[ManagementAPI] Failed to update auth file status:", error);
+      return { success: false, error: String(error) };
+    }
+  }
+
+  async removeAuthFile(
+    name: string,
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      await this.client.delete(`${this.baseURL}/v0/management/auth-files`, {
+        params: { name },
+        headers: this.getAuthHeaders(),
+      });
+      return { success: true };
+    } catch (error) {
+      log.error("[ManagementAPI] Failed to remove auth file:", error);
+      return { success: false, error: String(error) };
+    }
+  }
+
+  async downloadAuthFile(name: string): Promise<unknown> {
+    try {
+      const res = await this.client.get(
+        `${this.baseURL}/v0/management/auth-files/download`,
+        {
+          params: { name },
+          headers: this.getAuthHeaders(),
+        },
+      );
+      return res.data;
+    } catch (error) {
+      log.error("[ManagementAPI] Failed to download auth file:", error);
+      throw error;
+    }
+  }
+
+  async uploadAuthFile(
+    name: string,
+    payload: unknown,
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const blob = new Blob([JSON.stringify(payload, null, 2)], {
+        type: "application/json",
+      });
+      const formData = new FormData();
+      formData.append("file", blob, name);
+
+      await this.client.post(
+        `${this.baseURL}/v0/management/auth-files`,
+        formData,
+        {
+          headers: this.getAuthHeaders(),
+        },
+      );
+      return { success: true };
+    } catch (error) {
+      log.error("[ManagementAPI] Failed to upload auth file:", error);
+      return { success: false, error: String(error) };
+    }
+  }
+
   async fetchModels(): Promise<ModelEntry[]> {
     try {
       const res = await this.client.get(`${this.baseURL}/v1/models`, {
@@ -231,6 +343,77 @@ class ManagementAPI {
       return models;
     } catch (error) {
       log.error("[ManagementAPI] Failed to fetch models:", error);
+      throw error;
+    }
+  }
+
+  async fetchAuthFileModels(name: string): Promise<ModelEntry[]> {
+    try {
+      const res = await this.client.get(
+        `${this.baseURL}/v0/management/auth-files/models`,
+        {
+          params: { name },
+          headers: this.getAuthHeaders(),
+        },
+      );
+
+      const payload = res.data;
+      if (Array.isArray(payload)) {
+        return payload as ModelEntry[];
+      }
+
+      if (payload && typeof payload === "object") {
+        const objectPayload = payload as { data?: unknown; models?: unknown };
+        if (Array.isArray(objectPayload.data)) {
+          return objectPayload.data as ModelEntry[];
+        }
+        if (Array.isArray(objectPayload.models)) {
+          return objectPayload.models as ModelEntry[];
+        }
+      }
+
+      return [];
+    } catch (error) {
+      log.error("[ManagementAPI] Failed to fetch auth file models:", error);
+      throw error;
+    }
+  }
+
+  async callManagementApi(params: {
+    method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+    url: string;
+    authIndex?: string;
+    header?: Record<string, string>;
+    body?: unknown;
+  }): Promise<unknown> {
+    try {
+      const response = await this.client.request({
+        method: params.method,
+        url: `${this.baseURL}/v0/management/api-call`,
+        data: {
+          method: params.method,
+          url: params.url,
+          ...(params.authIndex
+            ? {
+                authIndex: params.authIndex,
+              }
+            : {}),
+          header: params.header ?? {},
+          ...(params.body !== undefined
+            ? {
+                data:
+                  typeof params.body === "string"
+                    ? params.body
+                    : JSON.stringify(params.body),
+              }
+            : {}),
+        },
+        headers: this.getAuthHeaders(),
+      });
+
+      return response.data;
+    } catch (error) {
+      log.error("[ManagementAPI] Failed to call management api-call:", error);
       throw error;
     }
   }
@@ -289,6 +472,34 @@ export interface QwenAuthUrlResponse {
 
 export interface QwenAuthStatusResponse {
   status: "pending" | "ok" | "error";
+}
+
+export interface ManagementAuthFileItem {
+  account?: string;
+  account_type?: string;
+  auth_index?: string;
+  created_at?: string;
+  disabled?: boolean;
+  email?: string;
+  id?: string;
+  label?: string;
+  modtime?: string;
+  name?: string;
+  path?: string;
+  provider?: string;
+  runtime_only?: boolean;
+  source?: string;
+  status?: string;
+  status_message?: string;
+  type?: string;
+  unavailable?: boolean;
+  updated_at?: string;
+}
+
+export interface AuthFileMetadataUpdates {
+  priority?: number;
+  prefix?: string;
+  proxyUrl?: string;
 }
 
 export interface CopilotAuthUrlResponse {

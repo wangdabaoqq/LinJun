@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Zap, X, Box, Save, XCircle } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Zap, X, Box, Save, XCircle, Search, Check } from "lucide-react";
 
 import { useTranslations } from "../../../stores/settings";
 import {
@@ -32,13 +32,22 @@ export function CustomProviderForm({
   const t = useTranslations();
   const [isLoading, setIsLoading] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
+  const [isFetchingModels, setIsFetchingModels] = useState(false);
   const [testResult, setTestResult] = useState<{
     success: boolean;
     error?: string;
     latency?: number;
-    serviceType?: "new-api" | "openrouter";
+    serviceType?: "new-api" | "openrouter" | "custom";
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showModelPicker, setShowModelPicker] = useState(false);
+  const [modelPickerProtocol, setModelPickerProtocol] =
+    useState<ProtocolType | null>(null);
+  const [modelPickerCandidates, setModelPickerCandidates] = useState<string[]>(
+    [],
+  );
+  const [modelPickerSelected, setModelPickerSelected] = useState<string[]>([]);
+  const [modelPickerSearch, setModelPickerSearch] = useState("");
 
   const initialProtocolValue = editCodexProvider
     ? "codex"
@@ -92,6 +101,9 @@ export function CustomProviderForm({
       editCodexProvider?.models ||
       [],
   );
+  const [openaiHeaders, setOpenaiHeaders] = useState<
+    Record<string, string> | undefined
+  >(editProvider?.headers);
 
   const [claudeEntry, setClaudeEntry] = useState<ClaudeApiKeyEntry>(
     editClaudeProvider || {
@@ -132,7 +144,7 @@ export function CustomProviderForm({
 
   const updateClaudeField = (
     field: keyof ClaudeApiKeyEntry,
-    value: string | boolean | ModelEntry[] | undefined,
+    value: string | boolean | ModelEntry[] | Record<string, string> | undefined,
   ) => {
     if (field === "models") {
       setClaudeEntry({ ...claudeEntry, models: value as ModelEntry[] });
@@ -172,7 +184,7 @@ export function CustomProviderForm({
 
   const updateCodexField = (
     field: keyof CodexApiKeyEntry,
-    value: string | boolean | ModelEntry[] | undefined,
+    value: string | boolean | ModelEntry[] | Record<string, string> | undefined,
   ) => {
     if (field === "models") {
       setCodexEntry({
@@ -195,28 +207,25 @@ export function CustomProviderForm({
 
     let testBaseUrl = "";
     let testApiKey = "";
-    let testNewApiUser = "";
+    let testHeaders: Record<string, string> | undefined;
 
     if (protocol === "openai") {
       testBaseUrl = baseUrl.trim();
       const firstKey = openaiApiKeys.find((k) => k["api-key"].trim());
       testApiKey = firstKey?.["api-key"].trim() || "";
-      testNewApiUser = newApiUser.trim();
+      testHeaders = openaiHeaders;
     } else if (protocol === "claude") {
       testBaseUrl = claudeEntry["base-url"]?.trim() || "";
       testApiKey = claudeEntry["api-key"].trim();
-      testNewApiUser = claudeEntry["new-api-user"]?.trim() || "";
+      testHeaders = claudeEntry.headers;
     } else if (protocol === "gemini") {
       testBaseUrl = geminiEntry["base-url"]?.trim() || "";
       testApiKey = geminiEntry["api-key"].trim();
+      testHeaders = geminiEntry.headers;
     } else if (protocol === "codex") {
       testBaseUrl = codexEntry["base-url"]?.trim() || "";
       testApiKey = codexEntry["api-key"].trim();
-    }
-
-    if (!testApiKey) {
-      setError(t.providers.customApiKeyRequired);
-      return;
+      testHeaders = codexEntry.headers;
     }
 
     if (!testBaseUrl) {
@@ -224,8 +233,18 @@ export function CustomProviderForm({
       return;
     }
 
-    if (!testNewApiUser) {
-      setError(t.providers.customNewApiUserRequired);
+    const normalizedHeaders = Object.fromEntries(
+      Object.entries(testHeaders || {}).filter(
+        ([key, value]) => key.trim().length > 0 && value.trim().length > 0,
+      ),
+    );
+    const hasAuthorizationHeader = Object.entries(normalizedHeaders).some(
+      ([key, value]) =>
+        key.trim().toLowerCase() === "authorization" && value.trim().length > 0,
+    );
+
+    if (!testApiKey && !hasAuthorizationHeader) {
+      setError(t.providers.customApiKeyOrAuthHeaderRequired);
       return;
     }
 
@@ -236,7 +255,7 @@ export function CustomProviderForm({
         protocol,
         baseUrl: testBaseUrl,
         apiKey: testApiKey,
-        ...(testNewApiUser ? { newApiUser: testNewApiUser } : {}),
+        headers: normalizedHeaders,
       });
 
       setTestResult(result || { success: false, error: "No response" });
@@ -285,6 +304,14 @@ export function CustomProviderForm({
           : {}),
         ...(newApiUser.trim() ? { "new-api-user": newApiUser.trim() } : {}),
         "enable-usage-query": enableUsageQuery,
+        ...(openaiHeaders &&
+        Object.keys(openaiHeaders).filter((k) => k.trim()).length > 0
+          ? {
+              headers: Object.fromEntries(
+                Object.entries(openaiHeaders).filter(([k]) => k.trim()),
+              ),
+            }
+          : {}),
         "api-key-entries": validKeys.map((k) => ({
           "api-key": k["api-key"].trim(),
           ...(k["proxy-url"]?.trim()
@@ -364,6 +391,14 @@ export function CustomProviderForm({
         "enable-usage-query": claudeEntry["enable-usage-query"] || false,
         ...(claudeEntry.prefix?.trim()
           ? { prefix: claudeEntry.prefix.trim() }
+          : {}),
+        ...(claudeEntry.headers &&
+        Object.keys(claudeEntry.headers).filter((k) => k.trim()).length > 0
+          ? {
+              headers: Object.fromEntries(
+                Object.entries(claudeEntry.headers).filter(([k]) => k.trim()),
+              ),
+            }
           : {}),
         ...(claudeEntry.models &&
         claudeEntry.models.filter((m) => m.name.trim()).length > 0
@@ -615,6 +650,14 @@ export function CustomProviderForm({
         ...(codexEntry.prefix?.trim()
           ? { prefix: codexEntry.prefix.trim() }
           : {}),
+        ...(codexEntry.headers &&
+        Object.keys(codexEntry.headers).filter((k) => k.trim()).length > 0
+          ? {
+              headers: Object.fromEntries(
+                Object.entries(codexEntry.headers).filter(([k]) => k.trim()),
+              ),
+            }
+          : {}),
         ...(codexEntry.models &&
         codexEntry.models.filter((m) => m.name.trim()).length > 0
           ? {
@@ -695,6 +738,153 @@ export function CustomProviderForm({
         setIsLoading(false);
       }
     }
+  };
+
+  const handleFetchModels = async (
+    baseUrlRaw: string,
+    apiKeyRaw: string,
+    headers?: Record<string, string>,
+  ) => {
+    const baseUrlTrimmed = baseUrlRaw.trim();
+    const apiKeyTrimmed = apiKeyRaw.trim();
+
+    if (!baseUrlTrimmed) {
+      setError(t.providers.customUrlRequired);
+      return;
+    }
+
+    const normalizedHeaders = Object.fromEntries(
+      Object.entries(headers || {}).filter(
+        ([key, value]) => key.trim().length > 0 && value.trim().length > 0,
+      ),
+    );
+
+    if (Object.keys(normalizedHeaders).length === 0) {
+      setError(t.providers.customHeadersRequired);
+      return;
+    }
+
+    const hasAuthorizationHeader = Object.entries(normalizedHeaders).some(
+      ([key, value]) =>
+        key.trim().toLowerCase() === "authorization" && value.trim().length > 0,
+    );
+
+    if (!apiKeyTrimmed && !hasAuthorizationHeader) {
+      setError(t.providers.customApiKeyOrAuthHeaderRequired);
+      return;
+    }
+
+    setError(null);
+    setIsFetchingModels(true);
+
+    try {
+      const result = await window.electronAPI?.customProvider?.fetchModels({
+        baseUrl: baseUrlTrimmed,
+        apiKey: apiKeyTrimmed,
+        headers: normalizedHeaders,
+      });
+
+      if (!result?.success) {
+        setError(result?.error || t.providers.customFetchModelsFailed);
+        return;
+      }
+
+      const models = (result.models || [])
+        .map((item) => (typeof item?.id === "string" ? item.id.trim() : ""))
+        .filter((item) => item.length > 0);
+
+      const uniqueModels = Array.from(new Set(models)).map((name) => ({
+        name,
+      }));
+
+      const candidateNames = uniqueModels.map((item) => item.name);
+      setModelPickerProtocol(protocol);
+      setModelPickerCandidates(candidateNames);
+
+      const existingNames =
+        protocol === "openai"
+          ? openaiModels.map((item) => item.name)
+          : protocol === "claude"
+            ? (claudeEntry.models || []).map((item) => item.name)
+            : protocol === "gemini"
+              ? (geminiEntry.models || []).map((item) => item.name)
+              : (codexEntry.models || []).map((item) => item.name);
+
+      const preselected = candidateNames.filter((name) =>
+        existingNames.includes(name),
+      );
+
+      setModelPickerSelected(preselected.length > 0 ? preselected : []);
+      setModelPickerSearch("");
+      setShowModelPicker(true);
+    } catch (error) {
+      const message = String(error);
+      if (
+        message.includes(
+          "No handler registered for 'customProvider:fetchModels'",
+        )
+      ) {
+        setError(t.providers.customFetchModelsNeedRestart);
+      } else {
+        setError(message);
+      }
+    } finally {
+      setIsFetchingModels(false);
+    }
+  };
+
+  const filteredModelPickerCandidates = useMemo(() => {
+    const keyword = modelPickerSearch.trim().toLowerCase();
+    if (!keyword) {
+      return modelPickerCandidates;
+    }
+    return modelPickerCandidates.filter((item) =>
+      item.toLowerCase().includes(keyword),
+    );
+  }, [modelPickerCandidates, modelPickerSearch]);
+
+  const handleApplyModelPicker = () => {
+    if (!modelPickerProtocol) return;
+    if (modelPickerSelected.length === 0) {
+      setError(t.providers.customModelPickerNeedSelection);
+      return;
+    }
+
+    const existing =
+      modelPickerProtocol === "openai"
+        ? openaiModels
+        : modelPickerProtocol === "claude"
+          ? claudeEntry.models || []
+          : modelPickerProtocol === "gemini"
+            ? geminiEntry.models || []
+            : codexEntry.models || [];
+
+    const aliasMap = new Map(
+      existing
+        .filter((item) => item.alias?.trim())
+        .map((item) => [item.name, item.alias?.trim()]),
+    );
+
+    const selectedModels = modelPickerSelected.map((name) => ({
+      name,
+      ...(aliasMap.get(name) ? { alias: aliasMap.get(name) } : {}),
+    }));
+
+    if (modelPickerProtocol === "openai") {
+      setOpenaiModels(selectedModels);
+    } else if (modelPickerProtocol === "claude") {
+      updateClaudeField("models", selectedModels);
+    } else if (modelPickerProtocol === "gemini") {
+      updateGeminiField("models", selectedModels);
+    } else if (modelPickerProtocol === "codex") {
+      updateCodexField("models", selectedModels);
+    }
+
+    setShowModelPicker(false);
+    setModelPickerProtocol(null);
+    setModelPickerCandidates([]);
+    setModelPickerSelected([]);
+    setModelPickerSearch("");
   };
 
   return (
@@ -793,6 +983,8 @@ export function CustomProviderForm({
                 systemAccessToken={systemAccessToken}
                 newApiUser={newApiUser}
                 enableUsageQuery={enableUsageQuery}
+                headers={openaiHeaders}
+                isFetchingModels={isFetchingModels}
                 isEditing={isEditingOpenai}
                 onNameChange={setName}
                 onBaseUrlChange={setBaseUrl}
@@ -802,20 +994,54 @@ export function CustomProviderForm({
                 onSystemAccessTokenChange={setSystemAccessToken}
                 onNewApiUserChange={setNewApiUser}
                 onEnableUsageQueryChange={setEnableUsageQuery}
+                onHeadersChange={setOpenaiHeaders}
+                onFetchModels={() =>
+                  handleFetchModels(
+                    baseUrl,
+                    openaiApiKeys.find((k) => k["api-key"].trim())?.[
+                      "api-key"
+                    ] || "",
+                    openaiHeaders,
+                  )
+                }
               />
             ) : protocol === "claude" ? (
               <ClaudeProtocolForm
                 entry={claudeEntry}
+                isFetchingModels={isFetchingModels}
+                onFetchModels={() =>
+                  handleFetchModels(
+                    claudeEntry["base-url"] || "",
+                    claudeEntry["api-key"] || "",
+                    claudeEntry.headers,
+                  )
+                }
                 onUpdate={updateClaudeField}
               />
             ) : protocol === "gemini" ? (
               <GeminiProtocolForm
                 entry={geminiEntry}
+                isFetchingModels={isFetchingModels}
+                onFetchModels={() =>
+                  handleFetchModels(
+                    geminiEntry["base-url"] || "",
+                    geminiEntry["api-key"] || "",
+                    geminiEntry.headers,
+                  )
+                }
                 onUpdate={updateGeminiField}
               />
             ) : protocol === "codex" ? (
               <CodexProtocolForm
                 entry={codexEntry}
+                isFetchingModels={isFetchingModels}
+                onFetchModels={() =>
+                  handleFetchModels(
+                    codexEntry["base-url"] || "",
+                    codexEntry["api-key"] || "",
+                    codexEntry.headers,
+                  )
+                }
                 onUpdate={updateCodexField}
               />
             ) : null}
@@ -846,15 +1072,9 @@ export function CustomProviderForm({
                   <>
                     <Zap className="w-4 h-4" />
                     <span>{t.providers.customTestSuccess}</span>
-                    {testResult.serviceType && (
-                      <span className="text-[var(--text-dim)] font-normal ml-1">
-                        (
-                        {testResult.serviceType === "new-api"
-                          ? "New API"
-                          : "OpenRouter"}
-                        )
-                      </span>
-                    )}
+                    <span className="text-[var(--text-dim)] font-normal ml-1">
+                      (Custom API)
+                    </span>
                     {testResult.latency && (
                       <span className="text-[var(--text-dim)] font-normal ml-1">
                         {testResult.latency}ms
@@ -894,6 +1114,123 @@ export function CustomProviderForm({
           </div>
         </div>
       </div>
+
+      {showModelPicker && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/55" />
+          <div className="relative w-full max-w-2xl max-h-[80vh] flex flex-col rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] shadow-2xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-[var(--glass-border)] flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-bold text-[var(--text-primary)]">
+                  {t.providers.customModelPickerTitle}
+                </h3>
+                <p className="text-[11px] text-[var(--text-dim)] mt-1">
+                  {t.providers.customModelPickerSubtitle}
+                </p>
+              </div>
+              <button
+                onClick={() => setShowModelPicker(false)}
+                className="p-2 rounded-lg text-[var(--text-dim)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="px-5 py-4 border-b border-[var(--glass-border)] flex flex-col md:flex-row gap-3">
+              <div className="relative flex-1">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-dim)]" />
+                <input
+                  value={modelPickerSearch}
+                  onChange={(e) => setModelPickerSearch(e.target.value)}
+                  placeholder={t.providers.customModelPickerSearchPlaceholder}
+                  className="glass-input h-10 w-full pl-10"
+                />
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() =>
+                    setModelPickerSelected(filteredModelPickerCandidates)
+                  }
+                  className="px-3 h-10 rounded-xl border border-[var(--glass-border)] text-xs font-bold text-[var(--text-dim)] hover:text-[var(--text-primary)]"
+                >
+                  {t.providers.customModelPickerSelectAll}
+                </button>
+                <button
+                  onClick={() => setModelPickerSelected([])}
+                  className="px-3 h-10 rounded-xl border border-[var(--glass-border)] text-xs font-bold text-[var(--text-dim)] hover:text-[var(--text-primary)]"
+                >
+                  {t.providers.customModelPickerClearAll}
+                </button>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-2">
+              {filteredModelPickerCandidates.length === 0 ? (
+                <div className="text-center py-10 text-sm text-[var(--text-dim)]">
+                  {t.providers.customModelPickerEmpty}
+                </div>
+              ) : (
+                filteredModelPickerCandidates.map((model) => {
+                  const checked = modelPickerSelected.includes(model);
+                  return (
+                    <label
+                      key={model}
+                      className="flex items-center gap-3 p-3 rounded-xl border border-[var(--glass-border)] hover:bg-[var(--text-primary)]/[0.03]"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        className="sr-only"
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setModelPickerSelected((prev) => [...prev, model]);
+                          } else {
+                            setModelPickerSelected((prev) =>
+                              prev.filter((item) => item !== model),
+                            );
+                          }
+                        }}
+                      />
+                      <span
+                        className={`w-4 h-4 rounded-[6px] border flex items-center justify-center transition-colors ${
+                          checked
+                            ? "bg-[var(--accent-primary)] border-[var(--accent-primary)] text-white"
+                            : "bg-[var(--bg-secondary)] border-[var(--glass-border)] text-transparent"
+                        }`}
+                      >
+                        <Check className="w-3 h-3" strokeWidth={3} />
+                      </span>
+                      <span className="font-mono text-xs text-[var(--text-primary)] break-all">
+                        {model}
+                      </span>
+                    </label>
+                  );
+                })
+              )}
+            </div>
+
+            <div className="px-5 py-4 border-t border-[var(--glass-border)] flex items-center justify-between">
+              <span className="text-xs text-[var(--text-dim)] tabular-nums">
+                {modelPickerSelected.length} / {modelPickerCandidates.length}
+              </span>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowModelPicker(false)}
+                  className="px-4 h-10 rounded-xl text-xs font-bold text-[var(--text-dim)] hover:text-[var(--text-primary)]"
+                >
+                  {t.common.cancel}
+                </button>
+                <button
+                  onClick={handleApplyModelPicker}
+                  className="glass-btn glass-btn-primary px-5 h-10 rounded-xl text-xs font-bold"
+                >
+                  {t.providers.customModelPickerApply}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

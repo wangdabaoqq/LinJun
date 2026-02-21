@@ -4,6 +4,7 @@ import { managementAPI } from "../proxy/api";
 import {
   getProviders,
   getQuotaByProvider,
+  getQuotaByProviderStream,
   ProviderType,
   refreshQuota,
 } from "../quota";
@@ -41,6 +42,33 @@ export function setupQuotaHandlers(): void {
       return { success: false, error: String(error) };
     }
   });
+
+  ipcMain.on(
+    "quota:getByProviderStream",
+    async (event, provider: ProviderType) => {
+      try {
+        await getQuotaByProviderStream(provider, (accounts, done) => {
+          if (!event.sender.isDestroyed()) {
+            event.sender.send("quota:streamBatch", {
+              provider,
+              accounts,
+              done,
+            });
+          }
+        });
+      } catch (error) {
+        log.error("[IPC] Failed to stream quota by provider:", error);
+        if (!event.sender.isDestroyed()) {
+          event.sender.send("quota:streamBatch", {
+            provider,
+            accounts: [],
+            done: true,
+            error: String(error),
+          });
+        }
+      }
+    },
+  );
 
   ipcMain.handle("quota:refreshAll", async () => {
     try {

@@ -8,6 +8,7 @@ export interface OpenAICompatProvider {
   "system-access-token"?: string;
   "new-api-user"?: string;
   prefix?: string;
+  headers?: Record<string, string>;
 }
 
 export interface ClaudeCompatProvider {
@@ -17,6 +18,7 @@ export interface ClaudeCompatProvider {
   "proxy-url"?: string;
   "system-access-token"?: string;
   prefix?: string;
+  headers?: Record<string, string>;
   models?: { name: string; alias?: string }[];
 }
 
@@ -38,6 +40,7 @@ export interface CodexCompatProvider {
   "proxy-url"?: string;
   "system-access-token"?: string;
   prefix?: string;
+  headers?: Record<string, string>;
   models?: { name: string; alias?: string }[];
 }
 

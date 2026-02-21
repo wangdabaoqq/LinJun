@@ -35,6 +35,8 @@ export function QuotaWindowBar({
 
   // Helper to translate labels using i18n
   const getTranslatedLabel = (label: string): string => {
+    if (label.includes("代码审查") || label.includes("Code Review"))
+      return t.quota.codeReview;
     if (label.includes("5小时") || label.includes("5-Hour"))
       return t.quota.fiveHourLimit;
     if (
@@ -43,8 +45,6 @@ export function QuotaWindowBar({
       label.includes("Weekly")
     )
       return t.quota.weeklyLimit;
-    if (label.includes("代码审查") || label.includes("Code Review"))
-      return t.quota.codeReview;
     // Fallback: if it contains Chinese characters and we don't have a match, default to Rate Limit or keep original if in English mode
     if (/[\u4e00-\u9fa5]/.test(label)) {
       return t.quota.rateLimit;
