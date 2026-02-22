@@ -42,8 +42,7 @@ mac:
   category: public.app-category.developer-tools
   icon: resources/icon.icns
   target:
-    - target: zip
-      arch: [x64, arm64]
+    - zip
   hardenedRuntime: true
   gatekeeperAssess: false
 
@@ -61,8 +60,7 @@ win:
         - "!static"
   icon: resources/icon.ico
   target:
-    - target: nsis
-      arch: [x64]
+    - nsis
 
 linux:
   extraResources:
@@ -80,10 +78,8 @@ linux:
   executableName: linjun
   category: Development
   target:
-    - target: AppImage
-      arch: [x64, arm64]
-    - target: deb
-      arch: [x64, arm64]
+    - AppImage
+    - deb
 
 nsis:
   oneClick: false

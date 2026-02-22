@@ -48,7 +48,7 @@ jobs:
             arch: x64
             cli-arch: amd64
             cli-platform: windows
-            electron-args: --win
+            electron-args: --win --x64
 
     runs-on: ${{ matrix.os }}
 
