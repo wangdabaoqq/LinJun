@@ -7,7 +7,6 @@ directories:
 
 asar: true
 compression: normal
-afterPack: ./build/afterPack.js
 
 files:
   - "!**/.git/*"
@@ -24,7 +23,7 @@ files:
   - "!**/{npm-debug.log,yarn.lock,.yarn-integrity,.yarn-metadata.json}"
 
 extraResources:
-  - from: "resources/icons/icons/32x32.png"
+  - from: "resources/tray-icon.png"
     to: "icons/tray-icon.png"
 
 mac:
