@@ -237,6 +237,17 @@ function convertCodexUsageToQuotaAccount(
   token: TokenReadResult,
   usage: CodexUsageResponse,
 ): QuotaAccount {
+  const getCodexBadge = (planType?: string): string => {
+    const normalized = (planType || "").trim().toLowerCase();
+    if (!normalized) return "Unknown";
+    if (normalized === "free") return "Free";
+    if (normalized === "plus") return "Plus";
+    if (normalized === "pro") return "Pro";
+    if (normalized === "team") return "Team";
+    if (normalized === "enterprise") return "Enterprise";
+    return planType || "Unknown";
+  };
+
   const formatCodexWindowLabel = (
     seconds?: number,
     fallback = "Usage Window",
@@ -257,7 +268,7 @@ function convertCodexUsageToQuotaAccount(
     id: `${token.provider}-${token.email}`,
     provider: token.provider,
     email: token.email,
-    badge: "Plus",
+    badge: getCodexBadge(usage.plan_type),
     status: isLimited ? "limited" : "active",
     rateLimits: {
       primary: {

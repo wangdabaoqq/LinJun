@@ -388,7 +388,7 @@ class ManagementAPI {
   }): Promise<unknown> {
     try {
       const response = await this.client.request({
-        method: params.method,
+        method: "POST",
         url: `${this.baseURL}/v0/management/api-call`,
         data: {
           method: params.method,
@@ -482,6 +482,10 @@ export interface ManagementAuthFileItem {
   disabled?: boolean;
   email?: string;
   id?: string;
+  id_token?: {
+    chatgpt_account_id?: string;
+    plan_type?: string;
+  };
   label?: string;
   modtime?: string;
   name?: string;

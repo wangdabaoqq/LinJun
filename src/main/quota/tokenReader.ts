@@ -48,7 +48,11 @@ export interface TokenFile {
 
   // Codex specific
   account_id?: string;
-  id_token?: string;
+  id_token?:
+    | string
+    | {
+        chatgpt_account_id?: string;
+      };
   last_refresh?: string;
 
   // Antigravity specific
@@ -197,6 +201,7 @@ async function readTokenFilesFromManagement(): Promise<TokenReadResult[]> {
         true,
         authFile.auth_index,
         authFile.email || authFile.account || authFile.label,
+        getAuthFileAccountId(authFile),
       );
       if (parsed) {
         remoteTokens.push(parsed);
@@ -219,12 +224,31 @@ async function readTokenFilesFromManagement(): Promise<TokenReadResult[]> {
   }
 }
 
+function getAuthFileAccountId(authFile: {
+  id_token?: unknown;
+}): string | undefined {
+  const maybeIdToken = authFile.id_token;
+  if (!maybeIdToken || typeof maybeIdToken !== "object") {
+    return undefined;
+  }
+
+  const chatgptAccountId = (maybeIdToken as { chatgpt_account_id?: unknown })
+    .chatgpt_account_id;
+  if (typeof chatgptAccountId !== "string") {
+    return undefined;
+  }
+
+  const trimmed = chatgptAccountId.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}
+
 function parseTokenFileData(
   filePath: string,
   data: TokenFile,
   enabled: boolean,
   authIndex?: string,
   fallbackEmail?: string,
+  fallbackAccountId?: string,
 ): TokenReadResult | null {
   const filename = path.basename(filePath);
   const provider: ProviderType | null =
@@ -268,7 +292,7 @@ function parseTokenFileData(
       normalizedFallbackEmail ||
       path.basename(filePath, ".json"),
     accountKey: buildAccountKey(provider, filePath),
-    accountId: data.account_id,
+    accountId: fallbackAccountId || data.account_id,
     oauthSourceKey,
     authIndex: resolvedAuthIndex,
     accessToken,

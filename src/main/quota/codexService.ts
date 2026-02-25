@@ -23,6 +23,7 @@ export interface CodexRateLimit {
 }
 
 export interface CodexUsageResponse {
+  plan_type?: string;
   rate_limit: CodexRateLimit;
   code_review_rate_limit: CodexRateLimit;
   credits: {
@@ -39,6 +40,29 @@ interface RefreshTokenResponse {
   refresh_token: string;
   token_type: string;
   expires_in: number;
+}
+
+function getAxios404Debug(error: unknown): string {
+  if (!axios.isAxiosError(error)) {
+    return "";
+  }
+
+  const url = error.config?.url || "unknown-url";
+  const status = error.response?.status;
+  const data = error.response?.data;
+  let body = "";
+  if (typeof data === "string") {
+    body = data;
+  } else if (data && typeof data === "object") {
+    try {
+      body = JSON.stringify(data);
+    } catch {
+      body = "[unserializable-response-data]";
+    }
+  }
+
+  const bodyShort = body ? body.slice(0, 240) : "";
+  return `url=${url} status=${status}${bodyShort ? ` body=${bodyShort}` : ""}`;
 }
 
 async function refreshCodexToken(
@@ -95,12 +119,54 @@ function extractCodexUsageFromManagementPayload(
   }
 
   const objectPayload = parsedPayload as Record<string, unknown>;
+
+  const statusCode =
+    typeof objectPayload.status_code === "number"
+      ? objectPayload.status_code
+      : undefined;
+  if (statusCode && statusCode >= 400) {
+    const bodyText =
+      typeof objectPayload.body === "string" ? objectPayload.body : "";
+    let detail = bodyText;
+    if (bodyText) {
+      try {
+        const parsedBody = JSON.parse(bodyText) as { detail?: unknown };
+        if (typeof parsedBody.detail === "string") {
+          detail = parsedBody.detail;
+        }
+      } catch {
+        detail = bodyText;
+      }
+    }
+
+    throw new Error(
+      detail
+        ? `Codex usage request failed (${statusCode}): ${detail}`
+        : `Codex usage request failed (${statusCode})`,
+    );
+  }
+
   if (objectPayload.success === false) {
     throw new Error(
       typeof objectPayload.error === "string"
         ? objectPayload.error
         : "Codex management api-call failed",
     );
+  }
+
+  if (typeof objectPayload.body === "string") {
+    try {
+      const parsedBody = JSON.parse(objectPayload.body) as unknown;
+      if (
+        parsedBody &&
+        typeof parsedBody === "object" &&
+        "rate_limit" in parsedBody
+      ) {
+        return parsedBody as CodexUsageResponse;
+      }
+    } catch {
+      throw new Error("Invalid management api-call payload for Codex usage");
+    }
   }
 
   const candidate =
@@ -139,21 +205,11 @@ async function fetchCodexUsageViaManagement(
   return extractCodexUsageFromManagementPayload(payload);
 }
 
-export async function fetchCodexUsage(
+async function fetchCodexUsageWithRefresh(
   token: TokenReadResult,
 ): Promise<CodexUsageResponse> {
-  if (!token.accountId) {
-    throw new Error(
-      "Codex account metadata missing account_id. Re-import this auth file from management auth-files.",
-    );
-  }
-
-  if (token.authIndex) {
-    return await fetchCodexUsageViaManagement(token);
-  }
-
   try {
-    return await fetchUsageWithToken(token.accessToken, token.accountId);
+    return await fetchUsageWithToken(token.accessToken, token.accountId!);
   } catch (error) {
     if (
       axios.isAxiosError(error) &&
@@ -170,11 +226,77 @@ export async function fetchCodexUsage(
         refresh_token: newTokens.refresh_token,
       });
 
-      return await fetchUsageWithToken(newTokens.access_token, token.accountId);
+      return await fetchUsageWithToken(
+        newTokens.access_token,
+        token.accountId!,
+      );
     }
 
     throw error;
   }
+}
+
+export async function fetchCodexUsage(
+  token: TokenReadResult,
+): Promise<CodexUsageResponse> {
+  if (!token.accountId) {
+    throw new Error(
+      "Codex account metadata missing account_id. Re-import this auth file from management auth-files.",
+    );
+  }
+
+  if (token.authIndex) {
+    try {
+      return await fetchCodexUsageViaManagement(token);
+    } catch (error) {
+      const isAxios404 =
+        axios.isAxiosError(error) && error.response?.status === 404;
+      const isWrappedUpstream404 =
+        error instanceof Error &&
+        error.message.includes("Codex usage request failed (404)");
+      const isParsed404 =
+        error instanceof Error && error.message.includes("(404)");
+
+      if (isAxios404 || isParsed404) {
+        if (isAxios404) {
+          try {
+            return await fetchCodexUsageViaManagement(token);
+          } catch (retryError) {
+            const retryIsAxios404 =
+              axios.isAxiosError(retryError) &&
+              retryError.response?.status === 404;
+            const retryIsParsed404 =
+              retryError instanceof Error &&
+              retryError.message.includes("(404)");
+            if (!retryIsAxios404 && !retryIsParsed404) {
+              throw retryError;
+            }
+            const debug = getAxios404Debug(retryError);
+            log.warn(
+              `[CodexService] Management api-call endpoint returned 404 for ${token.email}, fallback to direct usage request${debug ? ` (${debug})` : ""}`,
+            );
+            return await fetchCodexUsageWithRefresh(token);
+          }
+        }
+
+        if (isWrappedUpstream404) {
+          log.info(
+            `[CodexService] Upstream Codex usage endpoint returned 404 for ${token.email} via management proxy, fallback to direct usage request`,
+          );
+        } else {
+          log.info(
+            `[CodexService] Received 404 while fetching Codex usage for ${token.email} via management proxy, fallback to direct usage request`,
+          );
+        }
+
+        return await fetchCodexUsageWithRefresh(token);
+      }
+
+      throw error;
+    }
+  }
+
+  return await fetchCodexUsageWithRefresh(token);
 }
 
 import { store } from "../utils/store";
