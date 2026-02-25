@@ -413,9 +413,22 @@ export const en = {
     accountEditProxyUrl: "Proxy URL",
     accountEditProxyUrlPlaceholder: "http://127.0.0.1:7890",
     accountEditApplyToAllTitle: "Batch Apply",
-    accountEditApplyProxyUrl: "Apply Proxy URL to all accounts of this provider",
+    accountEditApplyProxyUrl:
+      "Apply Proxy URL to all accounts of this provider",
     accountEditApplyPrefix: "Apply Prefix to all accounts of this provider",
     accountEditApplyPriority: "Apply Priority to all accounts of this provider",
+    accountEditApplyOnlyEmpty: "Only fill empty fields (do not overwrite)",
+    accountEditBatchModeFillEmpty: "fill empty fields only",
+    accountEditBatchModeOverwrite: "overwrite existing values",
+    accountEditBatchConfirm:
+      "This will batch update {count} accounts, mode: {mode}. Continue?",
+    accountEditBatchConfirmHint:
+      "Click Save again to confirm batch update for {count} accounts (mode: {mode}).",
+    accountEditBatchNeedPreview:
+      "Cannot load account preview for batch fill-empty mode",
+    accountEditBatchConfirmAction: "Confirm Batch Save",
+    accountEditBatchNoTargets:
+      "No other accounts are available for batch update under this provider",
     accountEditAccountId: "Account ID",
     accountEditType: "Type",
     accountEditExpired: "Expired",

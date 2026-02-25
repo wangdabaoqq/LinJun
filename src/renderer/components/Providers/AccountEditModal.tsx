@@ -88,6 +88,9 @@ export function AccountEditModal({
   const [applyProxyUrlToAll, setApplyProxyUrlToAll] = useState(false);
   const [applyPrefixToAll, setApplyPrefixToAll] = useState(false);
   const [applyPriorityToAll, setApplyPriorityToAll] = useState(false);
+  const [applyOnlyToEmptyFields, setApplyOnlyToEmptyFields] = useState(true);
+  const [batchConfirmArmed, setBatchConfirmArmed] = useState(false);
+  const [showBatchConfirmPanel, setShowBatchConfirmPanel] = useState(false);
 
   const hasSiblings =
     (siblingAccounts?.filter((a) => a.filePath && a.id !== account?.id)
@@ -101,6 +104,9 @@ export function AccountEditModal({
     setApplyProxyUrlToAll(false);
     setApplyPrefixToAll(false);
     setApplyPriorityToAll(false);
+    setApplyOnlyToEmptyFields(true);
+    setBatchConfirmArmed(false);
+    setShowBatchConfirmPanel(false);
 
     if (account?.filePath && onLoadAccountPreview) {
       setIsLoadingPreview(true);
@@ -110,6 +116,20 @@ export function AccountEditModal({
         .finally(() => setIsLoadingPreview(false));
     }
   }, [isOpen, account?.filePath, onLoadAccountPreview]);
+
+  useEffect(() => {
+    setBatchConfirmArmed(false);
+    setShowBatchConfirmPanel(false);
+  }, [
+    applyProxyUrlToAll,
+    applyPrefixToAll,
+    applyPriorityToAll,
+    applyOnlyToEmptyFields,
+    priorityInput,
+    prefixInput,
+    proxyUrlInput,
+    account?.id,
+  ]);
 
   useEffect(() => {
     const previewObject =
@@ -191,6 +211,38 @@ export function AccountEditModal({
       onClose();
       return;
     }
+
+    const siblings =
+      hasSiblings && siblingAccounts
+        ? siblingAccounts.filter(
+            (a): a is Account & { filePath: string } =>
+              Boolean(a.filePath) && a.id !== account.id,
+          )
+        : [];
+    const hasApplyAny =
+      applyProxyUrlToAll || applyPrefixToAll || applyPriorityToAll;
+
+    if (hasApplyAny && siblings.length === 0) {
+      setError(t.providers.accountEditBatchNoTargets);
+      return;
+    }
+
+    if (hasApplyAny && siblings.length > 0 && !batchConfirmArmed) {
+      setBatchConfirmArmed(true);
+      setShowBatchConfirmPanel(true);
+      setError(
+        t.providers.accountEditBatchConfirmHint
+          .replace("{count}", String(siblings.length))
+          .replace(
+            "{mode}",
+            applyOnlyToEmptyFields
+              ? t.providers.accountEditBatchModeFillEmpty
+              : t.providers.accountEditBatchModeOverwrite,
+          ),
+      );
+      return;
+    }
+
     setIsSaving(true);
     setError(null);
     try {
@@ -208,33 +260,74 @@ export function AccountEditModal({
       await onSaveAccountMetadata(account.filePath, updates);
 
       // Apply selected fields to sibling accounts
-      if (hasSiblings && siblingAccounts) {
-        const siblings = siblingAccounts.filter(
-          (a): a is Account & { filePath: string } =>
-            Boolean(a.filePath) && a.id !== account.id,
-        );
-        const hasApplyAny =
-          applyProxyUrlToAll || applyPrefixToAll || applyPriorityToAll;
+      if (hasApplyAny && siblings.length > 0) {
+        const batchPromises = siblings.map(async (sibling) => {
+          const siblingUpdates: {
+            priority?: number;
+            prefix?: string;
+            proxyUrl?: string;
+          } = {};
 
-        if (hasApplyAny && siblings.length > 0) {
-          const batchPromises = siblings.map((sibling) => {
-            const siblingUpdates: {
-              priority?: number;
-              prefix?: string;
-              proxyUrl?: string;
-            } = {};
+          if (!applyOnlyToEmptyFields) {
             if (applyPriorityToAll) siblingUpdates.priority = priority;
             if (applyPrefixToAll) siblingUpdates.prefix = prefixInput;
             if (applyProxyUrlToAll) siblingUpdates.proxyUrl = proxyUrlInput;
             return onSaveAccountMetadata(sibling.filePath, siblingUpdates);
-          });
-          await Promise.all(batchPromises);
-        }
+          }
+
+          if (!onLoadAccountPreview) {
+            throw new Error(t.providers.accountEditBatchNeedPreview);
+          }
+
+          const siblingPreview = await onLoadAccountPreview(sibling.filePath);
+          const siblingPreviewObject =
+            siblingPreview &&
+            typeof siblingPreview === "object" &&
+            !Array.isArray(siblingPreview)
+              ? (siblingPreview as Record<string, unknown>)
+              : null;
+
+          const siblingPriority =
+            typeof siblingPreviewObject?.priority === "number"
+              ? siblingPreviewObject.priority
+              : typeof siblingPreviewObject?.priority === "string"
+                ? Number(siblingPreviewObject.priority)
+                : undefined;
+          const siblingPrefix =
+            typeof siblingPreviewObject?.prefix === "string"
+              ? siblingPreviewObject.prefix.trim()
+              : "";
+          const siblingProxyUrl =
+            typeof siblingPreviewObject?.proxy_url === "string"
+              ? siblingPreviewObject.proxy_url.trim()
+              : "";
+
+          if (
+            applyPriorityToAll &&
+            (!Number.isFinite(siblingPriority) || (siblingPriority ?? 0) <= 0)
+          ) {
+            siblingUpdates.priority = priority;
+          }
+          if (applyPrefixToAll && !siblingPrefix) {
+            siblingUpdates.prefix = prefixInput;
+          }
+          if (applyProxyUrlToAll && !siblingProxyUrl) {
+            siblingUpdates.proxyUrl = proxyUrlInput;
+          }
+
+          if (Object.keys(siblingUpdates).length === 0) {
+            return;
+          }
+
+          return onSaveAccountMetadata(sibling.filePath, siblingUpdates);
+        });
+        await Promise.all(batchPromises);
       }
 
       onClose();
     } catch (err) {
       setError(String(err));
+      setShowBatchConfirmPanel(false);
     } finally {
       setIsSaving(false);
     }
@@ -412,6 +505,26 @@ export function AccountEditModal({
                 </span>
               </label>
             ))}
+
+            <label className="flex items-center gap-2.5 cursor-pointer group/check pt-1 border-t border-[var(--glass-border)]/40 mt-2 pt-3">
+              <div className="relative flex items-center justify-center">
+                <input
+                  type="checkbox"
+                  checked={applyOnlyToEmptyFields}
+                  onChange={(e) => setApplyOnlyToEmptyFields(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-4 h-4 rounded-md border border-[var(--glass-border)] bg-[var(--text-primary)]/[0.03] peer-checked:bg-[var(--accent-primary)] peer-checked:border-[var(--accent-primary)] transition-all group-hover/check:border-[var(--glass-border-hover)]" />
+                <Check
+                  size={10}
+                  strokeWidth={3}
+                  className="absolute text-white opacity-0 peer-checked:opacity-100 transition-opacity pointer-events-none"
+                />
+              </div>
+              <span className="text-[10px] text-[var(--text-dim)] group-hover/check:text-[var(--text-primary)] transition-colors select-none">
+                {t.providers.accountEditApplyOnlyEmpty}
+              </span>
+            </label>
           </div>
         </div>
 
@@ -450,26 +563,76 @@ export function AccountEditModal({
         </div>
       </div>
 
-      <div className="px-6 py-5 bg-[var(--bg-secondary)]/30 border-t border-[var(--glass-border)] flex items-center justify-end gap-3 shrink-0">
-        <button
-          onClick={onClose}
-          disabled={isSaving}
-          className="px-5 py-2.5 rounded-xl text-[11px] font-bold text-[var(--text-dim)] hover:text-[var(--text-primary)] transition-all disabled:opacity-50"
-        >
-          {t.common.cancel}
-        </button>
-        <button
-          onClick={handleSave}
-          disabled={isSaving}
-          className="glass-btn glass-btn-primary px-8 py-2.5 rounded-xl text-[11px] font-bold flex items-center gap-2.5 disabled:opacity-50"
-        >
-          {isSaving ? (
-            <Loader2 size={14} className="animate-spin" />
-          ) : (
-            <Check size={14} strokeWidth={3} />
-          )}
-          <span>{t.common.save}</span>
-        </button>
+      <div className="px-6 py-5 bg-[var(--bg-secondary)]/30 border-t border-[var(--glass-border)] flex flex-col gap-3 shrink-0">
+        {showBatchConfirmPanel && (
+          <div className="w-full rounded-2xl border border-amber-500/35 bg-amber-500/10 px-4 py-3 flex items-center justify-between gap-3 shadow-soft-sm">
+            <span className="text-[11px] leading-relaxed text-[var(--text-primary)] font-semibold">
+              {t.providers.accountEditBatchConfirmHint
+                .replace(
+                  "{count}",
+                  String(
+                    (siblingAccounts || []).filter(
+                      (a) => a.filePath && a.id !== account?.id,
+                    ).length,
+                  ),
+                )
+                .replace(
+                  "{mode}",
+                  applyOnlyToEmptyFields
+                    ? t.providers.accountEditBatchModeFillEmpty
+                    : t.providers.accountEditBatchModeOverwrite,
+                )}
+            </span>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  setBatchConfirmArmed(false);
+                  setShowBatchConfirmPanel(false);
+                }}
+                className="px-3.5 py-2 rounded-xl text-[10px] font-bold border border-[var(--glass-border)] text-[var(--text-dim)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 transition-all"
+              >
+                {t.common.cancel}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowBatchConfirmPanel(false);
+                  void handleSave();
+                }}
+                className="px-4 py-2 rounded-xl text-[10px] font-bold border border-amber-500/45 bg-amber-400/85 text-amber-950 hover:bg-amber-400 hover:border-amber-500/55 shadow-[0_8px_18px_-12px_rgba(251,191,36,0.45)] transition-all"
+              >
+                {t.providers.accountEditBatchConfirmAction}
+              </button>
+            </div>
+          </div>
+        )}
+
+        <div className="flex items-center justify-end gap-3">
+          <button
+            onClick={onClose}
+            disabled={isSaving}
+            className="px-5 py-2.5 rounded-xl text-[11px] font-bold text-[var(--text-dim)] hover:text-[var(--text-primary)] transition-all disabled:opacity-50"
+          >
+            {t.common.cancel}
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={isSaving || showBatchConfirmPanel}
+            className="glass-btn glass-btn-primary px-8 py-2.5 rounded-xl text-[11px] font-bold flex items-center gap-2.5 disabled:opacity-50"
+          >
+            {isSaving ? (
+              <Loader2 size={14} className="animate-spin" />
+            ) : (
+              <Check size={14} strokeWidth={3} />
+            )}
+            <span>
+              {batchConfirmArmed
+                ? t.providers.accountEditBatchConfirmAction
+                : t.common.save}
+            </span>
+          </button>
+        </div>
       </div>
     </Modal>
   );

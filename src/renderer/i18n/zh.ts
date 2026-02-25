@@ -401,6 +401,16 @@ export const zh: Translations = {
     accountEditApplyProxyUrl: "将代理 URL 应用到该提供商下所有账户",
     accountEditApplyPrefix: "将前缀应用到该提供商下所有账户",
     accountEditApplyPriority: "将优先级应用到该提供商下所有账户",
+    accountEditApplyOnlyEmpty: "仅填充空字段（不覆盖已有值）",
+    accountEditBatchModeFillEmpty: "仅填充空字段",
+    accountEditBatchModeOverwrite: "覆盖已有值",
+    accountEditBatchConfirm:
+      "将批量更新 {count} 个账户，模式：{mode}。是否继续？",
+    accountEditBatchConfirmHint:
+      "请再次点击保存以确认批量更新 {count} 个账户（模式：{mode}）。",
+    accountEditBatchNeedPreview: "批量仅填充空字段时无法加载账户预览",
+    accountEditBatchConfirmAction: "确认批量保存",
+    accountEditBatchNoTargets: "当前提供商没有可批量更新的其他账户",
     accountEditAccountId: "账户 ID",
     accountEditType: "类型",
     accountEditExpired: "过期时间",
