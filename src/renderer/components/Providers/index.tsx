@@ -484,6 +484,11 @@ export function Providers() {
           accountLabel={getAccountDisplay(editingAccount.account).main}
           providerId={editingAccount.providerId}
           account={editingAccount.account}
+          siblingAccounts={
+            providersWithAccounts.find(
+              (p) => p.id === editingAccount.providerId,
+            )?.accounts
+          }
           onLoadAccountPreview={handleLoadAccountPreview}
           onSaveAccountMetadata={handleSaveAccountMetadata}
         />

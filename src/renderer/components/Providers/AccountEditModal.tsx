@@ -11,6 +11,7 @@ interface AccountEditModalProps {
   accountLabel: string;
   providerId: string;
   account?: Account;
+  siblingAccounts?: Account[];
   onLoadAccountPreview?: (filePath: string) => Promise<unknown>;
   onSaveAccountMetadata?: (
     filePath: string,
@@ -69,6 +70,7 @@ export function AccountEditModal({
   accountLabel,
   providerId,
   account,
+  siblingAccounts,
   onLoadAccountPreview,
   onSaveAccountMetadata,
 }: AccountEditModalProps) {
@@ -83,11 +85,22 @@ export function AccountEditModal({
   const [prefixInput, setPrefixInput] = useState("");
   const [proxyUrlInput, setProxyUrlInput] = useState("");
 
+  const [applyProxyUrlToAll, setApplyProxyUrlToAll] = useState(false);
+  const [applyPrefixToAll, setApplyPrefixToAll] = useState(false);
+  const [applyPriorityToAll, setApplyPriorityToAll] = useState(false);
+
+  const hasSiblings =
+    (siblingAccounts?.filter((a) => a.filePath && a.id !== account?.id)
+      .length ?? 0) > 0;
+
   useEffect(() => {
     if (!isOpen) return;
     setError(null);
     setIsCopied(false);
     setPreviewRaw(null);
+    setApplyProxyUrlToAll(false);
+    setApplyPrefixToAll(false);
+    setApplyPriorityToAll(false);
 
     if (account?.filePath && onLoadAccountPreview) {
       setIsLoadingPreview(true);
@@ -185,11 +198,40 @@ export function AccountEditModal({
         0,
         Number.parseInt(priorityInput || "0", 10) || 0,
       );
-      await onSaveAccountMetadata(account.filePath, {
+      const updates = {
         priority,
         prefix: prefixInput,
         proxyUrl: proxyUrlInput,
-      });
+      };
+
+      // Save current account
+      await onSaveAccountMetadata(account.filePath, updates);
+
+      // Apply selected fields to sibling accounts
+      if (hasSiblings && siblingAccounts) {
+        const siblings = siblingAccounts.filter(
+          (a): a is Account & { filePath: string } =>
+            Boolean(a.filePath) && a.id !== account.id,
+        );
+        const hasApplyAny =
+          applyProxyUrlToAll || applyPrefixToAll || applyPriorityToAll;
+
+        if (hasApplyAny && siblings.length > 0) {
+          const batchPromises = siblings.map((sibling) => {
+            const siblingUpdates: {
+              priority?: number;
+              prefix?: string;
+              proxyUrl?: string;
+            } = {};
+            if (applyPriorityToAll) siblingUpdates.priority = priority;
+            if (applyPrefixToAll) siblingUpdates.prefix = prefixInput;
+            if (applyProxyUrlToAll) siblingUpdates.proxyUrl = proxyUrlInput;
+            return onSaveAccountMetadata(sibling.filePath, siblingUpdates);
+          });
+          await Promise.all(batchPromises);
+        }
+      }
+
       onClose();
     } catch (err) {
       setError(String(err));
@@ -321,6 +363,55 @@ export function AccountEditModal({
               className="glass-input w-full h-10"
               placeholder={t.providers.accountEditProxyUrlPlaceholder}
             />
+          </div>
+
+          <div className="mt-1 pt-3 border-t border-[var(--glass-border)]/50 space-y-2">
+            <div className="text-[9px] font-bold uppercase tracking-[0.15em] text-[var(--text-dim)]/70">
+              {t.providers.accountEditApplyToAllTitle}
+            </div>
+            {[
+              {
+                id: "proxyUrl" as const,
+                label: t.providers.accountEditApplyProxyUrl,
+                checked: applyProxyUrlToAll,
+                onChange: setApplyProxyUrlToAll,
+              },
+              {
+                id: "prefix" as const,
+                label: t.providers.accountEditApplyPrefix,
+                checked: applyPrefixToAll,
+                onChange: setApplyPrefixToAll,
+              },
+              {
+                id: "priority" as const,
+                label: t.providers.accountEditApplyPriority,
+                checked: applyPriorityToAll,
+                onChange: setApplyPriorityToAll,
+              },
+            ].map((item) => (
+              <label
+                key={item.id}
+                className="flex items-center gap-2.5 cursor-pointer group/check"
+              >
+                <div className="relative flex items-center justify-center">
+                  <input
+                    type="checkbox"
+                    checked={item.checked}
+                    onChange={(e) => item.onChange(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-4 h-4 rounded-md border border-[var(--glass-border)] bg-[var(--text-primary)]/[0.03] peer-checked:bg-[var(--accent-primary)] peer-checked:border-[var(--accent-primary)] transition-all group-hover/check:border-[var(--glass-border-hover)]" />
+                  <Check
+                    size={10}
+                    strokeWidth={3}
+                    className="absolute text-white opacity-0 peer-checked:opacity-100 transition-opacity pointer-events-none"
+                  />
+                </div>
+                <span className="text-[10px] text-[var(--text-dim)] group-hover/check:text-[var(--text-primary)] transition-colors select-none">
+                  {item.label}
+                </span>
+              </label>
+            ))}
           </div>
         </div>
 
