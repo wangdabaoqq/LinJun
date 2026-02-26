@@ -210,6 +210,12 @@ const electronAPI = {
       ipcRenderer.invoke("providers:getAccountModels", filePath),
     importOAuthFile: (fileName: string, payload: unknown) =>
       ipcRenderer.invoke("providers:importOAuthFile", fileName, payload),
+    importOAuthFiles: (
+      entries: Array<{
+        fileName: string;
+        payload: unknown;
+      }>,
+    ) => ipcRenderer.invoke("providers:importOAuthFiles", entries),
   },
   customProviders: {
     getAll: () => ipcRenderer.invoke("customProviders:getAll"),

@@ -626,6 +626,91 @@ export function setupProvidersHandlers(): void {
     },
   );
 
+  registerHandle(
+    "providers:importOAuthFiles",
+    async (
+      _event,
+      entries: Array<{
+        fileName: string;
+        payload: unknown;
+      }>,
+    ) => {
+      try {
+        if (!Array.isArray(entries) || entries.length === 0) {
+          return { success: false, error: "No oauth auth files to import" };
+        }
+
+        const summary = {
+          total: entries.length,
+          success: 0,
+          failed: 0,
+          invalid: 0,
+        };
+        const errors: Array<{ fileName: string; error: string }> = [];
+
+        for (const entry of entries) {
+          const rawName =
+            entry && typeof entry.fileName === "string" ? entry.fileName : "";
+          const normalizedName = normalizeAuthFileName(rawName);
+          const displayName = normalizedName || rawName || "<unknown>";
+
+          if (!isValidAuthFileName(normalizedName)) {
+            summary.failed += 1;
+            summary.invalid += 1;
+            errors.push({
+              fileName: displayName,
+              error: "Invalid auth file name",
+            });
+            continue;
+          }
+
+          const payload = entry?.payload;
+          if (
+            !payload ||
+            typeof payload !== "object" ||
+            Array.isArray(payload)
+          ) {
+            summary.failed += 1;
+            summary.invalid += 1;
+            errors.push({
+              fileName: displayName,
+              error: "Invalid auth JSON payload",
+            });
+            continue;
+          }
+
+          const result = await managementAPI.uploadAuthFile(
+            normalizedName,
+            payload,
+          );
+          if (result?.success) {
+            summary.success += 1;
+            continue;
+          }
+
+          summary.failed += 1;
+          const resultError =
+            result && typeof result.error === "string"
+              ? result.error
+              : "Failed to import auth file";
+          errors.push({
+            fileName: displayName,
+            error: resultError,
+          });
+        }
+
+        return {
+          success: summary.success > 0,
+          summary,
+          errors,
+        };
+      } catch (error) {
+        log.error("[IPC] Failed to import oauth auth files:", error);
+        return { success: false, error: String(error) };
+      }
+    },
+  );
+
   registerHandle("qwen:getAuthUrl", async () => {
     try {
       const result = await managementAPI.getQwenAuthUrl();

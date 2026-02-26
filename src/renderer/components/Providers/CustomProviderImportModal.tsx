@@ -39,6 +39,50 @@ interface ImportSummary {
   valid: boolean;
 }
 
+interface CustomImportPayload {
+  "openai-compatibility"?: OpenAICompatProvider[];
+  "claude-api-key"?: ClaudeCompatProvider[];
+  "gemini-api-key"?: GeminiCompatProvider[];
+  "codex-api-key"?: CodexCompatProvider[];
+}
+
+function hasImportData(payload: CustomImportPayload): boolean {
+  return (
+    (Array.isArray(payload["openai-compatibility"]) &&
+      payload["openai-compatibility"].length > 0) ||
+    (Array.isArray(payload["claude-api-key"]) &&
+      payload["claude-api-key"].length > 0) ||
+    (Array.isArray(payload["gemini-api-key"]) &&
+      payload["gemini-api-key"].length > 0) ||
+    (Array.isArray(payload["codex-api-key"]) &&
+      payload["codex-api-key"].length > 0)
+  );
+}
+
+function mergeImportPayload(
+  base: CustomImportPayload,
+  next: CustomImportPayload,
+): CustomImportPayload {
+  return {
+    "openai-compatibility": [
+      ...(base["openai-compatibility"] || []),
+      ...(next["openai-compatibility"] || []),
+    ],
+    "claude-api-key": [
+      ...(base["claude-api-key"] || []),
+      ...(next["claude-api-key"] || []),
+    ],
+    "gemini-api-key": [
+      ...(base["gemini-api-key"] || []),
+      ...(next["gemini-api-key"] || []),
+    ],
+    "codex-api-key": [
+      ...(base["codex-api-key"] || []),
+      ...(next["codex-api-key"] || []),
+    ],
+  };
+}
+
 export function CustomProviderImportModal({
   isOpen,
   isImporting,
@@ -49,9 +93,14 @@ export function CustomProviderImportModal({
   const t = useTranslations();
   const [activeTab, setActiveTab] = useState<ImportTab>("file");
   const [jsonContent, setJsonContent] = useState("");
+  const [inputSource, setInputSource] = useState<"file" | "json">("json");
   const [dragActive, setDragActive] = useState(false);
+  const [selectedFileNames, setSelectedFileNames] = useState<string[]>([]);
+  const [fileParseErrors, setFileParseErrors] = useState<string[]>([]);
   const [parseError, setParseError] = useState<string | null>(null);
-  const [parsedData, setParsedData] = useState<any | null>(null);
+  const [parsedData, setParsedData] = useState<CustomImportPayload | null>(
+    null,
+  );
   const [mergeStrategy, setMergeStrategy] =
     useState<MergeStrategy>("overwrite");
 
@@ -82,13 +131,44 @@ export function CustomProviderImportModal({
     }
   };
 
-  const processFile = async (file: File) => {
-    try {
-      const text = await file.text();
-      setJsonContent(text);
-      setActiveTab("json");
-    } catch (err) {
-      console.error("Failed to read file", err);
+  const processFiles = async (files: File[]) => {
+    const merged: CustomImportPayload = {};
+    const errors: string[] = [];
+
+    for (const file of files) {
+      try {
+        const text = await file.text();
+        const parsedUnknown: unknown = JSON.parse(text);
+        if (
+          !parsedUnknown ||
+          typeof parsedUnknown !== "object" ||
+          Array.isArray(parsedUnknown)
+        ) {
+          errors.push(`${file.name}: ${t.providers.customImportInvalidFile}`);
+          continue;
+        }
+
+        const parsed = parsedUnknown as CustomImportPayload;
+        if (!hasImportData(parsed)) {
+          errors.push(`${file.name}: ${t.providers.customImportNoData}`);
+          continue;
+        }
+
+        Object.assign(merged, mergeImportPayload(merged, parsed));
+      } catch {
+        errors.push(`${file.name}: ${t.providers.customImportInvalidFile}`);
+      }
+    }
+
+    setInputSource("file");
+    setSelectedFileNames(files.map((file) => file.name));
+    setFileParseErrors(errors);
+    if (hasImportData(merged)) {
+      setParsedData(merged);
+      setParseError(null);
+    } else {
+      setParsedData(null);
+      setParseError(t.providers.customImportNoData);
     }
   };
 
@@ -96,42 +176,44 @@ export function CustomProviderImportModal({
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      processFile(e.dataTransfer.files[0]);
+    const files = e.dataTransfer.files ? Array.from(e.dataTransfer.files) : [];
+    if (files.length > 0) {
+      void processFiles(files);
     }
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      processFile(e.target.files[0]);
+    const files = e.target.files ? Array.from(e.target.files) : [];
+    if (files.length > 0) {
+      void processFiles(files);
     }
+    e.target.value = "";
   };
 
   useEffect(() => {
+    if (inputSource !== "json") {
+      return;
+    }
+
     if (!jsonContent.trim()) {
       setParseError(null);
       setParsedData(null);
       return;
     }
     try {
-      const parsed = JSON.parse(jsonContent);
-      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      const parsedUnknown: unknown = JSON.parse(jsonContent);
+      if (
+        !parsedUnknown ||
+        typeof parsedUnknown !== "object" ||
+        Array.isArray(parsedUnknown)
+      ) {
         setParseError(t.providers.customImportInvalidFile);
         setParsedData(null);
         return;
       }
 
-      const hasData =
-        (Array.isArray(parsed["openai-compatibility"]) &&
-          parsed["openai-compatibility"].length > 0) ||
-        (Array.isArray(parsed["claude-api-key"]) &&
-          parsed["claude-api-key"].length > 0) ||
-        (Array.isArray(parsed["gemini-api-key"]) &&
-          parsed["gemini-api-key"].length > 0) ||
-        (Array.isArray(parsed["codex-api-key"]) &&
-          parsed["codex-api-key"].length > 0);
-
-      if (!hasData) {
+      const parsed = parsedUnknown as CustomImportPayload;
+      if (!hasImportData(parsed)) {
         setParseError(t.providers.customImportNoData);
         setParsedData(null);
         return;
@@ -139,11 +221,16 @@ export function CustomProviderImportModal({
 
       setParseError(null);
       setParsedData(parsed);
-    } catch (e) {
+    } catch {
       setParseError(t.providers.customImportInvalidFile);
       setParsedData(null);
     }
-  }, [jsonContent]);
+  }, [
+    inputSource,
+    jsonContent,
+    t.providers.customImportInvalidFile,
+    t.providers.customImportNoData,
+  ]);
 
   const summary: ImportSummary = useMemo(() => {
     if (!parsedData)
@@ -261,6 +348,7 @@ export function CustomProviderImportModal({
                 <input
                   ref={fileInputRef}
                   type="file"
+                  multiple
                   accept=".json,application/json"
                   className="hidden"
                   onChange={handleFileSelect}
@@ -272,7 +360,12 @@ export function CustomProviderImportModal({
                   拖拽 JSON 文件到此处
                 </h3>
                 <p className="text-sm text-[var(--text-dim)] mb-6 text-center">
-                  或者点击下方按钮选择文件
+                  {selectedFileNames.length > 0
+                    ? t.providers.customImportFilesSelected.replace(
+                        "{count}",
+                        selectedFileNames.length.toString(),
+                      )
+                    : "或者点击下方按钮选择文件"}
                 </p>
                 <button
                   onClick={() => fileInputRef.current?.click()}
@@ -280,12 +373,34 @@ export function CustomProviderImportModal({
                 >
                   选择文件
                 </button>
+                {fileParseErrors.length > 0 && (
+                  <div className="mt-4 w-full rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-left">
+                    <p className="text-[10px] font-bold text-red-400 uppercase tracking-wider mb-1">
+                      {t.providers.customImportParseFailed}
+                    </p>
+                    <div className="max-h-24 overflow-auto custom-scrollbar space-y-1">
+                      {fileParseErrors.map((item) => (
+                        <p
+                          key={item}
+                          className="text-[10px] text-red-300 break-all"
+                        >
+                          {item}
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="flex-1 min-h-0 flex flex-col gap-2 overflow-auto">
                 <textarea
                   value={jsonContent}
-                  onChange={(e) => setJsonContent(e.target.value)}
+                  onChange={(e) => {
+                    setInputSource("json");
+                    setSelectedFileNames([]);
+                    setFileParseErrors([]);
+                    setJsonContent(e.target.value);
+                  }}
                   placeholder="粘贴 JSON 配置..."
                   className="glass-input flex-1 w-full min-h-[180px] max-h-[260px] bg-[var(--bg-deep)] border border-[var(--glass-border)] rounded-xl p-4 text-xs font-mono text-[var(--text-primary)] placeholder:text-[var(--text-dim)] resize-none focus:border-[var(--accent-primary)]/50 focus:ring-0 custom-scrollbar"
                 />

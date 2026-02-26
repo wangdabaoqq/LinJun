@@ -91,6 +91,7 @@ export interface TokenFile {
   oauth_source?: string;
   auth_index?: string;
   authIndex?: string;
+  account_type?: string;
 }
 
 export interface TokenReadResult {
@@ -202,13 +203,20 @@ async function readTokenFilesFromManagement(): Promise<TokenReadResult[]> {
         continue;
       }
 
+      const enrichedTokenData: TokenFile = {
+        ...tokenData,
+        ...(typeof authFile.account_type === "string"
+          ? { account_type: authFile.account_type }
+          : {}),
+      };
+
       const remoteFilePath =
         (typeof authFile.path === "string" && authFile.path.trim()) ||
         path.join(getActiveAuthDir(), name);
 
       const parsed = parseTokenFileData(
         remoteFilePath,
-        tokenData,
+        enrichedTokenData,
         true,
         authFile.auth_index,
         authFile.email || authFile.account || authFile.label,

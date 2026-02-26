@@ -380,11 +380,16 @@ function convertAntigravityUsageToQuotaAccount(
     limitReached: (model.usedPercent || 0) >= 100,
   }));
 
+  const accountType = token.raw.account_type?.trim().toLowerCase();
   const tierLabel = usage.paidTier?.name
     ? "Pro"
     : usage.tier?.id === "standard-tier"
       ? "Plus"
-      : "Free";
+      : accountType === "plus"
+        ? "Plus"
+        : accountType === "pro"
+          ? "Pro"
+          : "Free";
 
   return {
     id: `${token.provider}-${token.email}`,
