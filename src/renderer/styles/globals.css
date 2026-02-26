@@ -702,6 +702,11 @@ body {
   -webkit-app-region: no-drag;
 }
 
+.modal-no-drag,
+.modal-no-drag * {
+  -webkit-app-region: no-drag;
+}
+
 .theme-card {
   cursor: pointer;
   transition: all 0.3s ease;

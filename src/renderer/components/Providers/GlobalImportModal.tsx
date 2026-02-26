@@ -22,12 +22,11 @@ export function GlobalImportModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div
-        className="fixed inset-0 bg-[var(--overlay-bg)] backdrop-blur-xl animate-fade-in"
+        className="fixed inset-0 z-0 bg-[var(--overlay-bg)] backdrop-blur-xl animate-fade-in"
         style={{ WebkitBackdropFilter: "blur(24px)" }}
-        onClick={onClose}
       />
 
-      <div className="relative w-full max-w-xl overflow-hidden animate-scale-in shadow-soft-xl border border-[var(--glass-border)] rounded-3xl isolation-isolate bg-[var(--bg-primary)]/85">
+      <div className="relative z-10 w-full max-w-xl overflow-hidden animate-scale-in shadow-soft-xl border border-[var(--glass-border)] rounded-3xl isolation-isolate bg-[var(--bg-primary)]/85">
         <div className="absolute inset-0 glass-modal-bg z-0" />
         <div className="relative z-10 flex items-center justify-between p-6 border-b border-[var(--glass-border)]">
           <div>

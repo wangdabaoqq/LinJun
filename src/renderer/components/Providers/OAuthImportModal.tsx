@@ -1,4 +1,5 @@
 import { ChangeEvent, DragEvent, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { ArrowRight, FileJson, Loader2, Upload, X } from "lucide-react";
 
 import { useTranslations } from "../../stores/settings";
@@ -190,18 +191,24 @@ export function OAuthImportModal({
     await onConfirm(submitEntries);
   };
 
+  const handleClose = () => {
+    if (isImporting) {
+      return;
+    }
+    onClose();
+  };
+
   if (!isOpen) {
     return null;
   }
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+  return createPortal(
+    <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 modal-no-drag">
       <div
-        className="fixed inset-0 bg-[var(--overlay-bg)] backdrop-blur-xl animate-fade-in"
+        className="fixed inset-0 z-0 pointer-events-none bg-[var(--overlay-bg)] backdrop-blur-xl animate-fade-in"
         style={{ WebkitBackdropFilter: "blur(24px)" }}
-        onClick={onClose}
       />
-      <div className="relative w-full max-w-2xl flex flex-col overflow-hidden animate-scale-in shadow-soft-xl border border-[var(--glass-border)] rounded-3xl isolation-isolate bg-[var(--bg-primary)]/80">
+      <div className="relative z-10 pointer-events-auto w-full max-w-2xl flex flex-col overflow-hidden animate-scale-in shadow-soft-xl border border-[var(--glass-border)] rounded-3xl isolation-isolate bg-[var(--bg-primary)]/80">
         <div className="absolute inset-0 glass-modal-bg z-0" />
         <div className="relative z-10 flex items-center justify-between p-6 border-b border-[var(--glass-border)]">
           <div className="flex items-center gap-3">
@@ -218,10 +225,13 @@ export function OAuthImportModal({
             </div>
           </div>
           <button
-            onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[var(--text-primary)]/5 text-[var(--text-dim)] hover:text-[var(--text-primary)] transition-all"
+            onClick={handleClose}
+            onMouseDown={(event) => {
+              event.preventDefault();
+            }}
+            className="relative z-20 no-drag w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[var(--text-primary)]/5 text-[var(--text-dim)] hover:text-[var(--text-primary)] transition-all"
           >
-            <X className="w-4 h-4" />
+            <X className="w-4 h-4 pointer-events-none" />
           </button>
         </div>
 
@@ -316,7 +326,7 @@ export function OAuthImportModal({
 
         <div className="relative z-10 p-6 border-t border-[var(--glass-border)] bg-[var(--text-primary)]/[0.02] flex justify-end gap-3">
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="px-6 py-2.5 rounded-xl border border-[var(--glass-border)] text-[var(--text-primary)] text-sm font-bold hover:bg-[var(--text-primary)]/5 transition-all"
           >
             {t.common.cancel}
@@ -339,6 +349,7 @@ export function OAuthImportModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
