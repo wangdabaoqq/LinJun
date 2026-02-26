@@ -707,6 +707,17 @@ body {
   -webkit-app-region: no-drag;
 }
 
+@keyframes oauth-file-item-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 .theme-card {
   cursor: pointer;
   transition: all 0.3s ease;

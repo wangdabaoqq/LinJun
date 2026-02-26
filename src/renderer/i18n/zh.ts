@@ -339,6 +339,8 @@ export const zh: Translations = {
     oauthImportDropTitle: "拖拽 JSON 文件到此处（支持多个）",
     oauthImportDropSubtitle: "或点击下方按钮选择文件",
     oauthImportFilesSelected: "已选择 {count} 个文件",
+    oauthImportSelectedFiles: "已选文件（{count}）",
+    oauthImportRemoveFile: "移除",
     oauthImportSelectFile: "选择文件",
     oauthImportFileName: "认证文件名",
     oauthImportFileNamePlaceholder: "例如：codex-user-1.json",

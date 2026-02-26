@@ -1,4 +1,11 @@
-import { ChangeEvent, DragEvent, useMemo, useRef, useState } from "react";
+import {
+  ChangeEvent,
+  DragEvent,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { createPortal } from "react-dom";
 import { ArrowRight, FileJson, Loader2, Upload, X } from "lucide-react";
 
@@ -42,7 +49,11 @@ export function OAuthImportModal({
   const [selectedFileNames, setSelectedFileNames] = useState<string[]>([]);
   const [fileEntries, setFileEntries] = useState<OAuthImportEntry[]>([]);
   const [fileErrors, setFileErrors] = useState<string[]>([]);
+  const [removingFileNames, setRemovingFileNames] = useState<Set<string>>(
+    () => new Set(),
+  );
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const removeTimersRef = useRef<Record<string, number>>({});
 
   const parsedPayload = useMemo(() => {
     if (!jsonContent.trim()) {
@@ -191,6 +202,46 @@ export function OAuthImportModal({
     await onConfirm(submitEntries);
   };
 
+  const handleRemoveSelectedFile = (targetFileName: string) => {
+    if (removingFileNames.has(targetFileName)) {
+      return;
+    }
+
+    setRemovingFileNames((prev) => {
+      const next = new Set(prev);
+      next.add(targetFileName);
+      return next;
+    });
+
+    const timer = window.setTimeout(() => {
+      setFileEntries((prev) =>
+        prev.filter((entry) => entry.fileName !== targetFileName),
+      );
+      setSelectedFileNames((prev) =>
+        prev.filter(
+          (fileName) => normalizeFileName(fileName) !== targetFileName,
+        ),
+      );
+      setRemovingFileNames((prev) => {
+        const next = new Set(prev);
+        next.delete(targetFileName);
+        return next;
+      });
+      delete removeTimersRef.current[targetFileName];
+    }, 180);
+
+    removeTimersRef.current[targetFileName] = timer;
+  };
+
+  useEffect(() => {
+    return () => {
+      Object.values(removeTimersRef.current).forEach((timer) => {
+        window.clearTimeout(timer);
+      });
+      removeTimersRef.current = {};
+    };
+  }, []);
+
   const handleClose = () => {
     if (isImporting) {
       return;
@@ -203,12 +254,12 @@ export function OAuthImportModal({
   }
 
   return createPortal(
-    <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 modal-no-drag">
+    <div className="fixed inset-0 z-[120] flex items-start justify-center overflow-y-auto p-4 py-6 modal-no-drag">
       <div
         className="fixed inset-0 z-0 pointer-events-none bg-[var(--overlay-bg)] backdrop-blur-xl animate-fade-in"
         style={{ WebkitBackdropFilter: "blur(24px)" }}
       />
-      <div className="relative z-10 pointer-events-auto w-full max-w-2xl flex flex-col overflow-hidden animate-scale-in shadow-soft-xl border border-[var(--glass-border)] rounded-3xl isolation-isolate bg-[var(--bg-primary)]/80">
+      <div className="relative z-10 pointer-events-auto w-full max-w-2xl max-h-[calc(100vh-3rem)] flex flex-col overflow-hidden animate-scale-in shadow-soft-xl border border-[var(--glass-border)] rounded-3xl isolation-isolate bg-[var(--bg-primary)]/80">
         <div className="absolute inset-0 glass-modal-bg z-0" />
         <div className="relative z-10 flex items-center justify-between p-6 border-b border-[var(--glass-border)]">
           <div className="flex items-center gap-3">
@@ -235,7 +286,7 @@ export function OAuthImportModal({
           </button>
         </div>
 
-        <div className="relative z-10 p-6 space-y-4">
+        <div className="relative z-10 p-6 space-y-4 overflow-y-auto">
           <div
             className={`border border-dashed rounded-2xl p-6 text-center transition-all ${dragActive ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]/5" : "border-[var(--glass-border)] hover:border-[var(--glass-border-hover)] hover:bg-[var(--text-primary)]/[0.01]"}`}
             onDragEnter={handleDrag}
@@ -270,6 +321,51 @@ export function OAuthImportModal({
             >
               {t.providers.oauthImportSelectFile}
             </button>
+            {fileEntries.length > 0 && (
+              <div className="mt-3 w-full rounded-2xl border border-[var(--glass-border)] bg-[var(--text-primary)]/[0.04] p-3 text-left backdrop-blur-sm">
+                <div className="mb-2 flex items-center justify-between">
+                  <p className="text-[10px] font-bold text-[var(--text-dim)] uppercase tracking-wider">
+                    {t.providers.oauthImportSelectedFiles.replace(
+                      "{count}",
+                      fileEntries.length.toString(),
+                    )}
+                  </p>
+                  <span className="rounded-full border border-[var(--glass-border)] bg-[var(--text-primary)]/5 px-2 py-0.5 text-[10px] font-semibold text-[var(--text-dim)]">
+                    {fileEntries.length}
+                  </span>
+                </div>
+                <div className="max-h-36 overflow-auto custom-scrollbar space-y-1.5 pr-1">
+                  {fileEntries.map((entry) => (
+                    <div
+                      key={entry.fileName}
+                      className={`group flex items-center justify-between gap-2 rounded-xl bg-[var(--bg-primary)]/55 border border-[var(--glass-border)] px-2.5 py-1.5 transition-all duration-200 hover:bg-[var(--bg-primary)]/75 ${removingFileNames.has(entry.fileName) ? "opacity-0 -translate-y-1 scale-[0.98]" : "opacity-100 translate-y-0 scale-100"}`}
+                      style={
+                        removingFileNames.has(entry.fileName)
+                          ? undefined
+                          : { animation: "oauth-file-item-in 180ms ease-out" }
+                      }
+                    >
+                      <div className="min-w-0 flex items-center gap-2">
+                        <div className="shrink-0 w-6 h-6 rounded-md bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] flex items-center justify-center">
+                          <FileJson className="w-3.5 h-3.5" />
+                        </div>
+                        <p className="text-[11px] text-[var(--text-primary)] truncate">
+                          {entry.fileName}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => handleRemoveSelectedFile(entry.fileName)}
+                        title={t.providers.oauthImportRemoveFile}
+                        aria-label={`${t.providers.oauthImportRemoveFile} ${entry.fileName}`}
+                        className="shrink-0 w-6 h-6 rounded-md text-[var(--text-dim)] hover:text-red-400 transition-all flex items-center justify-center"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             {fileErrors.length > 0 && (
               <div className="mt-3 w-full rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-left">
                 <p className="text-[10px] font-bold text-red-400 uppercase tracking-wider mb-1">

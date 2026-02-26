@@ -353,6 +353,8 @@ export const en = {
     oauthImportDropTitle: "Drop JSON file(s) here",
     oauthImportDropSubtitle: "or select a file below",
     oauthImportFilesSelected: "{count} files selected",
+    oauthImportSelectedFiles: "Selected files ({count})",
+    oauthImportRemoveFile: "Remove",
     oauthImportSelectFile: "Select File",
     oauthImportFileName: "Auth File Name",
     oauthImportFileNamePlaceholder: "e.g. codex-user-1.json",
