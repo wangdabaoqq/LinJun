@@ -213,6 +213,8 @@ export function CoreSection() {
                       )}
                     </motion.button>
 
+                    <div className="w-px h-4 bg-[var(--glass-border)] mx-1" />
+
                     <motion.button
                       whileHover={{ scale: 1.1, rotate: 180 }}
                       whileTap={{ scale: 0.9 }}
