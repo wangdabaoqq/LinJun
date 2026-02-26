@@ -27,6 +27,11 @@ import {
   fetchCustomPricing,
   parseCustomPricingModels,
 } from "./customService";
+import {
+  fetchClaudeUsage,
+  parseClaudeUsageWindows,
+  ClaudeUsageResponse,
+} from "./claudeService";
 import { proxyManager } from "../proxy/manager";
 
 export interface QuotaWindow {
@@ -477,6 +482,26 @@ function createErrorQuotaAccount(
   };
 }
 
+function convertClaudeUsageToQuotaAccount(
+  token: TokenReadResult,
+  usage: ClaudeUsageResponse,
+): QuotaAccount {
+  const { primary, additional } = parseClaudeUsageWindows(usage);
+  const isLimited =
+    primary.limitReached || additional.some((w) => w.limitReached);
+  return {
+    id: `${token.provider}-${token.email}`,
+    provider: token.provider,
+    email: token.email,
+    status: isLimited ? "limited" : "active",
+    rateLimits: {
+      primary,
+      additional: additional.length > 0 ? additional : undefined,
+    },
+    lastUpdated: new Date(),
+  };
+}
+
 export async function getProviders(): Promise<ProviderInfo[]> {
   const summary = await getProviderSummary();
   const results: ProviderInfo[] = [];
@@ -510,7 +535,6 @@ export async function getProviders(): Promise<ProviderInfo[]> {
       color: PROVIDER_META.custom.color,
     });
   }
-
   return results;
 }
 
@@ -637,6 +661,31 @@ export async function getQuotaByProvider(
         );
         results.push(createErrorQuotaAccount(token, errorMessage));
       }
+    } else if (provider === "claude") {
+      if (!token.authIndex) {
+        results.push(
+          createErrorQuotaAccount(
+            token,
+            "Claude account missing authIndex. Re-import this auth file from management auth-files.",
+          ),
+        );
+      } else {
+        try {
+          const usage = await fetchClaudeUsage(token);
+          results.push(convertClaudeUsageToQuotaAccount(token, usage));
+        } catch (error) {
+          log.error(
+            `[QuotaManager] Failed to fetch Claude quota for ${token.email}:`,
+            error,
+          );
+          results.push(
+            createErrorQuotaAccount(
+              token,
+              error instanceof Error ? error.message : "Unknown error",
+            ),
+          );
+        }
+      }
     } else {
       results.push({
         id: `${token.provider}-${token.email}`,
@@ -691,22 +740,56 @@ export async function getQuotaByProviderStream(
   provider: ProviderType,
   onBatch: (accounts: QuotaAccount[], done: boolean) => void,
 ): Promise<void> {
-  if (provider !== "codex") {
+  if (provider !== "codex" && provider !== "claude") {
     const accounts = await getQuotaByProvider(provider);
     onBatch(accounts, true);
     return;
   }
 
-  const tokens = await getTokensByProvider(provider);
-  if (tokens.length === 0) {
+  if (provider === "codex") {
+    const tokens = await getTokensByProvider(provider);
+    if (tokens.length === 0) {
+      onBatch([], true);
+      return;
+    }
+    await runWithConcurrency(
+      tokens,
+      10,
+      fetchCodexAccountWithConcurrency,
+      (batch) => {
+        onBatch(batch, false);
+      },
+    );
     onBatch([], true);
     return;
   }
 
+  // claude: stream with concurrency
+  const claudeTokens = await getTokensByProvider(provider);
+  if (claudeTokens.length === 0) {
+    onBatch([], true);
+    return;
+  }
   await runWithConcurrency(
-    tokens,
-    10,
-    fetchCodexAccountWithConcurrency,
+    claudeTokens,
+    5,
+    async (token) => {
+      if (!token.authIndex) {
+        return createErrorQuotaAccount(
+          token,
+          "Claude account missing authIndex. Re-import this auth file from management auth-files.",
+        );
+      }
+      try {
+        const usage = await fetchClaudeUsage(token);
+        return convertClaudeUsageToQuotaAccount(token, usage);
+      } catch (error) {
+        return createErrorQuotaAccount(
+          token,
+          error instanceof Error ? error.message : "Unknown error",
+        );
+      }
+    },
     (batch) => {
       onBatch(batch, false);
     },
@@ -815,6 +898,24 @@ export async function refreshQuota(
         displayEmail,
         accountId,
       );
+    } catch (error) {
+      return createErrorQuotaAccount(
+        token,
+        error instanceof Error ? error.message : "Unknown error",
+      );
+    }
+  }
+
+  if (token.provider === "claude") {
+    if (!token.authIndex) {
+      return createErrorQuotaAccount(
+        token,
+        "Claude account missing authIndex. Re-import this auth file from management auth-files.",
+      );
+    }
+    try {
+      const usage = await fetchClaudeUsage(token);
+      return convertClaudeUsageToQuotaAccount(token, usage);
     } catch (error) {
       return createErrorQuotaAccount(
         token,

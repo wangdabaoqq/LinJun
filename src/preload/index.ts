@@ -142,11 +142,12 @@ const electronAPI = {
     refresh: (accountId: string) =>
       ipcRenderer.invoke("quota:refresh", accountId),
     refreshAll: () => ipcRenderer.invoke("quota:refreshAll"),
-    streamByProvider: (provider: Provider) =>
-      ipcRenderer.send("quota:getByProviderStream", provider),
+    streamByProvider: (provider: Provider, requestId: string) =>
+      ipcRenderer.send("quota:getByProviderStream", provider, requestId),
     onStreamBatch: (
       callback: (data: {
         provider: Provider;
+        requestId?: string;
         accounts: unknown[];
         done: boolean;
         error?: string;
@@ -156,6 +157,7 @@ const electronAPI = {
         _event: unknown,
         data: {
           provider: Provider;
+          requestId?: string;
           accounts: unknown[];
           done: boolean;
           error?: string;

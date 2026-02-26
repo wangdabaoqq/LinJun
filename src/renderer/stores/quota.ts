@@ -60,6 +60,11 @@ interface QuotaState {
   refreshQuotas: () => Promise<void>;
 }
 
+// Holds the cleanup function for the currently active stream listener.
+// Declared outside the store so it survives across set() calls.
+let currentStreamUnsubscribe: (() => void) | undefined;
+let currentStreamRequestId: string | undefined;
+
 export const useQuotaStore = create<QuotaState>((set, get) => ({
   providers: [],
   selectedProvider: null,
@@ -99,7 +104,13 @@ export const useQuotaStore = create<QuotaState>((set, get) => ({
   },
 
   selectProvider: async (provider: ProviderType) => {
+    // Cancel any in-flight stream from a previous selectProvider call.
+    currentStreamUnsubscribe?.();
+    currentStreamUnsubscribe = undefined;
+    currentStreamRequestId = undefined;
+
     const cachedAccounts = get().cachedAccounts[provider];
+
     const hasCached = cachedAccounts && cachedAccounts.length > 0;
 
     set({
@@ -118,8 +129,11 @@ export const useQuotaStore = create<QuotaState>((set, get) => ({
       loadingProviders: { ...get().loadingProviders, [provider]: true },
     });
 
+    const requestId = `${provider}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+    currentStreamRequestId = requestId;
+
     const unsubscribe = window.electronAPI?.quota.onStreamBatch((data) => {
-      if (data.provider !== provider) return;
+      if (data.provider !== provider || data.requestId !== requestId) return;
 
       const incoming = (data.accounts as QuotaAccount[]).map((acc) => ({
         ...acc,
@@ -129,7 +143,16 @@ export const useQuotaStore = create<QuotaState>((set, get) => ({
       if (incoming.length > 0) {
         set((state) => {
           const existing = state.cachedAccounts[provider] ?? [];
-          const merged = [...existing, ...incoming];
+          const mergedById = new Map<string, QuotaAccount>();
+
+          for (const account of existing) {
+            mergedById.set(account.id, account);
+          }
+          for (const account of incoming) {
+            mergedById.set(account.id, account);
+          }
+
+          const merged = Array.from(mergedById.values());
 
           if (state.selectedProvider !== provider) {
             return {
@@ -152,7 +175,11 @@ export const useQuotaStore = create<QuotaState>((set, get) => ({
       }
 
       if (data.done) {
-        unsubscribe?.();
+        if (currentStreamRequestId === requestId) {
+          unsubscribe?.();
+          currentStreamUnsubscribe = undefined;
+          currentStreamRequestId = undefined;
+        }
         const finalAccounts =
           get().selectedProvider === provider
             ? get().accounts
@@ -184,7 +211,8 @@ export const useQuotaStore = create<QuotaState>((set, get) => ({
       }
     });
 
-    window.electronAPI?.quota.streamByProvider(provider);
+    currentStreamUnsubscribe = unsubscribe;
+    window.electronAPI?.quota.streamByProvider(provider, requestId);
   },
 
   refreshAccount: async (accountId: string) => {

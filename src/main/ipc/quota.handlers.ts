@@ -6,6 +6,7 @@ import {
   getQuotaByProvider,
   getQuotaByProviderStream,
   ProviderType,
+  QuotaAccount,
   refreshQuota,
 } from "../quota";
 import log from "../utils/logger";
@@ -45,22 +46,27 @@ export function setupQuotaHandlers(): void {
 
   ipcMain.on(
     "quota:getByProviderStream",
-    async (event, provider: ProviderType) => {
+    async (event, provider: ProviderType, requestId?: string) => {
       try {
-        await getQuotaByProviderStream(provider, (accounts, done) => {
-          if (!event.sender.isDestroyed()) {
-            event.sender.send("quota:streamBatch", {
-              provider,
-              accounts,
-              done,
-            });
-          }
-        });
+        await getQuotaByProviderStream(
+          provider,
+          (accounts: QuotaAccount[], done: boolean) => {
+            if (!event.sender.isDestroyed()) {
+              event.sender.send("quota:streamBatch", {
+                provider,
+                requestId,
+                accounts,
+                done,
+              });
+            }
+          },
+        );
       } catch (error) {
         log.error("[IPC] Failed to stream quota by provider:", error);
         if (!event.sender.isDestroyed()) {
           event.sender.send("quota:streamBatch", {
             provider,
+            requestId,
             accounts: [],
             done: true,
             error: String(error),
