@@ -661,6 +661,22 @@ export const zh: Translations = {
     bindHostError: "请输入有效的 IPv4、IPv6 地址或留空",
     bindHostChanged: "监听地址已更改",
     bindHostChangedDesc: "重启代理以应用新的监听地址？",
+    remoteManagement: "远程管理（高风险）",
+    remoteManagementDesc:
+      "会将管理端点暴露给非 localhost 客户端，仅在确有必要时启用。",
+    allowRemoteManagement: "启用远程管理访问（有风险）",
+    allowRemoteManagementDesc: "允许非 localhost 客户端远程访问管理能力。",
+    allowRemoteWarning:
+      "安全提醒：启用远程管理会将管理端点暴露到网络，必要时请配置防火墙白名单。",
+    allowRemoteChanged: "远程管理设置已更改",
+    allowRemoteChangedDesc: "设置已保存，但需重启代理后才会生效。",
+    remoteManagementHintTitle: "远程管理可能被阻止",
+    remoteManagementHintDesc:
+      "当前监听地址不是 localhost 且远程管理未启用。若配额/提供商数据加载失败，请在设置中启用远程管理。",
+    remoteManagementHintAction: "前往设置",
+    remoteManagementPendingTitle: "远程管理配置待生效",
+    remoteManagementPendingDesc:
+      "你已修改远程管理开关，但代理尚未重启。当前运行状态仍沿用重启前策略。",
     endpoint: "API 端点",
     endpointDesc: "自定义 API 端点地址",
     endpointPlaceholder: `http://127.0.0.1:${DEFAULT_PORT}/v1`,

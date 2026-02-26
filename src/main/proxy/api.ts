@@ -4,6 +4,25 @@ import log from "../utils/logger";
 import { proxyManager } from "./manager";
 import { store } from "../utils/store";
 
+function isExpectedManagementAvailabilityError(error: unknown): boolean {
+  if (!axios.isAxiosError(error)) {
+    return false;
+  }
+
+  const code = error.code?.toUpperCase();
+  if (
+    code === "ECONNREFUSED" ||
+    code === "ECONNRESET" ||
+    code === "ETIMEDOUT" ||
+    code === "ENETUNREACH"
+  ) {
+    return true;
+  }
+
+  const status = error.response?.status;
+  return status === 401 || status === 403 || status === 404;
+}
+
 class ManagementAPI {
   private client: AxiosInstance;
 
@@ -13,9 +32,25 @@ class ManagementAPI {
     });
   }
 
+  private get managementHost(): string {
+    const configuredHost =
+      (store.get("host") as string | undefined)?.trim() ||
+      proxyManager.getHost().trim();
+
+    if (!configuredHost) {
+      return "127.0.0.1";
+    }
+
+    if (configuredHost === "0.0.0.0" || configuredHost === "::") {
+      return "127.0.0.1";
+    }
+
+    return configuredHost;
+  }
+
   private get baseURL(): string {
     const port = (store.get("port") as number) || proxyManager.getPort();
-    return `http://127.0.0.1:${port}`;
+    return `http://${this.managementHost}:${port}`;
   }
 
   private getAuthHeaders(): Record<string, string> {
@@ -252,7 +287,11 @@ class ManagementAPI {
 
       return [];
     } catch (error) {
-      log.error("[ManagementAPI] Failed to list auth files:", error);
+      if (isExpectedManagementAvailabilityError(error)) {
+        log.warn("[ManagementAPI] auth-files unavailable:", error);
+      } else {
+        log.error("[ManagementAPI] Failed to list auth files:", error);
+      }
       throw error;
     }
   }

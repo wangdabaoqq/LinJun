@@ -18,6 +18,17 @@ function getDisabledAuthDir(activeAuthDir: string): string {
   return path.join(path.dirname(activeAuthDir), "auth-disabled");
 }
 
+function isLoopbackHost(host: string): boolean {
+  const normalized = host.trim().toLowerCase();
+  return (
+    normalized.length === 0 ||
+    normalized === "localhost" ||
+    normalized === "127.0.0.1" ||
+    normalized === "::1" ||
+    normalized === "[::1]"
+  );
+}
+
 export type ProviderType =
   | "codex"
   | "antigravity"
@@ -217,9 +228,22 @@ async function readTokenFilesFromManagement(): Promise<TokenReadResult[]> {
     return remoteTokens;
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
+    const config = proxyManager.loadConfigFromYaml();
+    const configuredHost = config?.host?.trim() ?? "";
+    const allowRemote =
+      config?.["remote-management"]?.["allow-remote"] === true;
+    const likelyAccessPolicyConflict =
+      configuredHost.length > 0 &&
+      !isLoopbackHost(configuredHost) &&
+      !allowRemote;
+
+    const policyHint = likelyAccessPolicyConflict
+      ? ` Current config host=${configuredHost} with remote-management.allow-remote=false may block management access. Use localhost bind host or enable allow-remote.`
+      : " Ensure CLIProxyAPIPlus is running and management API is reachable.";
+
     log.warn("[TokenReader] Failed to read management auth-files:", error);
     throw new Error(
-      `Management auth-files unavailable: ${reason}. Ensure CLIProxyAPIPlus is running and management API is reachable.`,
+      `Management auth-files unavailable: ${reason}.${policyHint}`,
     );
   }
 }

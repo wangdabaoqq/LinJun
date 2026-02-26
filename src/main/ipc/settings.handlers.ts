@@ -33,6 +33,7 @@ export function setupSettingsHandlers(): void {
       ...storeData,
       port: config?.port ?? storeData.port,
       host: config?.host ?? storeData.host ?? "",
+      allowRemote: config?.["remote-management"]?.["allow-remote"] ?? false,
       routingStrategy: config?.routing?.strategy ?? storeData.routingStrategy,
       requestRetry: config?.["request-retry"] ?? storeData.requestRetry ?? 3,
       maxRetryInterval:
@@ -51,6 +52,7 @@ export function setupSettingsHandlers(): void {
         port?: number;
         host?: string;
         apiKey?: string;
+        allowRemote?: boolean;
         routingStrategy?: "round-robin" | "fill-first";
         requestRetry?: number;
         maxRetryInterval?: number;
@@ -98,6 +100,23 @@ export function setupSettingsHandlers(): void {
         }
 
         if (
+          updates.allowRemote !== undefined ||
+          updates.managementSecret !== undefined
+        ) {
+          const currentRemoteMgmt =
+            proxyManager.loadConfigFromYaml()?.["remote-management"] || {};
+          yamlUpdates["remote-management"] = {
+            ...currentRemoteMgmt,
+            ...(updates.allowRemote !== undefined && {
+              "allow-remote": updates.allowRemote,
+            }),
+            ...(updates.managementSecret !== undefined && {
+              "secret-key": updates.managementSecret,
+            }),
+          };
+        }
+
+        if (
           updates.switchProject !== undefined ||
           updates.switchPreviewModel !== undefined
         ) {
@@ -115,12 +134,6 @@ export function setupSettingsHandlers(): void {
         }
 
         if (updates.managementSecret !== undefined) {
-          const currentRemoteMgmt =
-            proxyManager.loadConfigFromYaml()?.["remote-management"] || {};
-          yamlUpdates["remote-management"] = {
-            ...currentRemoteMgmt,
-            "secret-key": updates.managementSecret,
-          };
           log.info(
             "[IPC] Setting managementSecret, yamlUpdates:",
             JSON.stringify(yamlUpdates, null, 2),

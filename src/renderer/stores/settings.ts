@@ -9,6 +9,7 @@ export type ThemeType = "dark" | "light";
 interface MainSettings {
   port?: number;
   host?: string;
+  allowRemote?: boolean;
   endpoint?: string;
   managementSecret?: string;
   autoStart?: boolean;
@@ -27,6 +28,8 @@ interface SettingsState {
   theme: ThemeType;
   port: number;
   host: string;
+  allowRemote: boolean;
+  appliedAllowRemote: boolean;
   endpoint: string;
   managementSecret: string;
   autoStart: boolean;
@@ -46,6 +49,8 @@ interface SettingsState {
   setTheme: (theme: ThemeType) => void;
   setPort: (port: number) => void;
   setHost: (host: string) => void;
+  setAllowRemote: (enabled: boolean) => void;
+  setAppliedAllowRemote: (enabled: boolean) => void;
   setEndpoint: (endpoint: string) => void;
   getEffectiveEndpoint: () => string;
   setManagementSecret: (secret: string) => void;
@@ -109,6 +114,8 @@ export const useSettingsStore = create<SettingsState>()(
       theme: DEFAULT_THEME,
       port: DEFAULT_PORT,
       host: "",
+      allowRemote: false,
+      appliedAllowRemote: false,
       endpoint: "",
       managementSecret: "",
       autoStart: true,
@@ -147,6 +154,14 @@ export const useSettingsStore = create<SettingsState>()(
           window.electronAPI.settings.syncToYaml({ host });
         }
       },
+      setAllowRemote: (allowRemote) => {
+        set({ allowRemote });
+        if (typeof window !== "undefined" && window.electronAPI) {
+          window.electronAPI.settings.syncToYaml({ allowRemote });
+        }
+      },
+      setAppliedAllowRemote: (appliedAllowRemote) =>
+        set({ appliedAllowRemote }),
       setEndpoint: (endpoint) => {
         set({ endpoint });
       },
@@ -239,6 +254,10 @@ export const useSettingsStore = create<SettingsState>()(
         set({
           ...(settings.port !== undefined && { port: settings.port }),
           ...(settings.host !== undefined && { host: settings.host }),
+          ...(settings.allowRemote !== undefined && {
+            allowRemote: settings.allowRemote,
+            appliedAllowRemote: settings.allowRemote,
+          }),
           managementSecret: newSecret,
           ...(settings.autoStart !== undefined && {
             autoStart: settings.autoStart,
@@ -277,6 +296,7 @@ export const useSettingsStore = create<SettingsState>()(
         language: state.language,
         theme: state.theme,
         port: state.port,
+        allowRemote: state.allowRemote,
         endpoint: state.endpoint,
         managementSecret: state.managementSecret,
         autoStart: state.autoStart,

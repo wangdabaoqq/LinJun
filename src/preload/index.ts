@@ -86,6 +86,7 @@ const electronAPI = {
       port?: number;
       host?: string;
       apiKey?: string;
+      allowRemote?: boolean;
       managementSecret?: string;
       routingStrategy?: "round-robin" | "fill-first";
       requestRetry?: number;

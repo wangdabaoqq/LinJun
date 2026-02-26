@@ -3,6 +3,7 @@ import log from "@renderer/utils/logger";
 import { motion, AnimatePresence } from "motion/react";
 import {
   ShieldCheck,
+  ShieldAlert,
   Eye,
   EyeOff,
   Copy,
@@ -23,6 +24,7 @@ import {
 import { SettingCard } from "../shared/SettingCard";
 import { SectionHeader } from "../shared/SectionHeader";
 import { SettingRow } from "../shared/SettingRow";
+import { CustomToggle } from "../shared/CustomToggle";
 
 const IPV4_RE = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
 const IPV6_BARE_RE = /^[\da-fA-F:]+$/;
@@ -47,10 +49,14 @@ export function CoreSection() {
   const {
     port,
     host,
+    allowRemote,
+    appliedAllowRemote,
     managementSecret,
     proxyRunning,
     setPort,
     setHost,
+    setAllowRemote,
+    setAppliedAllowRemote,
     getEffectiveEndpoint,
     generateManagementSecret,
   } = useSettingsStore();
@@ -65,6 +71,8 @@ export function CoreSection() {
   const [hostInput, setHostInput] = useState(host);
   const [hostError, setHostError] = useState<string | null>(null);
   const [showHostRestartPrompt, setShowHostRestartPrompt] = useState(false);
+  const hasPendingAllowRemoteRestart =
+    proxyRunning && allowRemote !== appliedAllowRemote;
 
   const handleRestart = async () => {
     setIsRestarting(true);
@@ -73,6 +81,7 @@ export function CoreSection() {
       await startProxy();
       setShowRestartPrompt(false);
       setShowHostRestartPrompt(false);
+      setAppliedAllowRemote(allowRemote);
     } catch (error) {
       log.error("Failed to restart proxy:", error);
     } finally {
@@ -132,6 +141,13 @@ export function CoreSection() {
     navigator.clipboard.writeText(getEffectiveEndpoint());
     setEndpointCopied(true);
     setTimeout(() => setEndpointCopied(false), 2000);
+  };
+
+  const handleAllowRemoteChange = (enabled: boolean) => {
+    setAllowRemote(enabled);
+    if (!proxyRunning) {
+      setAppliedAllowRemote(enabled);
+    }
   };
 
   return (
@@ -404,6 +420,78 @@ export function CoreSection() {
                   >
                     {t.settings.restartLater}
                   </button>
+                  <button
+                    onClick={handleRestart}
+                    disabled={isRestarting}
+                    className="flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-xl transition-all shadow-lg shadow-amber-500/20 hover:shadow-amber-500/30 hover:-translate-y-0.5 active:scale-95 disabled:opacity-70 disabled:pointer-events-none"
+                  >
+                    {isRestarting && (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    )}
+                    {t.settings.restartNow}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </SettingCard>
+
+      <SettingCard variant="magenta">
+        <SectionHeader
+          title={t.settings.remoteManagement}
+          description={t.settings.remoteManagementDesc}
+          icon={ShieldAlert}
+          accentColor="magenta"
+        />
+
+        <CustomToggle
+          value={allowRemote}
+          onChange={handleAllowRemoteChange}
+          label={t.settings.allowRemoteManagement}
+          desc={t.settings.allowRemoteManagementDesc}
+          icon={ShieldAlert}
+        />
+
+        {allowRemote && (
+          <div className="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs text-amber-700 dark:text-amber-300">
+            {t.settings.allowRemoteWarning}
+          </div>
+        )}
+
+        <AnimatePresence>
+          {hasPendingAllowRemoteRestart && (
+            <motion.div
+              initial={{ opacity: 0, height: 0, marginTop: 0, scale: 0.98 }}
+              animate={{ opacity: 1, height: "auto", marginTop: 16, scale: 1 }}
+              exit={{ opacity: 0, height: 0, marginTop: 0, scale: 0.98 }}
+              transition={{ type: "spring", stiffness: 500, damping: 30 }}
+              className="relative overflow-hidden bg-amber-500/5 dark:bg-amber-500/10 backdrop-blur-md border border-amber-500/20 dark:border-amber-500/30 rounded-2xl p-4"
+            >
+              <div className="flex items-center justify-between relative z-10">
+                <div className="flex items-center gap-4">
+                  <div className="p-2.5 bg-amber-500/20 rounded-xl text-amber-500 shadow-lg shadow-amber-500/10">
+                    <motion.div
+                      animate={{ scale: [1, 1.1, 1] }}
+                      transition={{
+                        duration: 2,
+                        repeat: Infinity,
+                        ease: "easeInOut",
+                      }}
+                    >
+                      <AlertTriangle className="w-5 h-5" />
+                    </motion.div>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-amber-600 dark:text-amber-400">
+                      {t.settings.allowRemoteChanged}
+                    </h4>
+                    <p className="text-[11px] text-amber-600/70 dark:text-amber-400/70 leading-relaxed mt-0.5">
+                      {t.settings.allowRemoteChangedDesc}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
                   <button
                     onClick={handleRestart}
                     disabled={isRestarting}

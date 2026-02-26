@@ -6,6 +6,7 @@
  */
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
+import { AlertTriangle } from "lucide-react";
 import { Sidebar, Page } from "./components/Sidebar";
 import { Dashboard } from "./components/Dashboard";
 import { Providers } from "./components/Providers";
@@ -168,6 +169,27 @@ export default function App() {
   });
   const [currentPage, setCurrentPage] = useState<Page>("dashboard");
   const refreshAll = useDashboardStore((s) => s.refreshAll);
+  const t = useTranslations();
+  const host = useSettingsStore((s) => s.host.trim().toLowerCase());
+  const allowRemote = useSettingsStore((s) => s.allowRemote);
+  const appliedAllowRemote = useSettingsStore((s) => s.appliedAllowRemote);
+  const proxyRunning = useSettingsStore((s) => s.proxyRunning);
+
+  const isLocalOrWildcardHost =
+    host.length === 0 ||
+    host === "localhost" ||
+    host === "127.0.0.1" ||
+    host === "0.0.0.0" ||
+    host === "::" ||
+    host === "::1" ||
+    host === "[::1]";
+  const hasPendingRemoteManagementRestart =
+    proxyRunning && allowRemote !== appliedAllowRemote;
+  const effectiveAllowRemote = proxyRunning ? appliedAllowRemote : allowRemote;
+  const showRemoteManagementHint =
+    !isLocalOrWildcardHost &&
+    !effectiveAllowRemote &&
+    !hasPendingRemoteManagementRestart;
 
   useEffect(() => {
     const handleHashChange = () => {
@@ -234,6 +256,52 @@ export default function App() {
       <div className="flex flex-1 overflow-hidden">
         <Sidebar currentPage={currentPage} onNavigate={setCurrentPage} />
         <main className="flex-1 overflow-hidden flex flex-col">
+          {hasPendingRemoteManagementRestart && (
+            <div className="mx-4 mt-3 rounded-xl border border-indigo-500/40 bg-indigo-500/10 px-4 py-3 text-indigo-700 dark:text-indigo-300">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 shrink-0" />
+                  <div>
+                    <p className="text-sm font-semibold">
+                      {t.settings.remoteManagementPendingTitle}
+                    </p>
+                    <p className="mt-0.5 text-xs opacity-90">
+                      {t.settings.remoteManagementPendingDesc}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  className="rounded-xl bg-indigo-500 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-indigo-600"
+                  onClick={() => setCurrentPage("settings")}
+                >
+                  {t.settings.remoteManagementHintAction}
+                </button>
+              </div>
+            </div>
+          )}
+          {showRemoteManagementHint && (
+            <div className="mx-4 mt-3 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-amber-700 dark:text-amber-300">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 shrink-0" />
+                  <div>
+                    <p className="text-sm font-semibold">
+                      {t.settings.remoteManagementHintTitle}
+                    </p>
+                    <p className="mt-0.5 text-xs opacity-90">
+                      {t.settings.remoteManagementHintDesc}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  className="rounded-xl bg-amber-500 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-amber-600"
+                  onClick={() => setCurrentPage("settings")}
+                >
+                  {t.settings.remoteManagementHintAction}
+                </button>
+              </div>
+            </div>
+          )}
           <ErrorBoundary>
             <AnimatePresence mode="wait">
               <motion.div

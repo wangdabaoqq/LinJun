@@ -684,6 +684,24 @@ export const en = {
     bindHostError: "Enter a valid IPv4 or IPv6 address, or leave empty",
     bindHostChanged: "Bind Address Changed",
     bindHostChangedDesc: "Restart proxy to apply new bind address?",
+    remoteManagement: "Remote Management (High Risk)",
+    remoteManagementDesc:
+      "Exposes administrative endpoints to non-localhost clients. Enable only when absolutely necessary.",
+    allowRemoteManagement: "Enable Remote Management Access (Risk)",
+    allowRemoteManagementDesc:
+      "Allows non-localhost clients to access remote management capabilities.",
+    allowRemoteWarning:
+      "Security warning: enabling remote management exposes administrative endpoints to your network. Use a strong API key and firewall allowlist.",
+    allowRemoteChanged: "Remote Management Setting Changed",
+    allowRemoteChangedDesc:
+      "Settings are saved, but remote management will not apply until proxy restarts.",
+    remoteManagementHintTitle: "Remote management may be blocked",
+    remoteManagementHintDesc:
+      "Current bind address is not localhost while remote management is disabled. If quota/provider data fails to load, enable remote management in Settings.",
+    remoteManagementHintAction: "Open Settings",
+    remoteManagementPendingTitle: "Remote management change pending restart",
+    remoteManagementPendingDesc:
+      "You changed the remote-management switch, but proxy has not restarted yet. Runtime behavior is still using the previous policy.",
     endpoint: "API Endpoint",
     endpointDesc: "Custom API endpoint URL",
     endpointPlaceholder: `http://127.0.0.1:${DEFAULT_PORT}/v1`,
