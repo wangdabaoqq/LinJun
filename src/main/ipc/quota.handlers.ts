@@ -16,8 +16,16 @@ export function setupQuotaHandlers(): void {
     try {
       return { success: true, providers: await getProviders() };
     } catch (error) {
-      log.error("[IPC] Failed to get providers:", error);
-      return { success: false, providers: [], error: String(error) };
+      const message = error instanceof Error ? error.message : String(error);
+      if (message.includes("Management auth-files unavailable")) {
+        log.warn(
+          "[IPC] Providers unavailable due to management auth-files:",
+          error,
+        );
+      } else {
+        log.error("[IPC] Failed to get providers:", error);
+      }
+      return { success: false, providers: [], error: message };
     }
   });
 

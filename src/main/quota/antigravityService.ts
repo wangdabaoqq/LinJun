@@ -142,12 +142,38 @@ function unwrapManagementPayload(payload: unknown, context: string): unknown {
   }
 
   const objectPayload = parsedPayload as Record<string, unknown>;
+
+  const statusCode =
+    typeof objectPayload.status_code === "number"
+      ? objectPayload.status_code
+      : undefined;
+  if (statusCode && statusCode >= 400) {
+    const bodyText =
+      typeof objectPayload.body === "string" ? objectPayload.body : "";
+    throw new Error(
+      bodyText
+        ? `${context} request failed (${statusCode}): ${bodyText}`
+        : `${context} request failed (${statusCode})`,
+    );
+  }
+
   if (objectPayload.success === false) {
     throw new Error(
       typeof objectPayload.error === "string"
         ? objectPayload.error
         : `${context} management api-call failed`,
     );
+  }
+
+  if (typeof objectPayload.body === "string") {
+    try {
+      const parsedBody = JSON.parse(objectPayload.body) as unknown;
+      if (parsedBody && typeof parsedBody === "object") {
+        return parsedBody;
+      }
+    } catch {
+      throw new Error(`Invalid management api-call payload for ${context}`);
+    }
   }
 
   return objectPayload.data !== undefined ? objectPayload.data : objectPayload;
@@ -230,20 +256,6 @@ async function fetchAvailableModels(
   const models: AntigravityModelQuota[] = [];
   let hasQuota = false;
 
-  const ALLOWED_MODELS = [
-    "gemini-3-pro-image",
-    "claude-opus-4-6-thinking",
-    "claude-opus-4-5-thinking",
-    "gemini-3-flash",
-    "gemini-3-pro-high",
-    "gemini-3-pro-low",
-    "gemini-2.5-flash",
-    "gemini-2.5-flash-thinking",
-    "gemini-2.5-pro",
-    "claude-sonnet-4-5",
-    "claude-sonnet-4-5-thinking",
-  ];
-
   if (response.data?.models && typeof response.data.models === "object") {
     for (const [modelId, modelData] of Object.entries(response.data.models)) {
       const model = modelData as {
@@ -252,7 +264,7 @@ async function fetchAvailableModels(
         quotaInfo?: { remainingFraction?: number; resetTime?: string };
       };
 
-      if (model.isInternal || !ALLOWED_MODELS.includes(modelId)) {
+      if (model.isInternal || typeof model.displayName !== "string") {
         continue;
       }
 
@@ -321,27 +333,13 @@ async function fetchAvailableModelsViaManagement(
   const models: AntigravityModelQuota[] = [];
   let hasQuota = false;
 
-  const ALLOWED_MODELS = [
-    "gemini-3-pro-image",
-    "claude-opus-4-6-thinking",
-    "claude-opus-4-5-thinking",
-    "gemini-3-flash",
-    "gemini-3-pro-high",
-    "gemini-3-pro-low",
-    "gemini-2.5-flash",
-    "gemini-2.5-flash-thinking",
-    "gemini-2.5-pro",
-    "claude-sonnet-4-5",
-    "claude-sonnet-4-5-thinking",
-  ];
-
   for (const [modelId, modelData] of Object.entries(modelsObject)) {
     if (!modelData || typeof modelData !== "object") {
       continue;
     }
 
     const model = modelData as Record<string, unknown>;
-    if (model.isInternal === true || !ALLOWED_MODELS.includes(modelId)) {
+    if (model.isInternal === true || typeof model.displayName !== "string") {
       continue;
     }
 
