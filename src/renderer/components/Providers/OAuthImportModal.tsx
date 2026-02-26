@@ -7,7 +7,12 @@ interface OAuthImportModalProps {
   isOpen: boolean;
   isImporting: boolean;
   onClose: () => void;
-  onConfirm: (fileName: string, payload: unknown) => Promise<void>;
+  onConfirm: (entries: OAuthImportEntry[]) => Promise<void>;
+}
+
+export interface OAuthImportEntry {
+  fileName: string;
+  payload: unknown;
 }
 
 const FILE_NAME_REGEX = /^[a-zA-Z0-9@._-]+\.json$/;
@@ -33,7 +38,9 @@ export function OAuthImportModal({
   const [jsonContent, setJsonContent] = useState("");
   const [fileName, setFileName] = useState("");
   const [dragActive, setDragActive] = useState(false);
-  const [selectedFileName, setSelectedFileName] = useState("");
+  const [selectedFileNames, setSelectedFileNames] = useState<string[]>([]);
+  const [fileEntries, setFileEntries] = useState<OAuthImportEntry[]>([]);
+  const [fileErrors, setFileErrors] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const parsedPayload = useMemo(() => {
@@ -80,25 +87,74 @@ export function OAuthImportModal({
     return null;
   }, [fileName, isFileNameValid, t.providers]);
 
-  const canSubmit = Boolean(parsedPayload && isFileNameValid && !isImporting);
-
-  const handleReadFile = async (file: File) => {
-    try {
-      const text = await file.text();
-      setJsonContent(text);
-      setSelectedFileName(file.name);
-      setFileName(file.name);
-    } catch {
-      setSelectedFileName("");
+  const submitEntries = useMemo(() => {
+    if (fileEntries.length > 0) {
+      return fileEntries;
     }
+    if (parsedPayload && isFileNameValid) {
+      return [{ fileName: normalizedName, payload: parsedPayload }];
+    }
+    return [];
+  }, [fileEntries, isFileNameValid, normalizedName, parsedPayload]);
+
+  const canSubmitMulti = submitEntries.length > 0 && !isImporting;
+
+  const selectedFilesLabel = useMemo(() => {
+    if (selectedFileNames.length === 0) {
+      return t.providers.oauthImportDropSubtitle;
+    }
+    if (selectedFileNames.length === 1) {
+      return selectedFileNames[0];
+    }
+    return t.providers.oauthImportFilesSelected.replace(
+      "{count}",
+      selectedFileNames.length.toString(),
+    );
+  }, [selectedFileNames, t.providers]);
+
+  const processFiles = async (files: File[]) => {
+    const nextEntries = new Map<string, OAuthImportEntry>();
+    const nextErrors: string[] = [];
+
+    for (const file of files) {
+      const normalized = normalizeFileName(file.name);
+      if (!FILE_NAME_REGEX.test(normalized)) {
+        nextErrors.push(
+          `${file.name}: ${t.providers.oauthImportFileNameInvalid}`,
+        );
+        continue;
+      }
+
+      try {
+        const text = await file.text();
+        const parsed = JSON.parse(text);
+        if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+          nextErrors.push(
+            `${file.name}: ${t.providers.oauthImportInvalidJson}`,
+          );
+          continue;
+        }
+
+        nextEntries.set(normalized, {
+          fileName: normalized,
+          payload: parsed,
+        });
+      } catch {
+        nextErrors.push(`${file.name}: ${t.providers.oauthImportInvalidJson}`);
+      }
+    }
+
+    setSelectedFileNames(files.map((file) => file.name));
+    setFileEntries(Array.from(nextEntries.values()));
+    setFileErrors(nextErrors);
   };
 
   const handleFileSelect = async (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) {
+    const files = event.target.files ? Array.from(event.target.files) : [];
+    if (files.length === 0) {
       return;
     }
-    await handleReadFile(file);
+    await processFiles(files);
     event.target.value = "";
   };
 
@@ -118,18 +174,20 @@ export function OAuthImportModal({
     event.preventDefault();
     event.stopPropagation();
     setDragActive(false);
-    const file = event.dataTransfer.files?.[0];
-    if (!file) {
+    const files = event.dataTransfer.files
+      ? Array.from(event.dataTransfer.files)
+      : [];
+    if (files.length === 0) {
       return;
     }
-    await handleReadFile(file);
+    await processFiles(files);
   };
 
   const handleSubmit = async () => {
-    if (!canSubmit || !parsedPayload) {
+    if (!canSubmitMulti) {
       return;
     }
-    await onConfirm(normalizedName, parsedPayload);
+    await onConfirm(submitEntries);
   };
 
   if (!isOpen) {
@@ -180,6 +238,7 @@ export function OAuthImportModal({
             <input
               ref={fileInputRef}
               type="file"
+              multiple
               accept=".json,application/json"
               className="hidden"
               onChange={(event) => {
@@ -193,7 +252,7 @@ export function OAuthImportModal({
               {t.providers.oauthImportDropTitle}
             </p>
             <p className="text-xs text-[var(--text-dim)] mb-4">
-              {selectedFileName || t.providers.oauthImportDropSubtitle}
+              {selectedFilesLabel}
             </p>
             <button
               onClick={() => fileInputRef.current?.click()}
@@ -201,6 +260,23 @@ export function OAuthImportModal({
             >
               {t.providers.oauthImportSelectFile}
             </button>
+            {fileErrors.length > 0 && (
+              <div className="mt-3 w-full rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-left">
+                <p className="text-[10px] font-bold text-red-400 uppercase tracking-wider mb-1">
+                  {t.providers.oauthImportFailed}
+                </p>
+                <div className="max-h-24 overflow-auto custom-scrollbar space-y-1">
+                  {fileErrors.map((item) => (
+                    <p
+                      key={item}
+                      className="text-[10px] text-red-300 break-all"
+                    >
+                      {item}
+                    </p>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           <div>
@@ -249,7 +325,7 @@ export function OAuthImportModal({
             onClick={() => {
               void handleSubmit();
             }}
-            disabled={!canSubmit}
+            disabled={!canSubmitMulti}
             className="glass-btn glass-btn-primary px-8 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition-all hover:scale-[1.02] disabled:opacity-50"
           >
             {isImporting ? (

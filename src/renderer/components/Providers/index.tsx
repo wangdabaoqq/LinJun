@@ -14,6 +14,7 @@ import { CustomProviderForm } from "./CustomProviderForm/index";
 import { CustomProviderImportModal } from "./CustomProviderImportModal";
 import { GlobalImportModal } from "./GlobalImportModal";
 import { OAuthImportModal } from "./OAuthImportModal";
+import type { OAuthImportEntry } from "./OAuthImportModal";
 import { ConfirmModal } from "../ui/ConfirmModal";
 import {
   Account,
@@ -208,25 +209,60 @@ export function Providers() {
   );
 
   const handleOAuthImportConfirm = useCallback(
-    async (fileName: string, payload: unknown) => {
+    async (entries: OAuthImportEntry[]) => {
       setIsOAuthImporting(true);
       setImportStatus(null);
       try {
-        const result = await window.electronAPI?.providers?.importOAuthFile(
-          fileName,
-          payload,
-        );
-        if (result?.success) {
+        if (entries.length === 0) {
           setImportStatus({
-            type: "success",
-            message: t.providers.oauthImportSuccess,
+            type: "error",
+            message: t.providers.oauthImportNoData,
           });
+          return;
+        }
+
+        let successCount = 0;
+        let failedCount = 0;
+
+        const batchImport = window.electronAPI?.providers?.importOAuthFiles;
+        if (batchImport) {
+          const result = await batchImport(entries);
+          const summary = result?.summary;
+          successCount = summary?.success || 0;
+          failedCount = summary?.failed || 0;
+        } else {
+          for (const entry of entries) {
+            const result = await window.electronAPI?.providers?.importOAuthFile(
+              entry.fileName,
+              entry.payload,
+            );
+            if (result?.success) {
+              successCount += 1;
+            } else {
+              failedCount += 1;
+            }
+          }
+        }
+
+        if (successCount > 0) {
+          const total = successCount + failedCount;
+          const message =
+            failedCount > 0
+              ? t.providers.oauthImportPartialSummary
+                  .replace("{success}", successCount.toString())
+                  .replace("{total}", total.toString())
+                  .replace("{failed}", failedCount.toString())
+              : t.providers.oauthImportSuccessSummary
+                  .replace("{success}", successCount.toString())
+                  .replace("{total}", total.toString());
+
+          setImportStatus({ type: "success", message });
           setShowOAuthImportModal(false);
           await handleRefreshAllProviders();
         } else {
           setImportStatus({
             type: "error",
-            message: result?.error || t.providers.oauthImportFailed,
+            message: t.providers.oauthImportAllFailedSummary,
           });
         }
       } catch (error) {
@@ -244,8 +280,11 @@ export function Providers() {
     [
       handleRefreshAllProviders,
       setImportStatus,
+      t.providers.oauthImportAllFailedSummary,
+      t.providers.oauthImportNoData,
       t.providers.oauthImportFailed,
-      t.providers.oauthImportSuccess,
+      t.providers.oauthImportPartialSummary,
+      t.providers.oauthImportSuccessSummary,
     ],
   );
 
