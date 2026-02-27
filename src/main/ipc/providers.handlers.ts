@@ -9,14 +9,27 @@ import { app, ipcMain } from "electron";
 import { managementAPI } from "../proxy/api";
 import { proxyManager } from "../proxy/manager";
 import { refreshKiroTokenManually, scanTokenFiles } from "../quota";
+import {
+  emitConflictDetected,
+  emitFallbackHit,
+  emitMigrationFailed,
+  emitMigrationStarted,
+  emitMigrationSucceeded,
+} from "../logging/compatObservability";
+import { store } from "../utils/store";
 import log from "../utils/logger";
 import { validateApiKey } from "../utils/validation";
 
 import {
   OAuthAccountExcludedModelsConfig,
   OAuthExcludedModelsConfig,
+  OAuthModelAliasConfig,
   OAUTH_SOURCE_OPTIONS_BY_PROVIDER,
 } from "./types";
+import {
+  resolveExcludedModelCompatibility,
+  resolveModelAliasCompatibility,
+} from "./oauthCompatibility";
 
 function registerHandle(
   channel: string,
@@ -112,6 +125,137 @@ function normalizeOAuthAccountExcludedModels(
   });
 
   return normalized;
+}
+
+function normalizeOAuthModelAlias(value: unknown): OAuthModelAliasConfig {
+  if (!value || typeof value !== "object") return {};
+
+  const source = value as Record<string, unknown>;
+  const normalized: OAuthModelAliasConfig = {};
+
+  Object.entries(source).forEach(([sourceKey, mappings]) => {
+    const normalizedSourceKey = normalizeOAuthSourceKey(sourceKey);
+    if (!normalizedSourceKey || !Array.isArray(mappings)) return;
+
+    const seen = new Set<string>();
+    const nextMappings = mappings
+      .map((item) => {
+        if (!item || typeof item !== "object") return null;
+        const typed = item as {
+          name?: unknown;
+          alias?: unknown;
+          fork?: unknown;
+        };
+        const name = typeof typed.name === "string" ? typed.name.trim() : "";
+        const alias = typeof typed.alias === "string" ? typed.alias.trim() : "";
+        if (!name || !alias || name.length > 180 || alias.length > 180) {
+          return null;
+        }
+        const key = `${name}=>${alias}`;
+        if (seen.has(key)) return null;
+        seen.add(key);
+        return {
+          name,
+          alias,
+          ...(typeof typed.fork === "boolean" ? { fork: typed.fork } : {}),
+        };
+      })
+      .filter(
+        (item): item is { name: string; alias: string; fork?: boolean } =>
+          item !== null,
+      )
+      .slice(0, 300);
+
+    if (nextMappings.length > 0) {
+      normalized[normalizedSourceKey] = nextMappings;
+    }
+  });
+
+  return normalized;
+}
+
+const OAUTH_EXCLUSION_MIGRATION_MARKER_KEY =
+  "oauthGlobalExcludedMigrationV1" as const;
+const OAUTH_ALIAS_MIGRATION_MARKER_KEY = "oauthGlobalAliasMigrationV1" as const;
+
+function hasEntries(value: Record<string, unknown>): boolean {
+  return Object.keys(value).length > 0;
+}
+
+async function migrateLegacyExclusionRulesOnce(
+  legacyRules: OAuthExcludedModelsConfig,
+): Promise<void> {
+  if (!hasEntries(legacyRules)) return;
+  if (store.get(OAUTH_EXCLUSION_MIGRATION_MARKER_KEY) === true) return;
+
+  emitMigrationStarted({
+    feature: "exclusion",
+    legacyEntryCount: Object.keys(legacyRules).length,
+  });
+
+  try {
+    let writtenCount = 0;
+    for (const [sourceKey, patterns] of Object.entries(legacyRules)) {
+      const result = await managementAPI.setOAuthExcludedModels(
+        sourceKey,
+        patterns,
+      );
+      if (!result.success) {
+        throw new Error(result.error || "Failed to migrate exclusion rules");
+      }
+      writtenCount += 1;
+    }
+    store.set(OAUTH_EXCLUSION_MIGRATION_MARKER_KEY, true);
+    emitMigrationSucceeded({ feature: "exclusion", writtenCount });
+  } catch (error) {
+    emitMigrationFailed({
+      feature: "exclusion",
+      reason: "migration-write-failed",
+      errorCode:
+        error && typeof error === "object" && "code" in error
+          ? String((error as { code?: unknown }).code || "")
+          : undefined,
+    });
+    log.warn("[Compat] Failed to migrate legacy exclusion rules:", error);
+  }
+}
+
+async function migrateLegacyAliasRulesOnce(
+  legacyRules: OAuthModelAliasConfig,
+): Promise<void> {
+  if (!hasEntries(legacyRules)) return;
+  if (store.get(OAUTH_ALIAS_MIGRATION_MARKER_KEY) === true) return;
+
+  emitMigrationStarted({
+    feature: "alias",
+    legacyEntryCount: Object.keys(legacyRules).length,
+  });
+
+  try {
+    let writtenCount = 0;
+    for (const [sourceKey, mappings] of Object.entries(legacyRules)) {
+      const result = await managementAPI.setOAuthModelAlias(
+        sourceKey,
+        mappings,
+      );
+      if (!result.success) {
+        throw new Error(result.error || "Failed to migrate alias rules");
+      }
+      writtenCount += 1;
+    }
+    store.set(OAUTH_ALIAS_MIGRATION_MARKER_KEY, true);
+    emitMigrationSucceeded({ feature: "alias", writtenCount });
+  } catch (error) {
+    emitMigrationFailed({
+      feature: "alias",
+      reason: "migration-write-failed",
+      errorCode:
+        error && typeof error === "object" && "code" in error
+          ? String((error as { code?: unknown }).code || "")
+          : undefined,
+    });
+    log.warn("[Compat] Failed to migrate legacy alias rules:", error);
+  }
 }
 
 function resolveOAuthSourceKeyForAccount(
@@ -230,12 +374,62 @@ export function setupProvidersHandlers(): void {
   registerHandle("oauthRules:get", async () => {
     try {
       const config = proxyManager.loadConfigFromYaml();
-      const providerRules = normalizeOAuthExcludedModels(
+      const legacyProviderRules = normalizeOAuthExcludedModels(
         config?.["oauth-excluded-models"],
       );
       const accountRules = normalizeOAuthAccountExcludedModels(
         config?.["oauth-account-excluded-models"],
       );
+
+      let providerRules: OAuthExcludedModelsConfig = {};
+
+      try {
+        const managementProviderRules = normalizeOAuthExcludedModels(
+          await managementAPI.getOAuthExcludedModels(),
+        );
+
+        const resolved = resolveExcludedModelCompatibility({
+          managementRules: managementProviderRules,
+          legacyRules: legacyProviderRules,
+        });
+        providerRules = resolved.effective;
+
+        resolved.conflictKeys.forEach((sourceKey) => {
+          emitConflictDetected({
+            feature: "exclusion",
+            sourceKey,
+            winner: "management",
+          });
+        });
+
+        if (resolved.usedFallback) {
+          emitFallbackHit({
+            feature: "exclusion",
+            reason: "management-empty",
+          });
+        }
+
+        if (resolved.shouldMigrate) {
+          await migrateLegacyExclusionRulesOnce(legacyProviderRules);
+        }
+      } catch (managementError) {
+        if (hasEntries(legacyProviderRules)) {
+          providerRules = legacyProviderRules;
+          emitFallbackHit({
+            feature: "exclusion",
+            reason: "management-unavailable",
+            errorCode:
+              managementError &&
+              typeof managementError === "object" &&
+              "code" in managementError
+                ? String((managementError as { code?: unknown }).code || "")
+                : undefined,
+          });
+        } else {
+          throw managementError;
+        }
+      }
+
       return {
         success: true,
         providerRules,
@@ -254,6 +448,112 @@ export function setupProvidersHandlers(): void {
     }
   });
 
+  registerHandle("oauthModelAlias:get", async () => {
+    try {
+      const legacySourceRules = normalizeOAuthModelAlias(
+        proxyManager.loadConfigFromYaml()?.["oauth-model-alias"],
+      );
+
+      let sourceRules: OAuthModelAliasConfig = {};
+
+      try {
+        const managementSourceRules = normalizeOAuthModelAlias(
+          await managementAPI.getOAuthModelAlias(),
+        );
+
+        const resolved = resolveModelAliasCompatibility({
+          managementRules: managementSourceRules,
+          legacyRules: legacySourceRules,
+        });
+        sourceRules = resolved.effective;
+
+        resolved.conflictKeys.forEach((sourceKey) => {
+          emitConflictDetected({
+            feature: "alias",
+            sourceKey,
+            winner: "management",
+          });
+        });
+
+        if (resolved.usedFallback) {
+          emitFallbackHit({
+            feature: "alias",
+            reason: "management-empty",
+          });
+        }
+
+        if (resolved.shouldMigrate) {
+          await migrateLegacyAliasRulesOnce(legacySourceRules);
+        }
+      } catch (managementError) {
+        if (hasEntries(legacySourceRules)) {
+          sourceRules = legacySourceRules;
+          emitFallbackHit({
+            feature: "alias",
+            reason: "management-unavailable",
+            errorCode:
+              managementError &&
+              typeof managementError === "object" &&
+              "code" in managementError
+                ? String((managementError as { code?: unknown }).code || "")
+                : undefined,
+          });
+        } else {
+          throw managementError;
+        }
+      }
+
+      return {
+        success: true,
+        sourceRules,
+        sourceOptionsByProvider: OAUTH_SOURCE_OPTIONS_BY_PROVIDER,
+      };
+    } catch (error) {
+      log.error("[IPC] Failed to get OAuth model alias rules:", error);
+      return {
+        success: false,
+        sourceRules: {},
+        sourceOptionsByProvider: OAUTH_SOURCE_OPTIONS_BY_PROVIDER,
+        error: String(error),
+      };
+    }
+  });
+
+  registerHandle(
+    "oauthModelAlias:setSourceRules",
+    async (_event, sourceKey: string, mappings: unknown) => {
+      try {
+        const normalizedSourceKey = normalizeOAuthSourceKey(sourceKey);
+        if (!normalizedSourceKey) {
+          return { success: false, error: "Invalid OAuth source key" };
+        }
+
+        const normalizedMappings =
+          normalizeOAuthModelAlias({
+            [normalizedSourceKey]: mappings,
+          })[normalizedSourceKey] || [];
+
+        const result = await managementAPI.setOAuthModelAlias(
+          normalizedSourceKey,
+          normalizedMappings,
+        );
+
+        if (!result.success) {
+          return result;
+        }
+
+        const sourceRules = normalizeOAuthModelAlias(
+          await managementAPI.getOAuthModelAlias(),
+        );
+
+        return { success: true, sourceRules };
+      } catch (error) {
+        log.error("[IPC] Failed to save OAuth model alias rules:", error);
+        return { success: false, error: String(error) };
+      }
+    },
+  );
+
   registerHandle(
     "oauthRules:setProviderRules",
     async (_event, sourceKey: string, patterns: unknown) => {
@@ -264,22 +564,20 @@ export function setupProvidersHandlers(): void {
         }
 
         const normalizedPatterns = sanitizeModelPatterns(patterns);
-        const config = proxyManager.loadConfigFromYaml();
-        const providerRules = normalizeOAuthExcludedModels(
-          config?.["oauth-excluded-models"],
+        const result = await managementAPI.setOAuthExcludedModels(
+          normalizedSourceKey,
+          normalizedPatterns,
         );
 
-        if (normalizedPatterns.length > 0) {
-          providerRules[normalizedSourceKey] = normalizedPatterns;
-        } else {
-          delete providerRules[normalizedSourceKey];
+        if (!result.success) {
+          return result;
         }
 
-        const success = proxyManager.updateConfigYaml({
-          "oauth-excluded-models": providerRules,
-        });
+        const providerRules = normalizeOAuthExcludedModels(
+          await managementAPI.getOAuthExcludedModels(),
+        );
 
-        return { success, providerRules };
+        return { success: true, providerRules };
       } catch (error) {
         log.error(
           "[IPC] Failed to save provider OAuth exclusion rules:",

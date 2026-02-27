@@ -30,6 +30,8 @@ import { AddProviderModal } from "./AddProviderModal";
 import { CopilotAuthModal } from "./CopilotAuthModal";
 import { AmpcodeSettingsModal } from "./AmpcodeSettingsModal";
 import { AccountModelExplorerModal } from "./AccountModelExplorerModal";
+import { AccountModelAliasModal } from "./AccountModelAliasModal";
+import { ProviderModelRulesModal } from "./ProviderModelRulesModal";
 import { AccountEditModal } from "./AccountEditModal";
 import { CustomProvidersSection } from "./CustomProvidersSection";
 import { OfficialProvidersSection } from "./OfficialProvidersSection";
@@ -107,16 +109,29 @@ export function Providers() {
 
   const {
     editingAccountModelRules,
+    editingProviderModelRules,
+    editingProviderModelAlias,
     setEditingAccountModelRules,
+    setEditingProviderModelRules,
+    setEditingProviderModelAlias,
     getAccountSourceKey,
+    getSourceOptionsForProvider,
     getSourceOptionsForAccount,
     getAccountModelRulesMeta,
+    getProviderModelRulesMeta,
+    getProviderModelAliasMeta,
     getAccountRulesBySource,
+    getModelAliasBySource,
+    getProviderRulesBySource,
     handleOpenAccountModelRules,
+    handleOpenProviderModelRules,
+    handleOpenProviderModelAlias,
     handleLoadModelCatalog,
     handleLoadAccountPreview,
     handleSaveAccountMetadata,
     handleSaveAccountModelRules,
+    handleSaveProviderModelRules,
+    handleSaveProviderModelAlias,
   } = useOAuthRules();
 
   const {
@@ -436,8 +451,12 @@ export function Providers() {
             onDownloadAccountJson={(providerId, accountId) => {
               setDownloadConfirmAccount({ providerId, accountId });
             }}
+            onEditProviderModelRules={handleOpenProviderModelRules}
             onEditAccountModelRules={handleOpenAccountModelRules}
+            onEditProviderModelAlias={handleOpenProviderModelAlias}
+            getProviderModelRulesMeta={getProviderModelRulesMeta}
             getAccountModelRulesMeta={getAccountModelRulesMeta}
+            getProviderModelAliasMeta={getProviderModelAliasMeta}
           />
 
           <RoutingProtocolSection
@@ -570,6 +589,61 @@ export function Providers() {
           }
           onLoadCatalog={handleLoadModelCatalog}
           onSave={handleSaveAccountModelRules}
+        />
+      )}
+
+      {editingProviderModelAlias && (
+        <AccountModelAliasModal
+          isOpen={!!editingProviderModelAlias}
+          onClose={() => setEditingProviderModelAlias(null)}
+          providerId={editingProviderModelAlias}
+          subjectLabel={editingProviderModelAlias || ""}
+          sourceOptions={
+            editingProviderModelAlias
+              ? getSourceOptionsForProvider(editingProviderModelAlias)
+              : []
+          }
+          initialSourceKey={
+            editingProviderModelAlias
+              ? getSourceOptionsForProvider(editingProviderModelAlias)[0] ||
+                editingProviderModelAlias
+              : ""
+          }
+          mappingsBySource={
+            editingProviderModelAlias
+              ? Object.fromEntries(
+                  getSourceOptionsForProvider(editingProviderModelAlias).map(
+                    (sourceKey) => [
+                      sourceKey,
+                      getModelAliasBySource(sourceKey),
+                    ],
+                  ),
+                )
+              : {}
+          }
+          onLoadCatalog={handleLoadModelCatalog}
+          onSave={handleSaveProviderModelAlias}
+        />
+      )}
+
+      {editingProviderModelRules && (
+        <ProviderModelRulesModal
+          isOpen={!!editingProviderModelRules}
+          onClose={() => setEditingProviderModelRules(null)}
+          providerId={editingProviderModelRules}
+          providerLabel={editingProviderModelRules}
+          sourceOptions={getSourceOptionsForProvider(editingProviderModelRules)}
+          initialSourceKey={
+            getSourceOptionsForProvider(editingProviderModelRules)[0] ||
+            editingProviderModelRules
+          }
+          patternsBySource={Object.fromEntries(
+            getSourceOptionsForProvider(editingProviderModelRules).map(
+              (sourceKey) => [sourceKey, getProviderRulesBySource(sourceKey)],
+            ),
+          )}
+          onLoadCatalog={() => handleLoadModelCatalog()}
+          onSave={handleSaveProviderModelRules}
         />
       )}
 

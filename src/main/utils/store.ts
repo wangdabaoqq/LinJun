@@ -71,6 +71,8 @@ interface StoreSchema {
   uptimeCheckEnabled: boolean;
   uptimeCheckInterval: number;
   uptimeAlertThreshold: number;
+  oauthGlobalExcludedMigrationV1: boolean;
+  oauthGlobalAliasMigrationV1: boolean;
   customProviderDrafts: CustomProviderDrafts;
 }
 
@@ -90,6 +92,8 @@ export const store = new Store<StoreSchema>({
     uptimeCheckEnabled: true,
     uptimeCheckInterval: 60,
     uptimeAlertThreshold: 95,
+    oauthGlobalExcludedMigrationV1: false,
+    oauthGlobalAliasMigrationV1: false,
     customProviderDrafts: {
       "openai-compatibility": [],
       "claude-api-key": [],

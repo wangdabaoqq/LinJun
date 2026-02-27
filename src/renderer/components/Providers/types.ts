@@ -93,6 +93,7 @@ export interface Provider {
   description: string;
   authType: "oauth" | "apikey" | "import" | "oauth-project";
   accounts: Account[];
+  compatStatus?: "fallback" | "migration-pending" | "migration-complete" | "migration-failed";
 }
 
 export interface AddAccountModalProps {

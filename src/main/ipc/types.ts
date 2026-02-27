@@ -71,6 +71,14 @@ export type OAuthAccountExcludedModelsConfig = Record<
   Record<string, string[]>
 >;
 
+export interface OAuthModelAliasEntry {
+  name: string;
+  alias: string;
+  fork?: boolean;
+}
+
+export type OAuthModelAliasConfig = Record<string, OAuthModelAliasEntry[]>;
+
 export const OAUTH_SOURCE_OPTIONS_BY_PROVIDER: Record<string, string[]> = {
   gemini: ["gemini-cli", "vertex", "aistudio"],
   antigravity: ["antigravity"],

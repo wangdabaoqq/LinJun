@@ -7,6 +7,14 @@ import { Account } from "../types";
 
 type OAuthProviderRules = Record<string, string[]>;
 type OAuthAccountRules = Record<string, Record<string, string[]>>;
+type OAuthModelAliasRules = Record<
+  string,
+  Array<{ name: string; alias: string; fork?: boolean }>
+>;
+type OAuthAccountModelAliasRules = Record<
+  string,
+  Record<string, Array<{ name: string; alias: string; fork?: boolean }>>
+>;
 
 export const DEFAULT_SOURCE_OPTIONS_BY_PROVIDER: Record<string, string[]> = {
   gemini: ["gemini-cli", "vertex", "aistudio"],
@@ -22,11 +30,21 @@ export const DEFAULT_SOURCE_OPTIONS_BY_PROVIDER: Record<string, string[]> = {
 interface UseOAuthRulesResult {
   oauthProviderRules: OAuthProviderRules;
   oauthAccountRules: OAuthAccountRules;
+  oauthModelAliasRules: OAuthModelAliasRules;
+  oauthAccountModelAliasRules: OAuthAccountModelAliasRules;
   sourceOptionsByProvider: Record<string, string[]>;
   editingAccountModelRules: { providerId: string; account: Account } | null;
+  editingAccountModelAlias: { providerId: string; account: Account } | null;
+  editingProviderModelRules: string | null;
+  editingProviderModelAlias: string | null;
   setEditingAccountModelRules: (
     value: { providerId: string; account: Account } | null,
   ) => void;
+  setEditingAccountModelAlias: (
+    value: { providerId: string; account: Account } | null,
+  ) => void;
+  setEditingProviderModelRules: (value: string | null) => void;
+  setEditingProviderModelAlias: (value: string | null) => void;
   loadOAuthRules: () => Promise<void>;
   getSourceOptionsForProvider: (providerId: string) => string[];
   getAccountRulesKey: (providerId: string, account: Account) => string;
@@ -39,11 +57,34 @@ interface UseOAuthRulesResult {
     providerId: string,
     account: Account,
   ) => { sourceKey: string; count: number };
+  getProviderModelRulesMeta: (providerId: string) => {
+    sourceKey: string;
+    count: number;
+  };
+  getAccountModelAliasMeta: (
+    providerId: string,
+    account: Account,
+  ) => { sourceKey: string; count: number };
+  getProviderModelAliasMeta: (providerId: string) => {
+    sourceKey: string;
+    count: number;
+  };
+  getModelAliasBySource: (
+    sourceKey: string,
+  ) => Array<{ name: string; alias: string; fork?: boolean }>;
+  getAccountModelAliasBySource: (
+    providerId: string,
+    account: Account,
+  ) => Record<string, Array<{ name: string; alias: string; fork?: boolean }>>;
+  getProviderRulesBySource: (sourceKey: string) => string[];
   getAccountRulesBySource: (
     providerId: string,
     account: Account,
   ) => Record<string, string[]>;
   handleOpenAccountModelRules: (providerId: string, account: Account) => void;
+  handleOpenAccountModelAlias: (providerId: string, account: Account) => void;
+  handleOpenProviderModelRules: (providerId: string) => void;
+  handleOpenProviderModelAlias: (providerId: string) => void;
   handleLoadModelCatalog: (
     accountFilePath?: string,
   ) => Promise<Array<{ id: string; ownedBy: string }>>;
@@ -60,6 +101,18 @@ interface UseOAuthRulesResult {
     sourceKey: string,
     accountPatterns: string[],
   ) => Promise<void>;
+  handleSaveProviderModelRules: (
+    sourceKey: string,
+    providerPatterns: string[],
+  ) => Promise<void>;
+  handleSaveProviderModelAlias: (
+    sourceKey: string,
+    mappings: Array<{ name: string; alias: string; fork?: boolean }>,
+  ) => Promise<void>;
+  handleSaveAccountModelAlias: (
+    sourceKey: string,
+    mappings: Array<{ name: string; alias: string; fork?: boolean }>,
+  ) => Promise<void>;
 }
 
 export function useOAuthRules(): UseOAuthRulesResult {
@@ -71,6 +124,10 @@ export function useOAuthRules(): UseOAuthRulesResult {
   const [oauthAccountRules, setOauthAccountRules] = useState<OAuthAccountRules>(
     {},
   );
+  const [oauthModelAliasRules, setOauthModelAliasRules] =
+    useState<OAuthModelAliasRules>({});
+  const [oauthAccountModelAliasRules, setOauthAccountModelAliasRules] =
+    useState<OAuthAccountModelAliasRules>({});
   const [sourceOptionsByProvider, setSourceOptionsByProvider] = useState<
     Record<string, string[]>
   >(DEFAULT_SOURCE_OPTIONS_BY_PROVIDER);
@@ -78,20 +135,47 @@ export function useOAuthRules(): UseOAuthRulesResult {
     providerId: string;
     account: Account;
   } | null>(null);
+  const [editingAccountModelAlias, setEditingAccountModelAlias] = useState<{
+    providerId: string;
+    account: Account;
+  } | null>(null);
+  const [editingProviderModelRules, setEditingProviderModelRules] = useState<
+    string | null
+  >(null);
+  const [editingProviderModelAlias, setEditingProviderModelAlias] = useState<
+    string | null
+  >(null);
 
   const loadOAuthRules = useCallback(async () => {
     try {
-      const result = await window.electronAPI?.oauthRules?.get();
-      if (!result?.success) {
+      const [rulesResult, aliasResult] = await Promise.all([
+        window.electronAPI?.oauthRules?.get(),
+        window.electronAPI?.oauthModelAlias?.get?.(),
+      ]);
+
+      if (!rulesResult?.success) {
         return;
       }
 
-      setOauthProviderRules((result.providerRules as OAuthProviderRules) || {});
-      setOauthAccountRules((result.accountRules as OAuthAccountRules) || {});
+      setOauthProviderRules(
+        (rulesResult.providerRules as OAuthProviderRules) || {},
+      );
+      setOauthAccountRules(
+        (rulesResult.accountRules as OAuthAccountRules) || {},
+      );
       setSourceOptionsByProvider(
-        (result.sourceOptionsByProvider as Record<string, string[]>) ||
+        (rulesResult.sourceOptionsByProvider as Record<string, string[]>) ||
           DEFAULT_SOURCE_OPTIONS_BY_PROVIDER,
       );
+
+      if (aliasResult?.success) {
+        setOauthModelAliasRules(
+          (aliasResult.sourceRules as OAuthModelAliasRules) || {},
+        );
+        setOauthAccountModelAliasRules(
+          (aliasResult.accountRules as OAuthAccountModelAliasRules) || {},
+        );
+      }
     } catch (error) {
       log.error("[Providers] Failed to load OAuth model rules:", error);
     }
@@ -196,12 +280,116 @@ export function useOAuthRules(): UseOAuthRulesResult {
     [getAccountRulesKey, oauthAccountRules],
   );
 
+  const getAccountModelAliasMeta = useCallback(
+    (
+      providerId: string,
+      account: Account,
+    ): { sourceKey: string; count: number } => {
+      const sourceKey = getAccountSourceKey(providerId, account);
+      const accountKey = getAccountRulesKey(providerId, account);
+      const providerMappings = oauthModelAliasRules[sourceKey] || [];
+      const accountMappings =
+        oauthAccountModelAliasRules[sourceKey]?.[accountKey] || [];
+      const mappings = [...providerMappings, ...accountMappings];
+      return { sourceKey, count: mappings.length };
+    },
+    [
+      getAccountRulesKey,
+      getAccountSourceKey,
+      oauthAccountModelAliasRules,
+      oauthModelAliasRules,
+    ],
+  );
+
+  const getProviderModelRulesMeta = useCallback(
+    (providerId: string): { sourceKey: string; count: number } => {
+      const sourceOptions = getSourceOptionsForProvider(providerId);
+      const sourceKey = sourceOptions[0] || providerId;
+      const count = sourceOptions.reduce((sum, source) => {
+        return sum + (oauthProviderRules[source]?.length || 0);
+      }, 0);
+      return { sourceKey, count };
+    },
+    [getSourceOptionsForProvider, oauthProviderRules],
+  );
+
+  const getModelAliasBySource = useCallback(
+    (
+      sourceKey: string,
+    ): Array<{ name: string; alias: string; fork?: boolean }> => {
+      return oauthModelAliasRules[sourceKey] || [];
+    },
+    [oauthModelAliasRules],
+  );
+
+  const getProviderRulesBySource = useCallback(
+    (sourceKey: string): string[] => {
+      return oauthProviderRules[sourceKey] || [];
+    },
+    [oauthProviderRules],
+  );
+
+  const getAccountModelAliasBySource = useCallback(
+    (
+      providerId: string,
+      account: Account,
+    ): Record<
+      string,
+      Array<{ name: string; alias: string; fork?: boolean }>
+    > => {
+      const accountKey = getAccountRulesKey(providerId, account);
+      const aliasBySource: Record<
+        string,
+        Array<{ name: string; alias: string; fork?: boolean }>
+      > = {};
+
+      Object.entries(oauthAccountModelAliasRules).forEach(
+        ([sourceKey, accountMap]) => {
+          const mappings = accountMap[accountKey] || [];
+          if (mappings.length > 0) {
+            aliasBySource[sourceKey] = mappings;
+          }
+        },
+      );
+
+      return aliasBySource;
+    },
+    [getAccountRulesKey, oauthAccountModelAliasRules],
+  );
+
+  const getProviderModelAliasMeta = useCallback(
+    (providerId: string): { sourceKey: string; count: number } => {
+      const sourceOptions = getSourceOptionsForProvider(providerId);
+      const sourceKey = sourceOptions[0] || providerId;
+      const count = sourceOptions.reduce((sum, source) => {
+        return sum + (oauthModelAliasRules[source]?.length || 0);
+      }, 0);
+      return { sourceKey, count };
+    },
+    [getSourceOptionsForProvider, oauthModelAliasRules],
+  );
+
   const handleOpenAccountModelRules = useCallback(
     (providerId: string, account: Account) => {
       setEditingAccountModelRules({ providerId, account });
     },
     [],
   );
+
+  const handleOpenAccountModelAlias = useCallback(
+    (providerId: string, account: Account) => {
+      setEditingAccountModelAlias({ providerId, account });
+    },
+    [],
+  );
+
+  const handleOpenProviderModelRules = useCallback((providerId: string) => {
+    setEditingProviderModelRules(providerId);
+  }, []);
+
+  const handleOpenProviderModelAlias = useCallback((providerId: string) => {
+    setEditingProviderModelAlias(providerId);
+  }, []);
 
   const handleLoadModelCatalog = useCallback(
     async (
@@ -351,23 +539,124 @@ export function useOAuthRules(): UseOAuthRulesResult {
     ],
   );
 
+  const handleSaveProviderModelRules = useCallback(
+    async (sourceKey: string, providerPatterns: string[]) => {
+      if (!window.electronAPI?.oauthRules) {
+        throw new Error(t.providers.accountModelRulesSaveFailed);
+      }
+
+      const sanitizedPatterns = Array.from(
+        new Set(
+          providerPatterns.map((pattern) => pattern.trim()).filter(Boolean),
+        ),
+      );
+
+      const saveResult = await window.electronAPI.oauthRules.setProviderRules(
+        sourceKey,
+        sanitizedPatterns,
+      );
+
+      if (!saveResult?.success) {
+        throw new Error(
+          saveResult?.error || t.providers.accountModelRulesSaveFailed,
+        );
+      }
+
+      await loadOAuthRules();
+      setEditingProviderModelRules(null);
+    },
+    [loadOAuthRules, t.providers.accountModelRulesSaveFailed],
+  );
+
+  const handleSaveProviderModelAlias = useCallback(
+    async (
+      sourceKey: string,
+      mappings: Array<{ name: string; alias: string; fork?: boolean }>,
+    ) => {
+      if (!window.electronAPI?.oauthModelAlias?.setSourceRules) {
+        throw new Error(t.providers.accountModelAliasSaveFailed);
+      }
+
+      const normalizedMappings = Array.from(
+        new Map(
+          mappings
+            .map((item) => ({
+              name: item.name.trim(),
+              alias: item.alias.trim(),
+              ...(typeof item.fork === "boolean" ? { fork: item.fork } : {}),
+            }))
+            .filter((item) => item.name && item.alias)
+            .map((item) => [`${item.name}=>${item.alias}`, item]),
+        ).values(),
+      );
+
+      const saveResult =
+        await window.electronAPI.oauthModelAlias.setSourceRules(
+          sourceKey,
+          normalizedMappings,
+        );
+
+      if (!saveResult?.success) {
+        throw new Error(
+          saveResult?.error || t.providers.accountModelAliasSaveFailed,
+        );
+      }
+
+      await loadOAuthRules();
+      setEditingProviderModelAlias(null);
+    },
+    [loadOAuthRules, t.providers.accountModelAliasSaveFailed],
+  );
+
+  const handleSaveAccountModelAlias = useCallback(
+    async (
+      sourceKey: string,
+      mappings: Array<{ name: string; alias: string; fork?: boolean }>,
+    ) => {
+      void sourceKey;
+      void mappings;
+      throw new Error(t.providers.accountModelAliasSaveFailed);
+    },
+    [t.providers.accountModelAliasSaveFailed],
+  );
+
   return {
     oauthProviderRules,
     oauthAccountRules,
+    oauthModelAliasRules,
+    oauthAccountModelAliasRules,
     sourceOptionsByProvider,
     editingAccountModelRules,
+    editingAccountModelAlias,
+    editingProviderModelRules,
+    editingProviderModelAlias,
     setEditingAccountModelRules,
+    setEditingAccountModelAlias,
+    setEditingProviderModelRules,
+    setEditingProviderModelAlias,
     loadOAuthRules,
     getSourceOptionsForProvider,
     getAccountRulesKey,
     getAccountSourceKey,
     getSourceOptionsForAccount,
     getAccountModelRulesMeta,
+    getProviderModelRulesMeta,
+    getAccountModelAliasMeta,
+    getProviderModelAliasMeta,
     getAccountRulesBySource,
+    getModelAliasBySource,
+    getAccountModelAliasBySource,
+    getProviderRulesBySource,
     handleOpenAccountModelRules,
+    handleOpenAccountModelAlias,
+    handleOpenProviderModelRules,
+    handleOpenProviderModelAlias,
     handleLoadModelCatalog,
     handleLoadAccountPreview,
     handleSaveAccountMetadata,
     handleSaveAccountModelRules,
+    handleSaveProviderModelRules,
+    handleSaveProviderModelAlias,
+    handleSaveAccountModelAlias,
   };
 }

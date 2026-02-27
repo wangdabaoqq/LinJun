@@ -229,11 +229,6 @@ export const AccountModelExplorerModal = memo(
       setError(null);
       try {
         const normalizedPatterns = mergeUniquePatterns(accountPatterns);
-        if (normalizedPatterns.length === 0) {
-          setError(t.providers.accountModelRulesMinOneRequired);
-          return;
-        }
-
         await onSave(sourceKey, normalizedPatterns);
         onClose();
       } catch (err: unknown) {
@@ -479,12 +474,7 @@ export const AccountModelExplorerModal = memo(
             </button>
             <button
               onClick={handleSave}
-              disabled={isSaving || accountPatterns.length === 0}
-              title={
-                accountPatterns.length === 0
-                  ? t.providers.accountModelRulesMinOneRequired
-                  : undefined
-              }
+              disabled={isSaving}
               className="glass-btn glass-btn-primary px-8 py-2.5 rounded-xl text-[11px] font-bold flex items-center gap-2.5 shadow-[0_0_25px_rgba(var(--accent-primary-rgb),0.25)] active:scale-[0.98] disabled:opacity-50"
             >
               {isSaving ? (

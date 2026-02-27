@@ -36,11 +36,21 @@ interface OfficialProvidersSectionProps {
     enabled: boolean,
   ) => void;
   onDownloadAccountJson: (providerId: string, accountId: string) => void;
+  onEditProviderModelRules: (providerId: string) => void;
   onEditAccountModelRules: (providerId: string, account: Account) => void;
+  onEditProviderModelAlias: (providerId: string) => void;
+  getProviderModelRulesMeta: (providerId: string) => {
+    sourceKey?: string;
+    count: number;
+  };
   getAccountModelRulesMeta: (
     providerId: string,
     account: Account,
   ) => { sourceKey?: string; count: number };
+  getProviderModelAliasMeta: (providerId: string) => {
+    sourceKey?: string;
+    count: number;
+  };
 }
 
 export function OfficialProvidersSection({
@@ -53,8 +63,12 @@ export function OfficialProvidersSection({
   onRemoveAccount,
   onToggleAccountEnabled,
   onDownloadAccountJson,
+  onEditProviderModelRules,
   onEditAccountModelRules,
+  onEditProviderModelAlias,
+  getProviderModelRulesMeta,
   getAccountModelRulesMeta,
+  getProviderModelAliasMeta,
 }: OfficialProvidersSectionProps) {
   const t = useTranslations();
   const [accountKeyword, setAccountKeyword] = useState("");
@@ -309,8 +323,12 @@ export function OfficialProvidersSection({
               onToggleAccountEnabled={onToggleAccountEnabled}
               onDownloadAccountJson={onDownloadAccountJson}
               pendingToggleAccountIds={pendingAccountToggles}
+              onEditProviderModelRules={onEditProviderModelRules}
               onEditAccountModelRules={onEditAccountModelRules}
+              onEditProviderModelAlias={onEditProviderModelAlias}
+              getProviderModelRulesMeta={getProviderModelRulesMeta}
               getAccountModelRulesMeta={getAccountModelRulesMeta}
+              getProviderModelAliasMeta={getProviderModelAliasMeta}
             />
           ))}
         </div>

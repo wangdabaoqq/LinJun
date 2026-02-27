@@ -117,6 +117,10 @@ export type OAuthAccountExcludedModelsConfig = Record<
   string,
   Record<string, string[]>
 >;
+export type OAuthModelAliasConfig = Record<
+  string,
+  Array<{ name: string; alias: string; fork?: boolean }>
+>;
 
 export interface ProxyConfig {
   host: string;
@@ -141,6 +145,7 @@ export interface ProxyConfig {
   };
   "oauth-excluded-models"?: OAuthExcludedModelsConfig;
   "oauth-account-excluded-models"?: OAuthAccountExcludedModelsConfig;
+  "oauth-model-alias"?: OAuthModelAliasConfig;
   "request-retry"?: number;
   "max-retry-interval"?: number;
   "openai-compatibility"?: OpenAICompatibilityProvider[];

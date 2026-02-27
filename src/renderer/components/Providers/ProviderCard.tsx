@@ -20,11 +20,21 @@ interface ProviderCardProps {
   ) => void;
   onDownloadAccountJson: (providerId: string, accountId: string) => void;
   pendingToggleAccountIds: Record<string, boolean>;
+  onEditProviderModelRules: (providerId: string) => void;
   onEditAccountModelRules: (providerId: string, account: Account) => void;
+  onEditProviderModelAlias: (providerId: string) => void;
+  getProviderModelRulesMeta: (providerId: string) => {
+    sourceKey?: string;
+    count: number;
+  };
   getAccountModelRulesMeta: (
     providerId: string,
     account: Account,
   ) => { sourceKey?: string; count: number };
+  getProviderModelAliasMeta: (providerId: string) => {
+    sourceKey?: string;
+    count: number;
+  };
 }
 
 export const ProviderCard = memo(function ProviderCard({
@@ -35,8 +45,12 @@ export const ProviderCard = memo(function ProviderCard({
   onToggleAccountEnabled,
   onDownloadAccountJson,
   pendingToggleAccountIds,
+  onEditProviderModelRules,
   onEditAccountModelRules,
+  onEditProviderModelAlias,
+  getProviderModelRulesMeta,
   getAccountModelRulesMeta,
+  getProviderModelAliasMeta,
 }: ProviderCardProps) {
   const t = useTranslations();
   const [visibleCount, setVisibleCount] = useState(ACCOUNT_PAGE_SIZE);
@@ -77,6 +91,16 @@ export const ProviderCard = memo(function ProviderCard({
 
   const visibleAccounts = provider.accounts.slice(0, visibleCount);
   const hasMore = visibleCount < provider.accounts.length;
+  const providerRulesMeta = getProviderModelRulesMeta(provider.id);
+  const providerAliasMeta = getProviderModelAliasMeta(provider.id);
+
+  const compactSourceLabel = (sourceKey?: string): string => {
+    const source = (sourceKey || provider.id || "").trim();
+    if (source.toLowerCase() === "antigravity") {
+      return "Ant";
+    }
+    return source;
+  };
 
   const getAccountDisplay = (account: Account) => {
     let main = account.nickname || "";
@@ -112,24 +136,84 @@ export const ProviderCard = memo(function ProviderCard({
 
   return (
     <div className="glass-card flex flex-col p-5 group/card transition-all duration-300 border border-[var(--glass-border)]">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="text-3xl transition-transform duration-300 group-hover/card:scale-105">
-            {provider.icon}
-          </div>
-          <div className="space-y-0.5">
-            <h3 className="font-bold text-base text-[var(--text-primary)] tracking-tight leading-tight">
-              {provider.id === "custom"
-                ? t.providers.customProvider
-                : provider.name}
-            </h3>
-            <div className="flex items-center gap-2">
+      <div className="flex items-center gap-4 min-w-0">
+        <div className="text-3xl transition-transform duration-300 group-hover/card:scale-105">
+          {provider.icon}
+        </div>
+        <div className="space-y-0.5 min-w-0 flex-1">
+          <h3 className="font-bold text-base text-[var(--text-primary)] tracking-tight leading-tight truncate">
+            {provider.id === "custom"
+              ? t.providers.customProvider
+              : provider.name}
+          </h3>
+          <div className="flex items-center justify-between gap-2 min-w-0">
+            <div className="flex items-center gap-2 shrink-0">
               <div
                 className={`w-1.5 h-1.5 rounded-full ${onlineCount > 0 ? "bg-[var(--accent-primary)] shadow-[0_0_8px_var(--accent-primary)]" : "bg-[var(--text-dim)]/20"}`}
               />
-              <p className="text-[10px] font-bold text-[var(--text-dim)] uppercase tracking-wider">
+              <p className="text-[10px] font-bold text-[var(--text-dim)] uppercase tracking-wider whitespace-nowrap">
                 {onlineCount} / {provider.accounts.length}
               </p>
+            </div>
+            {provider.compatStatus && (
+              <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider border whitespace-nowrap ${
+                provider.compatStatus === "migration-complete"
+                  ? "border-emerald-500/30 text-emerald-500 bg-emerald-500/5"
+                  : provider.compatStatus === "migration-failed"
+                    ? "border-red-500/30 text-red-500 bg-red-500/5"
+                    : "border-amber-500/30 text-amber-500 bg-amber-500/5"
+              }`}>
+                {provider.compatStatus === "fallback" && t.providers.compatFallbackActive}
+                {provider.compatStatus === "migration-pending" && t.providers.compatMigrationPending}
+                {provider.compatStatus === "migration-complete" && t.providers.compatMigrationComplete}
+                {provider.compatStatus === "migration-failed" && t.providers.compatMigrationFailed}
+              </span>
+            )}
+
+            <div className="flex items-center justify-end gap-1 min-w-0 ml-auto overflow-hidden">
+              <button
+                onClick={() => onEditProviderModelRules(provider.id)}
+                className={`inline-flex items-center gap-1.5 px-2 py-0.5 max-w-[152px] rounded-full border text-[9px] font-bold uppercase tracking-wider whitespace-nowrap transition-colors ${
+                  providerRulesMeta.count > 0
+                    ? "border-amber-500/30 text-amber-500 hover:border-amber-500/50 hover:bg-amber-500/10"
+                    : "border-[var(--glass-border)] text-[var(--text-dim)] hover:text-[var(--text-primary)] hover:border-[var(--glass-border-hover)]"
+                }`}
+                title={t.providers.providerModelRulesTitle}
+              >
+                <span className="font-mono text-[8px] opacity-70 max-w-[48px] truncate">
+                  {compactSourceLabel(providerRulesMeta.sourceKey)}
+                </span>
+                <span className="shrink-0 whitespace-nowrap tracking-normal normal-case">
+                  {providerRulesMeta.count > 0
+                    ? t.providers.accountModelRulesLimited.replace(
+                        "{count}",
+                        String(providerRulesMeta.count),
+                      )
+                    : t.providers.accountModelRulesAll}
+                </span>
+              </button>
+
+              <button
+                onClick={() => onEditProviderModelAlias(provider.id)}
+                className={`inline-flex items-center gap-1.5 px-2 py-0.5 max-w-[152px] rounded-full border text-[9px] font-bold uppercase tracking-wider whitespace-nowrap transition-colors ${
+                  providerAliasMeta.count > 0
+                    ? "border-[var(--accent-primary)]/30 text-[var(--accent-primary)] hover:border-[var(--accent-primary)]/50 hover:bg-[var(--accent-primary)]/10"
+                    : "border-[var(--glass-border)] text-[var(--text-dim)] hover:text-[var(--text-primary)] hover:border-[var(--glass-border-hover)]"
+                }`}
+                title={t.providers.accountModelAliasManage}
+              >
+                <span className="font-mono text-[8px] opacity-70 max-w-[48px] truncate">
+                  {compactSourceLabel(providerAliasMeta.sourceKey)}
+                </span>
+                <span className="shrink-0 whitespace-nowrap tracking-normal normal-case">
+                  {providerAliasMeta.count > 0
+                    ? t.providers.accountModelAliasMapped.replace(
+                        "{count}",
+                        String(providerAliasMeta.count),
+                      )
+                    : t.providers.accountModelAliasNone}
+                </span>
+              </button>
             </div>
           </div>
         </div>
@@ -193,14 +277,14 @@ export const ProviderCard = memo(function ProviderCard({
                         e.stopPropagation();
                         onEditAccountModelRules(provider.id, account);
                       }}
-                      className={`mt-1.5 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-[9px] font-bold uppercase tracking-wider transition-colors ${
+                      className={`mt-1.5 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-[9px] font-bold uppercase tracking-wider whitespace-nowrap transition-colors ${
                         modelRulesMeta.count > 0
                           ? "border-amber-500/30 text-amber-500 hover:border-amber-500/50 hover:bg-amber-500/10"
                           : "border-[var(--glass-border)] text-[var(--text-dim)] hover:text-[var(--text-primary)] hover:border-[var(--glass-border-hover)]"
                       }`}
                       title={t.providers.accountModelRulesManage}
                     >
-                      <span className="font-mono text-[8px] opacity-70">
+                      <span className="font-mono text-[8px] opacity-70 max-w-[120px] truncate">
                         {accountSourceLabel}
                       </span>
                       <span>

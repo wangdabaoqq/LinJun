@@ -418,6 +418,320 @@ class ManagementAPI {
     }
   }
 
+  async getOAuthExcludedModels(): Promise<Record<string, string[]>> {
+    try {
+      const res = await this.client.get(
+        `${this.baseURL}/v0/management/oauth-excluded-models`,
+        {
+          headers: this.getAuthHeaders(),
+        },
+      );
+
+      const payload = res.data;
+      const normalized: Record<string, string[]> = {};
+
+      const appendEntry = (sourceKey: string, models: unknown) => {
+        const key = String(sourceKey || "")
+          .trim()
+          .toLowerCase();
+        if (!key || !Array.isArray(models)) return;
+        const sanitized = Array.from(
+          new Set(
+            models
+              .map((item) => String(item || "").trim())
+              .filter((item) => item.length > 0),
+          ),
+        );
+        if (sanitized.length > 0) {
+          normalized[key] = sanitized;
+        }
+      };
+
+      const parseObjectMap = (objectValue: Record<string, unknown>) => {
+        Object.entries(objectValue).forEach(([key, value]) => {
+          if (Array.isArray(value)) {
+            appendEntry(key, value);
+          }
+        });
+      };
+
+      if (Array.isArray(payload)) {
+        payload.forEach((item) => {
+          if (!item || typeof item !== "object") return;
+          const typed = item as {
+            provider?: unknown;
+            channel?: unknown;
+            source?: unknown;
+            models?: unknown;
+          };
+          const sourceKey =
+            (typeof typed.provider === "string" && typed.provider) ||
+            (typeof typed.channel === "string" && typed.channel) ||
+            (typeof typed.source === "string" && typed.source) ||
+            "";
+          appendEntry(sourceKey, typed.models);
+        });
+      } else if (payload && typeof payload === "object") {
+        const objectPayload = payload as {
+          data?: unknown;
+          items?: unknown;
+          channels?: unknown;
+          excluded?: unknown;
+          "oauth-excluded-models"?: unknown;
+        };
+
+        if (Array.isArray(objectPayload.data)) {
+          objectPayload.data.forEach((item) => {
+            if (!item || typeof item !== "object") return;
+            const typed = item as {
+              provider?: unknown;
+              channel?: unknown;
+              source?: unknown;
+              models?: unknown;
+            };
+            const sourceKey =
+              (typeof typed.provider === "string" && typed.provider) ||
+              (typeof typed.channel === "string" && typed.channel) ||
+              (typeof typed.source === "string" && typed.source) ||
+              "";
+            appendEntry(sourceKey, typed.models);
+          });
+        } else if (Array.isArray(objectPayload.items)) {
+          objectPayload.items.forEach((item) => {
+            if (!item || typeof item !== "object") return;
+            const typed = item as {
+              provider?: unknown;
+              channel?: unknown;
+              source?: unknown;
+              models?: unknown;
+            };
+            const sourceKey =
+              (typeof typed.provider === "string" && typed.provider) ||
+              (typeof typed.channel === "string" && typed.channel) ||
+              (typeof typed.source === "string" && typed.source) ||
+              "";
+            appendEntry(sourceKey, typed.models);
+          });
+        } else {
+          parseObjectMap(payload as Record<string, unknown>);
+          if (
+            objectPayload.channels &&
+            typeof objectPayload.channels === "object"
+          ) {
+            parseObjectMap(objectPayload.channels as Record<string, unknown>);
+          }
+          if (
+            objectPayload.excluded &&
+            typeof objectPayload.excluded === "object"
+          ) {
+            parseObjectMap(objectPayload.excluded as Record<string, unknown>);
+          }
+          if (
+            objectPayload["oauth-excluded-models"] &&
+            typeof objectPayload["oauth-excluded-models"] === "object"
+          ) {
+            parseObjectMap(
+              objectPayload["oauth-excluded-models"] as Record<string, unknown>,
+            );
+          }
+        }
+      }
+
+      return normalized;
+    } catch (error) {
+      log.error("[ManagementAPI] Failed to get OAuth excluded models:", error);
+      throw error;
+    }
+  }
+
+  async setOAuthExcludedModels(
+    provider: string,
+    models: string[],
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      await this.client.patch(
+        `${this.baseURL}/v0/management/oauth-excluded-models`,
+        {
+          provider,
+          models,
+        },
+        {
+          headers: this.getAuthHeaders(),
+        },
+      );
+      return { success: true };
+    } catch (error) {
+      log.error("[ManagementAPI] Failed to set OAuth excluded models:", error);
+      return { success: false, error: String(error) };
+    }
+  }
+
+  async getOAuthModelAlias(): Promise<
+    Record<string, Array<{ name: string; alias: string; fork?: boolean }>>
+  > {
+    try {
+      const res = await this.client.get(
+        `${this.baseURL}/v0/management/oauth-model-alias`,
+        {
+          headers: this.getAuthHeaders(),
+        },
+      );
+
+      const payload = res.data;
+      const normalized: Record<
+        string,
+        Array<{ name: string; alias: string; fork?: boolean }>
+      > = {};
+
+      const appendEntry = (sourceKey: string, aliases: unknown) => {
+        const key = String(sourceKey || "")
+          .trim()
+          .toLowerCase();
+        if (!key || !Array.isArray(aliases)) return;
+
+        const seen = new Set<string>();
+        const sanitized = aliases
+          .map((item) => {
+            if (!item || typeof item !== "object") return null;
+            const typed = item as {
+              name?: unknown;
+              alias?: unknown;
+              fork?: unknown;
+            };
+            const name =
+              typeof typed.name === "string" ? typed.name.trim() : "";
+            const alias =
+              typeof typed.alias === "string" ? typed.alias.trim() : "";
+            if (!name || !alias) return null;
+            const dedupeKey = `${name}=>${alias}`;
+            if (seen.has(dedupeKey)) return null;
+            seen.add(dedupeKey);
+            return {
+              name,
+              alias,
+              ...(typeof typed.fork === "boolean" ? { fork: typed.fork } : {}),
+            };
+          })
+          .filter(
+            (item): item is { name: string; alias: string; fork?: boolean } =>
+              item !== null,
+          );
+
+        normalized[key] = sanitized;
+      };
+
+      const parseObjectMap = (objectValue: Record<string, unknown>) => {
+        Object.entries(objectValue).forEach(([key, value]) => {
+          if (Array.isArray(value)) {
+            appendEntry(key, value);
+          }
+        });
+      };
+
+      if (Array.isArray(payload)) {
+        payload.forEach((item) => {
+          if (!item || typeof item !== "object") return;
+          const typed = item as {
+            channel?: unknown;
+            provider?: unknown;
+            source?: unknown;
+            aliases?: unknown;
+          };
+          const sourceKey =
+            (typeof typed.channel === "string" && typed.channel) ||
+            (typeof typed.provider === "string" && typed.provider) ||
+            (typeof typed.source === "string" && typed.source) ||
+            "";
+          appendEntry(sourceKey, typed.aliases);
+        });
+      } else if (payload && typeof payload === "object") {
+        const objectPayload = payload as {
+          data?: unknown;
+          items?: unknown;
+          aliases?: unknown;
+          "oauth-model-alias"?: unknown;
+        };
+
+        if (Array.isArray(objectPayload.data)) {
+          objectPayload.data.forEach((item) => {
+            if (!item || typeof item !== "object") return;
+            const typed = item as {
+              channel?: unknown;
+              provider?: unknown;
+              source?: unknown;
+              aliases?: unknown;
+            };
+            const sourceKey =
+              (typeof typed.channel === "string" && typed.channel) ||
+              (typeof typed.provider === "string" && typed.provider) ||
+              (typeof typed.source === "string" && typed.source) ||
+              "";
+            appendEntry(sourceKey, typed.aliases);
+          });
+        } else if (Array.isArray(objectPayload.items)) {
+          objectPayload.items.forEach((item) => {
+            if (!item || typeof item !== "object") return;
+            const typed = item as {
+              channel?: unknown;
+              provider?: unknown;
+              source?: unknown;
+              aliases?: unknown;
+            };
+            const sourceKey =
+              (typeof typed.channel === "string" && typed.channel) ||
+              (typeof typed.provider === "string" && typed.provider) ||
+              (typeof typed.source === "string" && typed.source) ||
+              "";
+            appendEntry(sourceKey, typed.aliases);
+          });
+        } else {
+          parseObjectMap(payload as Record<string, unknown>);
+          if (
+            objectPayload.aliases &&
+            typeof objectPayload.aliases === "object"
+          ) {
+            parseObjectMap(objectPayload.aliases as Record<string, unknown>);
+          }
+          if (
+            objectPayload["oauth-model-alias"] &&
+            typeof objectPayload["oauth-model-alias"] === "object"
+          ) {
+            parseObjectMap(
+              objectPayload["oauth-model-alias"] as Record<string, unknown>,
+            );
+          }
+        }
+      }
+
+      return normalized;
+    } catch (error) {
+      log.error("[ManagementAPI] Failed to get OAuth model alias:", error);
+      throw error;
+    }
+  }
+
+  async setOAuthModelAlias(
+    channel: string,
+    aliases: Array<{ name: string; alias: string; fork?: boolean }>,
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      await this.client.patch(
+        `${this.baseURL}/v0/management/oauth-model-alias`,
+        {
+          channel,
+          aliases,
+        },
+        {
+          headers: this.getAuthHeaders(),
+        },
+      );
+      return { success: true };
+    } catch (error) {
+      log.error("[ManagementAPI] Failed to set OAuth model alias:", error);
+      return { success: false, error: String(error) };
+    }
+  }
+
   async callManagementApi(params: {
     method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
     url: string;
