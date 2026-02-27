@@ -14,6 +14,8 @@
 
 <p align="center">
   <strong><a href="README.md">English</a></strong>
+  ·
+  <strong><a href="https://linjun-site.940703.xyz">使用文档</a></strong>
 </p>
 
 <p align="center">
