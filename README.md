@@ -15,7 +15,7 @@
 <p align="center">
   <strong><a href="README_CN.md">中文文档</a></strong>
   ·
-  <strong><a href="https://linjun-site.940703.xyz">使用文档</a></strong>
+  <strong><a href="https://linjun-site.940703.xyz">官网</a></strong>
 </p>
 
 <p align="center">
