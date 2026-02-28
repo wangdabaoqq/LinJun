@@ -42,7 +42,7 @@ export const allProviders: Omit<Provider, "accounts">[] = [
   {
     id: "antigravity",
     name: "Antigravity",
-    icon: <AntigravityIcon />,
+    icon: <AntigravityIcon className="w-6 h-6 object-contain" />,
     color: "magenta",
     description: "Claude 4 Sonnet, Gemini 2.5 Pro",
     authType: "oauth",
@@ -74,7 +74,7 @@ export const allProviders: Omit<Provider, "accounts">[] = [
   {
     id: "kiro",
     name: "Kiro",
-    icon: <KiroIcon />,
+    icon: <KiroIcon className="w-6 h-6 object-contain" />,
     color: "indigo",
     description: "Claude Sonnet 4, Amazon Nova",
     authType: "oauth",

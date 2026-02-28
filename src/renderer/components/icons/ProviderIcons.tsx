@@ -25,6 +25,8 @@ import Spark from "@lobehub/icons/es/Spark";
 import Stepfun from "@lobehub/icons/es/Stepfun";
 import Ollama from "@lobehub/icons/es/Ollama";
 import ZenMux from "@lobehub/icons/es/ZenMux";
+import antigravityPng from "../../assets/antigravity.png";
+import kiroPng from "../../assets/kiro.png";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type LobehubIcon = Record<string, any> & React.ComponentType<any>;
@@ -65,30 +67,11 @@ export {
 
 // Custom icons for providers not in @lobehub/icons
 export const AntigravityIcon = ({ className }: { className?: string }) => (
-  <svg
-    viewBox="0 0 24 24"
-    fill="currentColor"
-    xmlns="http://www.w3.org/2000/svg"
-    width="1em"
-    height="1em"
-    className={className}
-  >
-    <path d="M11.615 0l6.237 6.107c2.382 2.338 2.823 3.743 3.161 6.15-1.197-1.732-1.776-2.02-4.504-2.772C12.48 8.374 11.095 5.933 11.615 0z" />
-    <path d="M9.32 2.122C4.771 6.367 2 9.182 2 13.08c0 5.76 4.288 9.788 9.745 9.918 5.457.13 9.441-5.284 9.095-8.403-.347-3.118-4.418-3.81-4.418-3.81 1.69 3.16-.13 8.098-4.894 8.098-5.154 0-6.8-6.02-4.2-9.008.82 1.617 1.879 2.563 2.674 3.273.717.64 1.219 1.09 1.136 1.664-.173 1.213-1.385.866-1.385.866.346.607 3.6 1.473 4.59-1.342.613-1.741-.423-2.789-1.714-4.096-1.632-1.651-3.672-3.717-3.31-8.118z" />
-  </svg>
+  <img src={antigravityPng} alt="Antigravity" className={className} />
 );
 
 export const KiroIcon = ({ className }: { className?: string }) => (
-  <svg
-    viewBox="0 0 24 24"
-    fill="currentColor"
-    xmlns="http://www.w3.org/2000/svg"
-    width="1em"
-    height="1em"
-    className={className}
-  >
-    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" />
-  </svg>
+  <img src={kiroPng} alt="Kiro" className={className} />
 );
 
 export const IFlowIcon = ({ className }: { className?: string }) => (
