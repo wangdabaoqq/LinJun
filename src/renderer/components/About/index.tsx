@@ -324,6 +324,11 @@ export function About() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {[
                 {
+                  label: t.about.officialWebsite,
+                  icon: Globe,
+                  url: "https://linjun-site.940703.xyz",
+                },
+                {
                   label: "GitHub Repository",
                   icon: Github,
                   url: "https://github.com/wangdabaoqq/LinJun",

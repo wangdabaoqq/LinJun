@@ -784,6 +784,7 @@ export const zh: Translations = {
     links: "链接",
     documentation: "文档",
     reportIssue: "报告问题",
+    officialWebsite: "官网",
     checkUpdates: "检查更新",
     appUpdates: "应用更新",
     proxyUpdates: "代理更新",

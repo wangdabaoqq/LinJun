@@ -815,6 +815,7 @@ export const en = {
     links: "LINKS",
     documentation: "Documentation",
     reportIssue: "Report Issue",
+    officialWebsite: "Official Website",
     checkUpdates: "Check for Updates",
     appUpdates: "APP UPDATES",
     proxyUpdates: "PROXY UPDATES",
