@@ -259,6 +259,15 @@ export const en = {
     removeAccountConfirm: "Unlink account?",
     removeAccountDesc:
       "This will remove the credentials from LinJun. You will need to re-authenticate to use it again.",
+    batchManage: "Batch",
+    batchManageExit: "Cancel",
+    batchSelectedCount: "{count} Selected",
+    batchDeleteSelected: "Delete {count}",
+    batchSelectAll: "Select All",
+    batchDeselectAll: "Deselect All",
+    batchDeleteConfirm: "Delete {count} accounts?",
+    batchDeleteDesc:
+      "This will remove the selected credentials from LinJun. You will need to re-authenticate to use them again.",
     enabledState: "Enabled",
     disabledState: "Disabled",
     enableProvider: "Enable",

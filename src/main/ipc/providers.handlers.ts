@@ -787,6 +787,53 @@ export function setupProvidersHandlers(): void {
   );
 
   registerHandle(
+    "providers:removeAccounts",
+    async (_event, filePaths: string[]) => {
+      try {
+        const errors: string[] = [];
+        const names: string[] = [];
+
+        for (const filePath of filePaths) {
+          const name = normalizeAuthFileName(filePath);
+          if (!name) {
+            errors.push(`Invalid auth file name: ${filePath}`);
+            continue;
+          }
+          names.push(name);
+        }
+
+        if (names.length > 0) {
+          const MAX_CONCURRENCY = 6;
+          let cursor = 0;
+          const workerCount = Math.min(MAX_CONCURRENCY, names.length);
+
+          await Promise.all(
+            Array.from({ length: workerCount }, async () => {
+              while (cursor < names.length) {
+                const index = cursor;
+                cursor += 1;
+                const result = await managementAPI.removeAuthFile(names[index]);
+                if (!result.success) {
+                  errors.push(result.error ?? names[index]);
+                }
+              }
+            }),
+          );
+        }
+
+        if (errors.length > 0) {
+          return { success: false, error: errors.join(", ") };
+        }
+
+        return { success: true };
+      } catch (error) {
+        log.error("[IPC] Failed to batch remove accounts:", error);
+        return { success: false, error: String(error) };
+      }
+    },
+  );
+
+  registerHandle(
     "providers:setAccountEnabled",
     async (_event, filePath: string, enabled: boolean) => {
       try {

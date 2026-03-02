@@ -51,6 +51,14 @@ interface OfficialProvidersSectionProps {
     sourceKey?: string;
     count: number;
   };
+  // batch select
+  selectModeProviderId: string | null;
+  selectedAccountIds: Set<string>;
+  onEnterSelectMode: (providerId: string) => void;
+  onExitSelectMode: () => void;
+  onToggleSelectAccount: (accountId: string) => void;
+  onToggleSelectAll: (allIds: string[]) => void;
+  onBatchDelete: () => void;
 }
 
 export function OfficialProvidersSection({
@@ -69,6 +77,13 @@ export function OfficialProvidersSection({
   getProviderModelRulesMeta,
   getAccountModelRulesMeta,
   getProviderModelAliasMeta,
+  selectModeProviderId,
+  selectedAccountIds,
+  onEnterSelectMode,
+  onExitSelectMode,
+  onToggleSelectAccount,
+  onToggleSelectAll,
+  onBatchDelete,
 }: OfficialProvidersSectionProps) {
   const t = useTranslations();
   const [accountKeyword, setAccountKeyword] = useState("");
@@ -329,6 +344,13 @@ export function OfficialProvidersSection({
               getProviderModelRulesMeta={getProviderModelRulesMeta}
               getAccountModelRulesMeta={getAccountModelRulesMeta}
               getProviderModelAliasMeta={getProviderModelAliasMeta}
+              isSelectMode={selectModeProviderId === provider.id}
+              selectedAccountIds={selectModeProviderId === provider.id ? selectedAccountIds : new Set()}
+              onEnterSelectMode={onEnterSelectMode}
+              onExitSelectMode={onExitSelectMode}
+              onToggleSelectAccount={onToggleSelectAccount}
+              onToggleSelectAll={onToggleSelectAll}
+              onBatchDelete={onBatchDelete}
             />
           ))}
         </div>

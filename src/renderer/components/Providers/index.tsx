@@ -148,6 +148,17 @@ export function Providers() {
     handleToggleAccountEnabled,
     handleDownloadAccountJson,
     getAccountDisplay,
+    selectModeProviderId,
+    selectedAccountIds,
+    isBatchRemoving,
+    batchRemoveConfirm,
+    enterSelectMode,
+    exitSelectMode,
+    toggleSelectAccount,
+    toggleSelectAll,
+    handleBatchRemove,
+    performBatchRemove,
+    setBatchRemoveConfirm,
   } = useProviderAccounts({ customProvidersCount: customProviders.length });
 
   const handleSelectProvider = useCallback(
@@ -457,6 +468,13 @@ export function Providers() {
             getProviderModelRulesMeta={getProviderModelRulesMeta}
             getAccountModelRulesMeta={getAccountModelRulesMeta}
             getProviderModelAliasMeta={getProviderModelAliasMeta}
+            selectModeProviderId={selectModeProviderId}
+            selectedAccountIds={selectedAccountIds}
+            onEnterSelectMode={enterSelectMode}
+            onExitSelectMode={exitSelectMode}
+            onToggleSelectAccount={toggleSelectAccount}
+            onToggleSelectAll={toggleSelectAll}
+            onBatchDelete={handleBatchRemove}
           />
 
           <RoutingProtocolSection
@@ -748,6 +766,24 @@ export function Providers() {
         cancelText={t.common.cancel}
         variant="danger"
         isLoading={isRemovingAccount}
+      />
+
+      <ConfirmModal
+        isOpen={batchRemoveConfirm}
+        onClose={() => {
+          if (!isBatchRemoving) {
+            setBatchRemoveConfirm(false);
+          }
+        }}
+        onConfirm={() => {
+          void performBatchRemove();
+        }}
+        title={t.providers.batchDeleteConfirm.replace("{count}", String(selectedAccountIds.size))}
+        description={t.providers.batchDeleteDesc}
+        confirmText={t.common.delete}
+        cancelText={t.common.cancel}
+        variant="danger"
+        isLoading={isBatchRemoving}
       />
 
       <ConfirmModal

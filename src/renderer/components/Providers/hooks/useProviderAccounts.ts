@@ -24,6 +24,11 @@ interface UseProviderAccountsResult {
     activeAccounts: number;
     customCount: number;
   };
+  // batch select
+  selectModeProviderId: string | null;
+  selectedAccountIds: Set<string>;
+  isBatchRemoving: boolean;
+  batchRemoveConfirm: boolean;
   refreshAccounts: () => Promise<void>;
   setRemoveConfirmAccount: (
     value: { providerId: string; accountId: string } | null,
@@ -43,6 +48,14 @@ interface UseProviderAccountsResult {
     accountId: string,
   ) => Promise<void>;
   getAccountDisplay: (account: Account) => { main: string; sub: string };
+  // batch actions
+  enterSelectMode: (providerId: string) => void;
+  exitSelectMode: () => void;
+  toggleSelectAccount: (accountId: string) => void;
+  toggleSelectAll: (allIds: string[]) => void;
+  handleBatchRemove: () => void;
+  performBatchRemove: () => Promise<void>;
+  setBatchRemoveConfirm: (value: boolean) => void;
 }
 
 export function useProviderAccounts({
@@ -64,6 +77,10 @@ export function useProviderAccounts({
     Record<string, boolean>
   >({});
   const [isRemovingAccount, setIsRemovingAccount] = useState(false);
+  const [selectModeProviderId, setSelectModeProviderId] = useState<string | null>(null);
+  const [selectedAccountIds, setSelectedAccountIds] = useState<Set<string>>(new Set());
+  const [isBatchRemoving, setIsBatchRemoving] = useState(false);
+  const [batchRemoveConfirm, setBatchRemoveConfirm] = useState(false);
 
   useEffect(() => {
     void loadAccounts();
@@ -323,6 +340,79 @@ export function useProviderAccounts({
     [loadedProviders],
   );
 
+
+  const enterSelectMode = useCallback((providerId: string) => {
+    setSelectModeProviderId(providerId);
+    setSelectedAccountIds(new Set());
+  }, []);
+
+  const exitSelectMode = useCallback(() => {
+    setSelectModeProviderId(null);
+    setSelectedAccountIds(new Set());
+  }, []);
+
+  const toggleSelectAccount = useCallback((accountId: string) => {
+    setSelectedAccountIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(accountId)) {
+        next.delete(accountId);
+      } else {
+        next.add(accountId);
+      }
+      return next;
+    });
+  }, []);
+
+  const toggleSelectAll = useCallback((allIds: string[]) => {
+    setSelectedAccountIds((prev) =>
+      prev.size === allIds.length ? new Set() : new Set(allIds),
+    );
+  }, []);
+
+  const handleBatchRemove = useCallback(() => {
+    if (selectedAccountIds.size === 0) return;
+    setBatchRemoveConfirm(true);
+  }, [selectedAccountIds.size]);
+
+  const performBatchRemove = useCallback(async () => {
+    if (isBatchRemoving || selectedAccountIds.size === 0 || !selectModeProviderId) return;
+
+    setIsBatchRemoving(true);
+    try {
+      const filePaths: string[] = [];
+      for (const accountId of selectedAccountIds) {
+        const account = providerAccounts.find(
+          (acc) => acc.provider === selectModeProviderId && acc.id === accountId,
+        );
+        if (account?.filePath) {
+          filePaths.push(account.filePath);
+        }
+      }
+
+      if (filePaths.length > 0 && window.electronAPI?.providers) {
+        const result = await window.electronAPI.providers.removeAccounts(filePaths);
+        if (result?.success) {
+          await loadAccounts({ force: true });
+          setBatchRemoveConfirm(false);
+          exitSelectMode();
+        } else {
+          log.error("[Providers] Failed to batch remove accounts:", result?.error);
+        }
+      }
+    } catch (error) {
+      log.error("[Providers] Error batch removing accounts:", error);
+    } finally {
+      setIsBatchRemoving(false);
+    }
+  }, [
+    isBatchRemoving,
+    selectedAccountIds,
+    selectModeProviderId,
+    providerAccounts,
+    loadAccounts,
+    exitSelectMode,
+  ]);
+
   return {
     isLoading,
     removeConfirmAccount,
@@ -339,5 +429,16 @@ export function useProviderAccounts({
     handleToggleAccountEnabled,
     handleDownloadAccountJson,
     getAccountDisplay,
+    selectModeProviderId,
+    selectedAccountIds,
+    isBatchRemoving,
+    batchRemoveConfirm,
+    enterSelectMode,
+    exitSelectMode,
+    toggleSelectAccount,
+    toggleSelectAll,
+    handleBatchRemove,
+    performBatchRemove,
+    setBatchRemoveConfirm,
   };
 }

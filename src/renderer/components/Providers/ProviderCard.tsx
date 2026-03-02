@@ -1,5 +1,5 @@
 import { memo, useState, useEffect, useRef, useCallback } from "react";
-import { Download, Loader2, Trash2, User } from "lucide-react";
+import { Check, Download, ListChecks, Loader2, Trash2, User, X } from "lucide-react";
 import { motion } from "motion/react";
 
 import { useTranslations } from "../../stores/settings";
@@ -35,6 +35,14 @@ interface ProviderCardProps {
     sourceKey?: string;
     count: number;
   };
+  // batch select
+  isSelectMode: boolean;
+  selectedAccountIds: Set<string>;
+  onEnterSelectMode: (providerId: string) => void;
+  onExitSelectMode: () => void;
+  onToggleSelectAccount: (accountId: string) => void;
+  onToggleSelectAll: (allIds: string[]) => void;
+  onBatchDelete: () => void;
 }
 
 export const ProviderCard = memo(function ProviderCard({
@@ -51,6 +59,13 @@ export const ProviderCard = memo(function ProviderCard({
   getProviderModelRulesMeta,
   getAccountModelRulesMeta,
   getProviderModelAliasMeta,
+  isSelectMode,
+  selectedAccountIds,
+  onEnterSelectMode,
+  onExitSelectMode,
+  onToggleSelectAccount,
+  onToggleSelectAll,
+  onBatchDelete,
 }: ProviderCardProps) {
   const t = useTranslations();
   const [visibleCount, setVisibleCount] = useState(ACCOUNT_PAGE_SIZE);
@@ -221,6 +236,69 @@ export const ProviderCard = memo(function ProviderCard({
 
       {isExpanded && provider.accounts.length > 0 && (
         <div className="mt-5 animate-in fade-in slide-in-from-top-1 duration-200">
+          {/* Batch mode header */}
+          <div className="flex items-center justify-between mb-2 min-h-[32px]">
+            {isSelectMode ? (
+              <div className="flex items-center gap-2 w-full">
+                <button
+                  onClick={() => onToggleSelectAll(provider.accounts.map((a) => a.id))}
+                  className="text-[10px] font-bold uppercase tracking-wider text-[var(--accent-primary)] hover:opacity-80 transition-opacity"
+                >
+                  {selectedAccountIds.size === provider.accounts.length
+                    ? t.providers.batchDeselectAll
+                    : t.providers.batchSelectAll}
+                </button>
+                {selectedAccountIds.size > 0 && (
+                  <motion.div 
+
+                    initial={{ opacity: 0 }}
+
+                    animate={{ opacity: 1 }}
+
+                    className="flex items-center gap-3 ml-auto mr-1"
+
+                  >
+                    <span className="text-[10px] text-[var(--text-dim)] uppercase tracking-tight font-medium">
+                      {t.providers.batchSelectedCount.split("{count}").map((part, i, arr) => (
+                        <span key={i}>
+                          {part}
+                          {i < arr.length - 1 && (
+                            <span className="text-[var(--accent-primary)] font-bold tabular-nums mx-0.5">
+                              {selectedAccountIds.size}
+                            </span>
+                          )}
+                        </span>
+                      ))}
+                    </span>
+                    <div className="w-1 h-1 rounded-full bg-[var(--glass-border)]" />
+                    <button
+                      onClick={onBatchDelete}
+                      className="flex items-center gap-1.5 text-red-500/80 hover:text-red-500 text-[10px] font-bold uppercase tracking-wider transition-colors active:scale-95"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      {t.common.delete}
+                    </button>
+                  </motion.div>
+                )}
+                <button
+                  onClick={onExitSelectMode}
+                  className={`${selectedAccountIds.size > 0 ? "" : "ml-auto"} p-1.5 rounded-full text-[var(--text-dim)] hover:text-red-500 hover:bg-red-500/10 transition-all active:scale-90`}
+                  title={t.providers.batchManageExit}
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={(e) => { e.stopPropagation(); onEnterSelectMode(provider.id); }}
+                className="ml-auto flex items-center gap-1.5 px-3 py-1 rounded-full border border-[var(--glass-border)] text-[var(--text-dim)] hover:text-[var(--text-primary)] hover:border-[var(--glass-border-hover)] text-[9px] font-bold uppercase tracking-wider transition-all bg-[var(--text-primary)]/[0.02] hover:bg-[var(--text-primary)]/[0.05]"
+                title={t.providers.batchManage}
+              >
+                <ListChecks className="w-3.5 h-3.5" />
+                {t.providers.batchManage}
+              </button>
+            )}
+          </div>
           <div
             ref={listRef}
             className="space-y-1.5 overflow-y-auto custom-scrollbar pr-1"
@@ -239,18 +317,30 @@ export const ProviderCard = memo(function ProviderCard({
                 modelRulesMeta.sourceKey ||
                 account.oauthSourceKey ||
                 provider.id;
+              const isSelected = isSelectMode && selectedAccountIds.has(account.id);
               return (
                 <div
                   key={account.id}
-                  className="flex items-center gap-3 p-2.5 rounded-2xl hover:bg-[var(--text-primary)]/[0.04] transition-all group/item border border-transparent hover:border-[var(--glass-border-hover)]"
-                >
+                  className={`flex items-center gap-3 p-2.5 rounded-2xl transition-all group/item border ${isSelected ? "bg-[var(--accent-primary)]/[0.06] border-[var(--accent-primary)]/30" : "hover:bg-[var(--text-primary)]/[0.04] border-transparent hover:border-[var(--glass-border-hover)]"} ${isSelectMode ? "cursor-pointer" : ""}`}
+                  onClick={isSelectMode ? () => onToggleSelectAccount(account.id) : undefined}
+>
                   <div className="relative flex-shrink-0">
-                    <div className="w-8 h-8 rounded-full bg-[var(--text-primary)]/[0.03] flex items-center justify-center text-[var(--text-dim)] group-hover/item:text-[var(--text-primary)] transition-colors">
-                      <User className="w-3.5 h-3.5" />
-                    </div>
-                    <div
-                      className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-[var(--bg-primary)] ${isEnabled ? "bg-[var(--accent-primary)]" : "bg-[var(--text-dim)]"}`}
-                    />
+                    {isSelectMode ? (
+                      <div className="w-8 h-8 flex items-center justify-center">
+                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${isSelected ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]/20" : "border-[var(--glass-border)] bg-[var(--text-primary)]/[0.03]"}`}>
+                          {isSelected && <Check className="w-2.5 h-2.5 text-[var(--accent-primary)]" />}
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="w-8 h-8 rounded-full bg-[var(--text-primary)]/[0.03] flex items-center justify-center text-[var(--text-dim)] group-hover/item:text-[var(--text-primary)] transition-colors">
+                          <User className="w-3.5 h-3.5" />
+                        </div>
+                        <div
+                          className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-[var(--bg-primary)] ${isEnabled ? "bg-[var(--accent-primary)]" : "bg-[var(--text-dim)]"}`}
+                        />
+                      </>
+                    )}
                   </div>
 
                   <div className="flex-1 min-w-0">
@@ -298,7 +388,8 @@ export const ProviderCard = memo(function ProviderCard({
                     </button>
                   </div>
 
-                  <div className="flex items-center gap-2 opacity-0 group-hover/item:opacity-100 transition-all">
+                  {!isSelectMode && (
+                    <div className="flex items-center gap-2 opacity-0 group-hover/item:opacity-100 transition-all">
                     <span
                       className={`text-[10px] font-bold uppercase tracking-wider ${
                         isEnabled
@@ -376,6 +467,7 @@ export const ProviderCard = memo(function ProviderCard({
                       )}
                     </button>
                   </div>
+                  )}
                 </div>
               );
             })}

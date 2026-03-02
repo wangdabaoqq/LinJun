@@ -203,6 +203,8 @@ const electronAPI = {
       ipcRenderer.invoke("providers:setAccountEnabled", filePath, enabled),
     removeAccount: (filePath: string) =>
       ipcRenderer.invoke("providers:removeAccount", filePath),
+    removeAccounts: (filePaths: string[]) =>
+      ipcRenderer.invoke("providers:removeAccounts", filePaths),
     getAccountPreview: (filePath: string) =>
       ipcRenderer.invoke("providers:getAccountPreview", filePath),
     updateAccountMetadata: (
