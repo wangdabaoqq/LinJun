@@ -1,5 +1,13 @@
 import { memo, useState, useEffect, useRef, useCallback } from "react";
-import { Check, Download, ListChecks, Loader2, Trash2, User, X } from "lucide-react";
+import {
+  Check,
+  Download,
+  ListChecks,
+  Loader2,
+  Trash2,
+  User,
+  X,
+} from "lucide-react";
 import { motion } from "motion/react";
 
 import { useTranslations } from "../../stores/settings";
@@ -171,17 +179,23 @@ export const ProviderCard = memo(function ProviderCard({
               </p>
             </div>
             {provider.compatStatus && (
-              <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider border whitespace-nowrap ${
-                provider.compatStatus === "migration-complete"
-                  ? "border-emerald-500/30 text-emerald-500 bg-emerald-500/5"
-                  : provider.compatStatus === "migration-failed"
-                    ? "border-red-500/30 text-red-500 bg-red-500/5"
-                    : "border-amber-500/30 text-amber-500 bg-amber-500/5"
-              }`}>
-                {provider.compatStatus === "fallback" && t.providers.compatFallbackActive}
-                {provider.compatStatus === "migration-pending" && t.providers.compatMigrationPending}
-                {provider.compatStatus === "migration-complete" && t.providers.compatMigrationComplete}
-                {provider.compatStatus === "migration-failed" && t.providers.compatMigrationFailed}
+              <span
+                className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider border whitespace-nowrap ${
+                  provider.compatStatus === "migration-complete"
+                    ? "border-emerald-500/30 text-emerald-500 bg-emerald-500/5"
+                    : provider.compatStatus === "migration-failed"
+                      ? "border-red-500/30 text-red-500 bg-red-500/5"
+                      : "border-amber-500/30 text-amber-500 bg-amber-500/5"
+                }`}
+              >
+                {provider.compatStatus === "fallback" &&
+                  t.providers.compatFallbackActive}
+                {provider.compatStatus === "migration-pending" &&
+                  t.providers.compatMigrationPending}
+                {provider.compatStatus === "migration-complete" &&
+                  t.providers.compatMigrationComplete}
+                {provider.compatStatus === "migration-failed" &&
+                  t.providers.compatMigrationFailed}
               </span>
             )}
 
@@ -241,7 +255,9 @@ export const ProviderCard = memo(function ProviderCard({
             {isSelectMode ? (
               <div className="flex items-center gap-2 w-full">
                 <button
-                  onClick={() => onToggleSelectAll(provider.accounts.map((a) => a.id))}
+                  onClick={() =>
+                    onToggleSelectAll(provider.accounts.map((a) => a.id))
+                  }
                   className="text-[10px] font-bold uppercase tracking-wider text-[var(--accent-primary)] hover:opacity-80 transition-opacity"
                 >
                   {selectedAccountIds.size === provider.accounts.length
@@ -249,26 +265,16 @@ export const ProviderCard = memo(function ProviderCard({
                     : t.providers.batchSelectAll}
                 </button>
                 {selectedAccountIds.size > 0 && (
-                  <motion.div 
-
+                  <motion.div
                     initial={{ opacity: 0 }}
-
                     animate={{ opacity: 1 }}
-
                     className="flex items-center gap-3 ml-auto mr-1"
-
                   >
-                    <span className="text-[10px] text-[var(--text-dim)] uppercase tracking-tight font-medium">
-                      {t.providers.batchSelectedCount.split("{count}").map((part, i, arr) => (
-                        <span key={i}>
-                          {part}
-                          {i < arr.length - 1 && (
-                            <span className="text-[var(--accent-primary)] font-bold tabular-nums mx-0.5">
-                              {selectedAccountIds.size}
-                            </span>
-                          )}
-                        </span>
-                      ))}
+                    <span className="text-[10px] text-[var(--text-dim)] tracking-tight font-medium tabular-nums">
+                      <span className="text-[var(--accent-primary)] font-bold">
+                        {selectedAccountIds.size}
+                      </span>
+                      /{provider.accounts.length}
                     </span>
                     <div className="w-1 h-1 rounded-full bg-[var(--glass-border)]" />
                     <button
@@ -290,7 +296,10 @@ export const ProviderCard = memo(function ProviderCard({
               </div>
             ) : (
               <button
-                onClick={(e) => { e.stopPropagation(); onEnterSelectMode(provider.id); }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEnterSelectMode(provider.id);
+                }}
                 className="ml-auto flex items-center gap-1.5 px-3 py-1 rounded-full border border-[var(--glass-border)] text-[var(--text-dim)] hover:text-[var(--text-primary)] hover:border-[var(--glass-border-hover)] text-[9px] font-bold uppercase tracking-wider transition-all bg-[var(--text-primary)]/[0.02] hover:bg-[var(--text-primary)]/[0.05]"
                 title={t.providers.batchManage}
               >
@@ -317,18 +326,27 @@ export const ProviderCard = memo(function ProviderCard({
                 modelRulesMeta.sourceKey ||
                 account.oauthSourceKey ||
                 provider.id;
-              const isSelected = isSelectMode && selectedAccountIds.has(account.id);
+              const isSelected =
+                isSelectMode && selectedAccountIds.has(account.id);
               return (
                 <div
                   key={account.id}
-                  className={`flex items-center gap-3 p-2.5 rounded-2xl transition-all group/item border ${isSelected ? "bg-[var(--accent-primary)]/[0.06] border-[var(--accent-primary)]/30" : "hover:bg-[var(--text-primary)]/[0.04] border-transparent hover:border-[var(--glass-border-hover)]"} ${isSelectMode ? "cursor-pointer" : ""}`}
-                  onClick={isSelectMode ? () => onToggleSelectAccount(account.id) : undefined}
->
+                  className={`flex items-center gap-3 p-2.5 rounded-2xl transition-all group/item border ${isSelected ? "bg-[var(--text-primary)]/[0.03] border-[var(--glass-border)]" : "hover:bg-[var(--text-primary)]/[0.04] border-transparent hover:border-[var(--glass-border-hover)]"} ${isSelectMode ? "cursor-pointer" : ""}`}
+                  onClick={
+                    isSelectMode
+                      ? () => onToggleSelectAccount(account.id)
+                      : undefined
+                  }
+                >
                   <div className="relative flex-shrink-0">
                     {isSelectMode ? (
                       <div className="w-8 h-8 flex items-center justify-center">
-                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${isSelected ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]/20" : "border-[var(--glass-border)] bg-[var(--text-primary)]/[0.03]"}`}>
-                          {isSelected && <Check className="w-2.5 h-2.5 text-[var(--accent-primary)]" />}
+                        <div
+                          className={`w-4 h-4 rounded-full border flex items-center justify-center transition-colors ${isSelected ? "border-[var(--glass-border-hover)] bg-[var(--bg-secondary)]/60 ring-1 ring-[var(--accent-primary)]/25" : "border-[var(--glass-border-hover)] bg-[var(--bg-secondary)]/40"}`}
+                        >
+                          {isSelected && (
+                            <Check className="w-2.5 h-2.5 text-[var(--accent-primary)]" />
+                          )}
                         </div>
                       </div>
                     ) : (
@@ -390,83 +408,83 @@ export const ProviderCard = memo(function ProviderCard({
 
                   {!isSelectMode && (
                     <div className="flex items-center gap-2 opacity-0 group-hover/item:opacity-100 transition-all">
-                    <span
-                      className={`text-[10px] font-bold uppercase tracking-wider ${
-                        isEnabled
-                          ? "text-emerald-500"
-                          : "text-[var(--text-dim)]"
-                      }`}
-                    >
-                      {isEnabled
-                        ? t.providers.enabledState
-                        : t.providers.disabledState}
-                    </span>
-                    <motion.button
-                      role="switch"
-                      aria-checked={isEnabled}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onToggleAccountEnabled(
-                          provider.id,
-                          account.id,
-                          !isEnabled,
-                        );
-                      }}
-                      disabled={isTogglePending}
-                      className={`relative w-8 h-4 rounded-full transition-colors duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-black ${
-                        isEnabled ? "toggle-track-active" : "toggle-track"
-                      } ${isTogglePending ? "opacity-70 cursor-wait" : "cursor-pointer"}`}
-                      title={
-                        isEnabled
-                          ? t.providers.disableProvider
-                          : t.providers.enableProvider
-                      }
-                    >
-                      <motion.div
-                        className="toggle-knob absolute top-0.5 left-0.5 w-3 h-3 rounded-full flex items-center justify-center pointer-events-none"
-                        animate={{
-                          x: isEnabled ? 16 : 0,
-                          scale: isTogglePending ? 0.8 : 1,
-                        }}
-                        transition={{
-                          type: "spring",
-                          stiffness: 500,
-                          damping: 30,
-                        }}
+                      <span
+                        className={`text-[10px] font-bold uppercase tracking-wider ${
+                          isEnabled
+                            ? "text-emerald-500"
+                            : "text-[var(--text-dim)]"
+                        }`}
                       >
-                        {isTogglePending && (
-                          <Loader2 className="w-2 h-2 text-[var(--accent-primary)] animate-spin" />
+                        {isEnabled
+                          ? t.providers.enabledState
+                          : t.providers.disabledState}
+                      </span>
+                      <motion.button
+                        role="switch"
+                        aria-checked={isEnabled}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onToggleAccountEnabled(
+                            provider.id,
+                            account.id,
+                            !isEnabled,
+                          );
+                        }}
+                        disabled={isTogglePending}
+                        className={`relative w-8 h-4 rounded-full transition-colors duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-black ${
+                          isEnabled ? "toggle-track-active" : "toggle-track"
+                        } ${isTogglePending ? "opacity-70 cursor-wait" : "cursor-pointer"}`}
+                        title={
+                          isEnabled
+                            ? t.providers.disableProvider
+                            : t.providers.enableProvider
+                        }
+                      >
+                        <motion.div
+                          className="toggle-knob absolute top-0.5 left-0.5 w-3 h-3 rounded-full flex items-center justify-center pointer-events-none"
+                          animate={{
+                            x: isEnabled ? 16 : 0,
+                            scale: isTogglePending ? 0.8 : 1,
+                          }}
+                          transition={{
+                            type: "spring",
+                            stiffness: 500,
+                            damping: 30,
+                          }}
+                        >
+                          {isTogglePending && (
+                            <Loader2 className="w-2 h-2 text-[var(--accent-primary)] animate-spin" />
+                          )}
+                        </motion.div>
+                      </motion.button>
+
+                      <button
+                        className="p-2 rounded-xl text-[var(--text-dim)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/6 transition-all active:scale-90"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDownloadAccountJson(provider.id, account.id);
+                        }}
+                        title={t.providers.downloadAccountJson}
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                      </button>
+
+                      <button
+                        className="p-2 rounded-xl text-[var(--text-dim)] hover:text-red-500 hover:bg-red-500/10 transition-all active:scale-90"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onRemoveAccount(provider.id, account.id);
+                        }}
+                        title={t.common.delete}
+                      >
+                        {isTogglePending ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-3.5 h-3.5" />
                         )}
-                      </motion.div>
-                    </motion.button>
-
-                    <button
-                      className="p-2 rounded-xl text-[var(--text-dim)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/6 transition-all active:scale-90"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onDownloadAccountJson(provider.id, account.id);
-                      }}
-                      title={t.providers.downloadAccountJson}
-                    >
-                      <Download className="w-3.5 h-3.5" />
-                    </button>
-
-                    <button
-                      className="p-2 rounded-xl text-[var(--text-dim)] hover:text-red-500 hover:bg-red-500/10 transition-all active:scale-90"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onRemoveAccount(provider.id, account.id);
-                      }}
-                      title={t.common.delete}
-                    >
-                      {isTogglePending ? (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      ) : (
-                        <Trash2 className="w-3.5 h-3.5" />
-                      )}
-                    </button>
-                  </div>
+                      </button>
+                    </div>
                   )}
                 </div>
               );
