@@ -1,5 +1,15 @@
 import { useState, memo, useEffect, useRef } from "react";
-import { X, Plus, Loader2, Copy, Check, ExternalLink } from "lucide-react";
+import {
+  X,
+  Loader2,
+  Copy,
+  Check,
+  ExternalLink,
+  CheckCircle2,
+  AlertCircle,
+  RefreshCw,
+  ArrowLeft,
+} from "lucide-react";
 import log from "@renderer/utils/logger";
 
 import { useTranslations } from "../../stores/settings";
@@ -11,6 +21,106 @@ export const AddAccountModal = memo(function AddAccountModal({
   onAdd,
 }: AddAccountModalProps) {
   const t = useTranslations();
+
+  const OAuthStatusView = ({
+    status,
+    error,
+    onBack,
+    onRetry,
+  }: {
+    status: "waiting" | "success" | "error";
+    error?: string | null;
+    onBack: () => void;
+    onRetry: () => void;
+  }) => {
+    if (status === "waiting") {
+      return (
+        <div className="flex-1 flex flex-col items-center justify-center py-12 space-y-10 animate-fade-in text-center">
+          <div className="relative h-20 w-20 flex items-center justify-center">
+            <div className="absolute inset-0 rounded-full border-2 border-[var(--glass-border)]" />
+            <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-[var(--accent-primary)] animate-spin" />
+            <div className="text-5xl leading-none animate-pulse">
+              {provider.icon}
+            </div>
+          </div>
+
+          <div className="space-y-4 max-w-[280px]">
+            <h3 className="text-lg font-bold text-[var(--text-primary)] tracking-tight">
+              {t.providers.waitingForBrowser || "Connecting Account..."}
+            </h3>
+            <p className="text-[10px] text-[var(--text-muted)] max-w-[240px] mx-auto leading-relaxed font-bold uppercase tracking-wider">
+              {isAntigravity
+                ? t.providers.oauthHintGoogle
+                : t.providers.oauthHintGeneric}
+            </p>
+          </div>
+
+          <button
+            onClick={onBack}
+            className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-dim)] hover:text-[var(--text-primary)] transition-all flex items-center gap-2 pt-4 group active:scale-95"
+          >
+            <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-1" />
+            {t.common.cancel || "Cancel"}
+          </button>
+        </div>
+      );
+    }
+
+    if (status === "success") {
+      return (
+        <div className="flex-1 flex flex-col items-center justify-center py-12 space-y-10 animate-fade-in text-center">
+          <CheckCircle2 className="w-12 h-12 text-emerald-400" />
+
+          <div className="space-y-4">
+            <h3 className="text-2xl font-black text-[var(--text-primary)] tracking-tighter">
+              {t.providers.authSuccess || "CONNECTED!"}
+            </h3>
+            <p className="text-xs text-[var(--text-muted)] font-medium max-w-[240px] mx-auto leading-relaxed">
+              {t.providers.authSuccessMessage ||
+                "Your account has been successfully linked to LinJun."}
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    if (status === "error") {
+      return (
+        <div className="flex-1 flex flex-col items-center justify-center py-12 space-y-10 animate-fade-in text-center">
+          <AlertCircle className="w-12 h-12 text-red-400" />
+
+          <div className="space-y-4 max-w-[320px]">
+            <h3 className="text-lg font-bold text-[var(--text-primary)]">
+              {t.providers.authFailed || "Authentication Failed"}
+            </h3>
+            <div className="p-4 rounded-2xl bg-red-500/5 border border-red-500/20 text-red-400 text-[11px] font-mono leading-relaxed break-words shadow-inner">
+              {error || "Unknown error occurred"}
+            </div>
+          </div>
+
+          <div className="flex gap-4 pt-4">
+            <button
+              onClick={onBack}
+              className="px-6 h-11 rounded-xl font-bold text-[10px] tracking-wider uppercase border border-[var(--glass-border)] text-[var(--text-dim)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 transition-all flex items-center gap-2 active:scale-95"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              {t.common.back || "Back"}
+            </button>
+            <button
+              onClick={onRetry}
+              className="px-6 h-11 rounded-xl font-bold text-[10px] tracking-wider uppercase glass-btn glass-btn-primary flex items-center justify-center gap-2 active:scale-95"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              {t.common.retry || "Try Again"}
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return null;
+  };
+
   const [isLoading, setIsLoading] = useState(false);
   const [apiKey, setApiKey] = useState("");
   const [endpoint, setEndpoint] = useState("");
@@ -35,11 +145,14 @@ export const AddAccountModal = memo(function AddAccountModal({
   const [kiroIdcStartUrl, setKiroIdcStartUrl] = useState("");
   const [kiroIdcRegion, setKiroIdcRegion] = useState("us-east-1");
   const [isClosing, setIsClosing] = useState(false);
+  const [oauthStatus, setOauthStatus] = useState<
+    "idle" | "waiting" | "success" | "error"
+  >("idle");
+  const [oauthStateToken, setOauthStateToken] = useState<string | null>(null);
   const closeTimerRef = useRef<number | null>(null);
 
   const isAntigravity = provider.id === "antigravity";
   const isKiro = provider.id === "kiro";
-  const isCodex = provider.id === "codex";
   const isAuthUrlModalProvider =
     provider.id === "antigravity" ||
     provider.id === "codex" ||
@@ -86,54 +199,87 @@ export const AddAccountModal = memo(function AddAccountModal({
     setKiroPendingOpen(false);
   }, [isKiro, kiroAuthMode]);
 
+  // Unified OAuth Status Polling
   useEffect(() => {
-    if (!isKiro || !kiroAuthState) {
+    const stateToken = kiroAuthState || oauthStateToken;
+    if (oauthStatus !== "waiting" || !stateToken) {
       return;
     }
 
     let cancelled = false;
     const poll = async () => {
       try {
-        const status =
-          await window.electronAPI?.kiro?.getAuthStatus(kiroAuthState);
+        const statusGetter = isKiro
+          ? window.electronAPI?.kiro?.getAuthStatus
+          : window.electronAPI?.oauth?.getAuthStatus;
+
+        if (!statusGetter) return;
+
+        const status = await statusGetter(stateToken);
         if (!status || cancelled) return;
 
-        if (status.status === "device_code") {
-          if (status.verification_url) {
+        if (status.status === "ok") {
+          setOauthStatus("success");
+          setIsAntigravityAuthenticating(false);
+          setTimeout(() => {
+            if (!cancelled) {
+              runCloseAnimation(() => {
+                onAdd({
+                  email: `oauth-${provider.id}@connected`,
+                  nickname: undefined,
+                });
+                onClose();
+              });
+            }
+          }, 2400);
+        } else if (status.status === "error") {
+          setOauthStatus("error");
+          setIsAntigravityAuthenticating(false);
+          setError(
+            status.error ||
+              t.providers.authErrorHint ||
+              "Authentication failed",
+          );
+        } else if (isKiro && status.status === "device_code") {
+          if (status.verification_url)
             setKiroVerificationUrl(status.verification_url);
-          }
-          if (status.user_code) {
-            setKiroUserCode(status.user_code);
-          }
+          if (status.user_code) setKiroUserCode(status.user_code);
           if (status.verification_url && kiroPendingOpen) {
             window.electronAPI?.app.openExternal(status.verification_url);
             setKiroPendingOpen(false);
           }
-        } else if (status.status === "auth_url" && status.url) {
+        } else if (isKiro && status.status === "auth_url" && status.url) {
           setKiroVerificationUrl(status.url);
           if (kiroPendingOpen) {
             window.electronAPI?.app.openExternal(status.url);
             setKiroPendingOpen(false);
           }
-        } else if (status.status === "error" && status.error) {
-          setError(status.error);
-          setKiroPendingOpen(false);
         }
       } catch (err) {
         if (!cancelled) {
+          setOauthStatus("error");
+          setIsAntigravityAuthenticating(false);
           setError(String(err));
-          setKiroPendingOpen(false);
         }
       }
     };
 
-    const interval = setInterval(poll, 1200);
+    const interval = setInterval(poll, 1500);
     poll();
     return () => {
       cancelled = true;
       clearInterval(interval);
     };
-  }, [isKiro, kiroAuthState, kiroPendingOpen]);
+  }, [
+    oauthStatus,
+    kiroAuthState,
+    oauthStateToken,
+    isKiro,
+    kiroPendingOpen,
+    provider.id,
+    onAdd,
+    t.providers.authErrorHint,
+  ]);
 
   const isCustomProvider = provider.id === "custom";
 
@@ -155,13 +301,12 @@ export const AddAccountModal = memo(function AddAccountModal({
     }, 240);
   };
 
-  const openAuthUrlInBrowser = (url: string) => {
+  const openAuthUrlInBrowser = (url: string, stateToken?: string) => {
     setAntigravityAuthUrl(url);
+    if (stateToken) setOauthStateToken(stateToken);
     setIsAntigravityAuthenticating(true);
+    setOauthStatus("waiting");
     window.electronAPI?.app.openExternal(url);
-    setTimeout(() => {
-      setIsAntigravityAuthenticating(false);
-    }, 5000);
   };
 
   const handleOAuthConnect = async () => {
@@ -173,7 +318,10 @@ export const AddAccountModal = memo(function AddAccountModal({
           projectId.trim() || undefined,
         );
         if (result?.status === "ok" && result.url) {
-          openAuthUrlInBrowser(result.url);
+          openAuthUrlInBrowser(
+            result.url,
+            (result as { status: string; url?: string; state?: string }).state,
+          );
         } else {
           setError("Failed to get Gemini authentication URL");
         }
@@ -185,18 +333,14 @@ export const AddAccountModal = memo(function AddAccountModal({
       return;
     }
 
-    if (isAuthUrlModalProvider && antigravityAuthUrl) {
-      openAuthUrlInBrowser(antigravityAuthUrl);
-      return;
-    }
-
     if (isAuthUrlModalProvider) {
       setIsLoading(true);
       setError(null);
       try {
         const authGetters: Record<
           string,
-          (() => Promise<{ status: string; url?: string }>) | undefined
+          | (() => Promise<{ status: string; url?: string; state?: string }>)
+          | undefined
         > = {
           antigravity: window.electronAPI?.antigravity?.getAuthUrl,
           codex: window.electronAPI?.codex?.getAuthUrl,
@@ -212,7 +356,7 @@ export const AddAccountModal = memo(function AddAccountModal({
 
         const result = await authGetter();
         if (result?.status === "ok" && result.url) {
-          openAuthUrlInBrowser(result.url);
+          openAuthUrlInBrowser(result.url, result.state);
         } else {
           setError(`Failed to get ${provider.name} authentication URL`);
         }
@@ -303,6 +447,7 @@ export const AddAccountModal = memo(function AddAccountModal({
     }
 
     setIsAntigravityAuthenticating(true);
+    setOauthStatus("waiting");
     setKiroVerificationUrl(null);
     setKiroUserCode(null);
     setKiroAuthState(null);
@@ -319,15 +464,14 @@ export const AddAccountModal = memo(function AddAccountModal({
 
       if (result?.status === "ok" && result.state) {
         setKiroAuthState(result.state);
+        setOauthStateToken(result.state);
       } else {
         setError(t.providers.kiroAuthUrlFailed);
+        setOauthStatus("error");
       }
     } catch (err) {
       setError(String(err));
-    } finally {
-      setTimeout(() => {
-        setIsAntigravityAuthenticating(false);
-      }, 5000);
+      setOauthStatus("error");
     }
   };
 
@@ -444,39 +588,29 @@ export const AddAccountModal = memo(function AddAccountModal({
               </p>
             </div>
           </div>
-          {!isAntigravityAuthenticating && (
-            <button
-              onClick={() => runCloseAnimation(onClose)}
-              className="w-10 h-10 flex items-center justify-center rounded-xl text-[var(--text-dim)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 transition-all active:scale-95"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          )}
+          <button
+            onClick={() => runCloseAnimation(onClose)}
+            className="w-10 h-10 flex items-center justify-center rounded-xl text-[var(--text-dim)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 transition-all active:scale-95"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
 
         <div className="relative z-10 p-8 space-y-8 min-h-[300px]">
-          {isAntigravityAuthenticating ? (
-            <div className="flex-1 flex flex-col items-center justify-center py-8 space-y-8 animate-fade-in text-center">
-              <div className="relative">
-                <div className="absolute inset-0 rounded-full bg-[var(--accent-magenta)]/20 animate-ping" />
-                <div className="relative w-24 h-24 flex items-center justify-center rounded-full border border-[var(--glass-border)] bg-[var(--bg-tertiary)]/40">
-                  <Loader2 className="w-10 h-10 text-[var(--accent-magenta)] animate-spin" />
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <h3 className="text-base font-bold text-[var(--text-primary)]">
-                  {isAntigravity
-                    ? t.providers.oauthProgressGoogle
-                    : t.providers.oauthProgressGeneric}
-                </h3>
-                <p className="text-[10px] text-[var(--text-muted)] max-w-[280px] mx-auto uppercase tracking-wider font-bold">
-                  {isAntigravity
-                    ? t.providers.oauthHintGoogle
-                    : t.providers.oauthHintGeneric}
-                </p>
-              </div>
-            </div>
+          {oauthStatus !== "idle" ? (
+            <OAuthStatusView
+              status={oauthStatus}
+              error={error}
+              onBack={() => {
+                setOauthStatus("idle");
+                setIsAntigravityAuthenticating(false);
+              }}
+              onRetry={() => {
+                setOauthStatus("idle");
+                setIsAntigravityAuthenticating(false);
+                handleOAuthConnect();
+              }}
+            />
           ) : (
             <div className="space-y-6 flex-1 flex flex-col text-left">
               {provider.authType === "oauth" ? (

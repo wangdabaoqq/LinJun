@@ -12,6 +12,8 @@ export const zh: Translations = {
     copy: "复制",
     copied: "已复制",
     copyFailed: "复制失败",
+    back: "返回",
+    retry: "重试",
   },
   app: {
     introName: "霖君",
@@ -175,6 +177,14 @@ export const zh: Translations = {
       "请在浏览器中完成 Google 登录，我们将自动捕获授权令牌并完成配置。",
     oauthHintGeneric:
       "请在浏览器中完成授权登录，我们将自动捕获授权令牌并完成配置。",
+    waitingForBrowser: "等待浏览器响应",
+    authSuccess: "授权成功",
+    authSuccessMessage: "您的账户已成功关联至霖君。此窗口即将关闭。",
+    authFailed: "授权失败",
+    authRetry: "重试授权",
+    authConnected: "连接成功！",
+    authSuccessHint: "账号已成功关联",
+    authErrorHint: "授权过程中发生错误",
     kiroAuthModeLabel: "授权方式",
     kiroAuthModeCurrent: "导入方式",
     kiroAuthModeOauth: "OAuth 授权",

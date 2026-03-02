@@ -3,7 +3,7 @@ import { app } from "electron";
 
 import log from "../utils/logger";
 
-const GITHUB_REPO = "wangdabaoqq/LinJun";
+const _GITHUB_REPO = "wangdabaoqq/LinJun";
 const UPDATE_PROXY_BASE =
   "https://g-proxy.940703.xyz/https://github.com/wangdabaoqq/LinJun";
 

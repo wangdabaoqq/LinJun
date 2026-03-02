@@ -25,7 +25,10 @@ interface CustomProviderImportModalProps {
     codex: CodexCompatProvider[];
   };
   onClose: () => void;
-  onConfirm: (data: any, strategy: "overwrite" | "skip") => Promise<void>;
+  onConfirm: (
+    data: CustomImportPayload,
+    strategy: "overwrite" | "skip",
+  ) => Promise<void>;
 }
 
 type ImportTab = "file" | "json";
@@ -258,15 +261,22 @@ export function CustomProviderImportModal({
       });
     }
 
-    const checkApiKeyProvider = (list: any[] | undefined) => {
+    const checkApiKeyProvider = (
+      list:
+        | ClaudeCompatProvider[]
+        | GeminiCompatProvider[]
+        | CodexCompatProvider[]
+        | undefined,
+    ) => {
       if (!Array.isArray(list)) return;
       list.forEach((p) => {
         total++;
-        if (!p["api-key"]) {
+        const apiKey = p["api-key"];
+        if (!apiKey) {
           skipped++;
           return;
         }
-        if (existingMap.apiKeys.has(p["api-key"])) {
+        if (existingMap.apiKeys.has(apiKey)) {
           if (mergeStrategy === "overwrite") updated++;
           else skipped++;
         } else {

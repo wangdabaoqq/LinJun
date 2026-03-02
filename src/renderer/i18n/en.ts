@@ -11,6 +11,8 @@ export const en = {
     copy: "Copy",
     copied: "Copied",
     copyFailed: "Copy failed",
+    back: "Back",
+    retry: "Retry",
   },
   app: {
     introName: "LinJun",
@@ -177,6 +179,15 @@ export const en = {
       "Please complete Google sign-in in your browser. We will automatically capture the token and finish setup.",
     oauthHintGeneric:
       "Please complete authorization sign-in in your browser. We will automatically capture the token and finish setup.",
+    waitingForBrowser: "Waiting for Browser",
+    authSuccess: "Authorization Successful",
+    authSuccessMessage:
+      "Your account has been successfully linked to LinJun. This window will close shortly.",
+    authFailed: "Authorization Failed",
+    authRetry: "Retry Authorization",
+    authConnected: "CONNECTED!",
+    authSuccessHint: "Account linked successfully",
+    authErrorHint: "Something went wrong",
     kiroAuthModeLabel: "Authorization Mode",
     kiroAuthModeCurrent: "Import Method",
     kiroAuthModeOauth: "OAuth Login",

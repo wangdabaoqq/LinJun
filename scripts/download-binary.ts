@@ -1,7 +1,11 @@
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const fs = require("fs") as typeof import("fs");
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const path = require("path") as typeof import("path");
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const { spawnSync } =
   require("child_process") as typeof import("child_process");
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const { createGunzip } = require("zlib") as typeof import("zlib");
 
 const OUTPUT_ROOT = path.resolve(process.cwd(), "resources/binaries");

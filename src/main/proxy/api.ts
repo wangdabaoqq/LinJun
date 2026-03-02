@@ -196,8 +196,8 @@ class ManagementAPI {
     }
   }
 
-  async getKiroAuthStatus(state: string): Promise<{
-    status: "wait" | "device_code" | "auth_url" | "error";
+  async getAuthStatus(state: string): Promise<{
+    status: "pending" | "wait" | "ok" | "error" | "device_code" | "auth_url";
     verification_url?: string;
     user_code?: string;
     url?: string;
@@ -213,9 +213,13 @@ class ManagementAPI {
       );
       return res.data;
     } catch (error) {
-      log.error("[ManagementAPI] Failed to get Kiro auth status:", error);
+      log.error("[ManagementAPI] Failed to get auth status:", error);
       return { status: "error", error: "auth status failed" };
     }
+  }
+
+  async getKiroAuthStatus(state: string) {
+    return this.getAuthStatus(state);
   }
 
   async getCopilotAuthUrl(): Promise<CopilotAuthUrlResponse> {

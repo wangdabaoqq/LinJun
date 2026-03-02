@@ -22,7 +22,7 @@ export function Quota({ onNavigate }: QuotaProps) {
   const selectedProvider = useQuotaStore((state) => state.selectedProvider);
   const accounts = useQuotaStore((state) => state.accounts);
   const isLoading = useQuotaStore((state) => state.isLoading);
-  const isStreaming = useQuotaStore((state) => state.isStreaming);
+  const _isStreaming = useQuotaStore((state) => state.isStreaming);
   const error = useQuotaStore((state) => state.error);
   const loadProviders = useQuotaStore((state) => state.loadProviders);
   const selectProvider = useQuotaStore((state) => state.selectProvider);

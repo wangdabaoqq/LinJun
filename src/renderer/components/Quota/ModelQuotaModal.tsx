@@ -90,7 +90,7 @@ function normalizeVendorIconKey(vendor: string): string {
 interface ModelCardProps {
   model: ProcessedQuotaWindow;
   viewMode: "grid" | "list";
-  t: any;
+  t: ReturnType<typeof useTranslations>;
   copiedModelId: string | null;
   onCopy: (id: string) => void;
 }

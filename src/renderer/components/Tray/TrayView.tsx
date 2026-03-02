@@ -8,7 +8,6 @@ import {
   Square,
   RotateCw,
   LayoutDashboard,
-  ChevronRight,
 } from "lucide-react";
 import {
   useQuotaStore,

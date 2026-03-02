@@ -1158,9 +1158,18 @@ export function setupProvidersHandlers(): void {
 
   registerHandle("qwen:getAuthStatus", async (_event, state: string) => {
     try {
-      return await managementAPI.getQwenAuthStatus(state);
+      return await managementAPI.getAuthStatus(state);
     } catch (error) {
       log.error("[IPC] Failed to get Qwen auth status:", error);
+      return { status: "error" };
+    }
+  });
+
+  registerHandle("oauth:getAuthStatus", async (_event, state: string) => {
+    try {
+      return await managementAPI.getAuthStatus(state);
+    } catch (error) {
+      log.error("[IPC] Failed to get OAuth auth status:", error);
       return { status: "error" };
     }
   });

@@ -126,7 +126,7 @@ export function IntroPage({ onComplete }: IntroPageProps) {
   const [videoSrc, setVideoSrc] = useState<string | null>(null);
 
   // Controls when the content starts showing (after video solo play)
-  const CONTENT_START_DELAY = 3.0;
+  const _CONTENT_START_DELAY = 3.0;
 
   // Dynamically import video - gracefully fallback if file doesn't exist
   useEffect(() => {

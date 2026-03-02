@@ -333,6 +333,10 @@ const electronAPI = {
     getAuthStatus: (state: string) =>
       ipcRenderer.invoke("qwen:getAuthStatus", state),
   },
+  oauth: {
+    getAuthStatus: (state: string) =>
+      ipcRenderer.invoke("oauth:getAuthStatus", state),
+  },
   antigravity: {
     getAuthUrl: () => ipcRenderer.invoke("antigravity:getAuthUrl"),
   },

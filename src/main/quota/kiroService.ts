@@ -2,7 +2,7 @@ import axios from "axios";
 
 import { managementAPI } from "../proxy/api";
 import log from "../utils/logger";
-import { TokenReadResult, updateTokenFile } from "./tokenReader";
+import { TokenReadResult } from "./tokenReader";
 
 const KIRO_USAGE_URL =
   "https://codewhisperer.us-east-1.amazonaws.com/getUsageLimits?isEmailRequired=true&origin=AI_EDITOR";
@@ -42,7 +42,7 @@ function formatKiroErrorForLog(error: unknown): string {
   return String(error);
 }
 
-function getAssumedKiroExpiresAt(): string {
+function _getAssumedKiroExpiresAt(): string {
   return new Date(Date.now() + KIRO_ACCESS_TOKEN_TTL_MS).toISOString();
 }
 
@@ -66,7 +66,7 @@ export function isKiroRefreshBlocked(filePath: string): boolean {
   return !canAttemptKiroRefresh(filePath);
 }
 
-function recordKiroRefreshAttempt(filePath: string, success: boolean): void {
+function _recordKiroRefreshAttempt(filePath: string, success: boolean): void {
   if (success) {
     kiroRefreshAttempts.delete(filePath);
     return;
@@ -118,7 +118,7 @@ export interface KiroRefreshResult {
   error?: string;
 }
 
-async function refreshKiroToken(refreshToken: string): Promise<string> {
+async function _refreshKiroToken(refreshToken: string): Promise<string> {
   const response = await axios.post(
     KIRO_REFRESH_URL,
     { refreshToken },
