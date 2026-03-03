@@ -29,7 +29,7 @@
 ## ✨ Features
 
 - 🔌 **Expanded Provider Support**: Connect Claude, Gemini, Codex, Qwen, Antigravity, iFlow, GitHub Copilot, Kiro, Custom Provider, and AmpCode
-- 📊 **Quota + Model Visibility**: Track account usage and open **View All Models** to see provider-scoped models from `/v1/models?is_webui=true`
+- 📊 **Quota + Model Visibility**: Track account usage and open **View All Models** to browse the provider-scoped model catalog
 - 🧠 **Provider-Aware Model Filtering**: Quota model list is filtered by provider context (for example Codex/Copilot/Kiro-specific views)
 - ⚡ **Large Log Performance**: Virtualized log table and incremental polling keep the Logs page responsive for large datasets
 - 🚀 **One-Click Agent Configuration**: Auto-detect and configure Claude Code, OpenCode, Gemini CLI, and more

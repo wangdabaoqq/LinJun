@@ -29,7 +29,7 @@
 ## ✨ 功能特性
 
 - 🔌 **扩展服务商支持**：支持 Claude、Gemini、Codex、Qwen、Antigravity、iFlow、GitHub Copilot、Kiro、自定义服务商、AmpCode
-- 📊 **配额 + 模型可见性**：可在配额页通过 **查看全部模型** 查看 `/v1/models?is_webui=true` 返回的服务商模型列表
+- 📊 **配额 + 模型可见性**：可在配额页通过 **查看全部模型** 浏览按服务商隔离的模型目录
 - 🧠 **服务商感知模型过滤**：配额模型列表会按当前服务商上下文过滤（如 Codex/Copilot/Kiro）
 - ⚡ **大体量日志性能优化**：日志页已支持虚拟列表与增量轮询，大数据量下保持流畅
 - 🚀 **一键配置 Agent**：自动检测并配置 Claude Code、OpenCode、Gemini CLI 等工具
