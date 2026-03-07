@@ -24,6 +24,7 @@ export interface QuotaAccount {
   provider: ProviderType;
   email: string;
   badge?: string;
+  authFileName?: string;
   status: "active" | "limited" | "error" | "refreshing";
   rateLimits: {
     primary: QuotaWindow;

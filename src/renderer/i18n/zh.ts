@@ -164,6 +164,9 @@ export const zh: Translations = {
     copilotDeviceInstructions: "打开 GitHub 设备登录页面并输入上方验证码。",
     copilotDeviceOpen: "打开登录页面",
     copilotDeviceError: "获取 GitHub Copilot 登录码失败",
+    copilotDeviceWaiting:
+      "请在浏览器中完成 GitHub 设备登录验证，授权完成后将自动连接。",
+    copilotDeviceExpired: "设备验证码已过期，请重新获取。",
     antigravityAuthTitle: "Antigravity",
     antigravityAuthSubtitle: "OAuth 授权",
     antigravityCallbackLabel: "回调地址",

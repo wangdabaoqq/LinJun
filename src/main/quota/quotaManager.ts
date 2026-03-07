@@ -47,6 +47,7 @@ export interface QuotaAccount {
   provider: ProviderType;
   email: string;
   badge?: string;
+  authFileName?: string;
   status: "active" | "limited" | "error" | "refreshing";
   rateLimits: {
     primary: QuotaWindow;
@@ -274,6 +275,7 @@ function convertCodexUsageToQuotaAccount(
     provider: token.provider,
     email: token.email,
     badge: getCodexBadge(usage.plan_type),
+    authFileName: path.basename(token.filePath),
     status: isLimited ? "limited" : "active",
     rateLimits: {
       primary: {
@@ -396,6 +398,7 @@ function convertAntigravityUsageToQuotaAccount(
     provider: token.provider,
     email: token.email,
     badge: tierLabel,
+    authFileName: path.basename(token.filePath),
     status: isLimited ? "limited" : "active",
     rateLimits: {
       primary: {
@@ -448,6 +451,7 @@ function convertKiroUsageToQuotaAccount(
     provider: token.provider,
     email: displayEmail,
     badge: usage.subscriptionInfo?.subscriptionTitle || "Kiro",
+    authFileName: path.basename(token.filePath),
     status: isLimited ? "limited" : "active",
     rateLimits: {
       primary: {
@@ -473,6 +477,7 @@ function createErrorQuotaAccount(
     id: `${token.provider}-${displayEmail}`,
     provider: token.provider,
     email: displayEmail,
+    authFileName: path.basename(token.filePath),
     status: "error",
     rateLimits: {
       primary: {
@@ -498,6 +503,7 @@ function convertClaudeUsageToQuotaAccount(
     id: `${token.provider}-${token.email}`,
     provider: token.provider,
     email: token.email,
+    authFileName: path.basename(token.filePath),
     status: isLimited ? "limited" : "active",
     rateLimits: {
       primary,
@@ -696,6 +702,7 @@ export async function getQuotaByProvider(
         id: `${token.provider}-${token.email}`,
         provider: token.provider,
         email: token.email,
+        authFileName: path.basename(token.filePath),
         status: "active",
         rateLimits: {
           primary: {

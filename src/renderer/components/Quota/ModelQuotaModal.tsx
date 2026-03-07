@@ -27,7 +27,7 @@ interface ProviderFilterConfig {
 
 const PROVIDER_FILTER_CONFIG: Record<string, ProviderFilterConfig> = {
   copilot: { ownedBy: ["github-copilot"] },
-  codex: { ownedBy: ["github-copilot"] },
+  codex: { ownedBy: ["openai"] },
   claude: { idPrefix: ["claude-"] },
   gemini: { idPrefix: ["gemini-"] },
   qwen: { idPrefix: ["qwen"] },
@@ -41,6 +41,7 @@ interface ModelQuotaModalProps {
   email: string;
   badge?: string;
   providerId?: string;
+  authFileName?: string;
   rateLimits: {
     primary: QuotaWindow;
     secondary?: QuotaWindow;
@@ -188,6 +189,7 @@ export function ModelQuotaModal({
   email,
   badge: _badge,
   providerId,
+  authFileName,
   rateLimits,
 }: ModelQuotaModalProps) {
   const t = useTranslations();
@@ -227,24 +229,57 @@ export function ModelQuotaModal({
     setIsLoadingModels(true);
     setModelsError(false);
 
-    window.electronAPI?.models
-      ?.fetch()
-      .then((result) => {
-        if (cancelled) return;
-        if (result?.success) {
-          const filtered = (result.models || []).filter(
-            (m: { owned_by: string }) => m.owned_by !== "antigravity",
-          );
-          log.info(
-            `[ModelQuotaModal] Fetched ${result.models?.length ?? 0} models, after filter: ${filtered.length}, providerId: ${providerId}`,
-          );
-          setApiModels(filtered);
-        } else {
-          log.warn("[ModelQuotaModal] API returned failure:", result?.error);
-          setModelsError(true);
-        }
-      })
-      .catch((err) => {
+    // Prefer per-account endpoint (accurate per-account models) over global /v1/models
+    const fetchPromise = authFileName
+      ? window.electronAPI?.providers
+          ?.getAccountModels(authFileName)
+          .then((result) => {
+            if (cancelled) return;
+            if (result?.success) {
+              const models = (result.models || []).map(
+                (m: {
+                  id: string;
+                  owned_by?: string;
+                  display_name?: string;
+                }) => ({
+                  id: m.id,
+                  object: "model",
+                  created: 0,
+                  owned_by: m.owned_by || "",
+                  display_name:
+                    (m as { display_name?: string }).display_name || "",
+                }),
+              );
+              log.info(
+                `[ModelQuotaModal] Fetched ${models.length} models via per-account endpoint, authFile: ${authFileName}`,
+              );
+              setApiModels(models);
+            } else {
+              log.warn(
+                "[ModelQuotaModal] Per-account API returned failure:",
+                result?.error,
+              );
+              setModelsError(true);
+            }
+          })
+      : window.electronAPI?.models?.fetch().then((result) => {
+          if (cancelled) return;
+          if (result?.success) {
+            const filtered = (result.models || []).filter(
+              (m: { owned_by: string }) => m.owned_by !== "antigravity",
+            );
+            log.info(
+              `[ModelQuotaModal] Fetched ${result.models?.length ?? 0} models via /v1/models, after filter: ${filtered.length}, providerId: ${providerId}`,
+            );
+            setApiModels(filtered);
+          } else {
+            log.warn("[ModelQuotaModal] API returned failure:", result?.error);
+            setModelsError(true);
+          }
+        });
+
+    fetchPromise
+      ?.catch((err) => {
         log.error("[ModelQuotaModal] Failed to fetch models:", err);
         if (!cancelled) setModelsError(true);
       })
@@ -255,22 +290,16 @@ export function ModelQuotaModal({
     return () => {
       cancelled = true;
     };
-  }, [isOpen, isApiModelProvider]);
+  }, [isOpen, isApiModelProvider, authFileName]);
 
   const providerApiModels = useMemo(() => {
     if (!isApiModelProvider) return [];
+    // Per-account endpoint already returns models scoped to this account — skip filtering
+    if (authFileName) return apiModels;
     if (!providerId) return apiModels;
     const providerLower = providerId.toLowerCase();
 
-    if (providerLower === "codex") {
-      return apiModels.filter((m) => {
-        const idLower = m.id.toLowerCase();
-        const ownedLower = m.owned_by.toLowerCase();
-        return ownedLower === "github-copilot" && idLower.includes("codex");
-      });
-    }
-
-    const config = PROVIDER_FILTER_CONFIG[providerId.toLowerCase()];
+    const config = PROVIDER_FILTER_CONFIG[providerLower];
     if (config) {
       return apiModels.filter((m) => {
         const idLower = m.id.toLowerCase();
@@ -290,7 +319,7 @@ export function ModelQuotaModal({
         providerLower.includes(ownedLower)
       );
     });
-  }, [apiModels, providerId, isApiModelProvider]);
+  }, [apiModels, providerId, authFileName, isApiModelProvider]);
 
   const allModels: QuotaWindow[] = useMemo(() => {
     const list: QuotaWindow[] = [];
@@ -858,6 +887,9 @@ export function ModelQuotaModal({
                     const ownerLabel = isCodexProvider
                       ? "codex"
                       : model.owned_by;
+                    const displayName =
+                      (model as { display_name?: string }).display_name ||
+                      model.id;
 
                     return (
                       <div
@@ -876,7 +908,7 @@ export function ModelQuotaModal({
                               className="text-sm font-bold text-[var(--text-primary)] truncate"
                               title={model.id}
                             >
-                              {model.id}
+                              {displayName}
                             </h3>
                             <p className="text-[10px] text-[var(--text-dim)] mt-0.5">
                               {ownerLabel}

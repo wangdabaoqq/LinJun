@@ -326,6 +326,7 @@ export function Quota({ onNavigate }: QuotaProps) {
                       status={account.status}
                       error={account.error}
                       providerId={selectedProvider || undefined}
+                      authFileName={account.authFileName}
                       rateLimits={account.rateLimits}
                       lastUpdated={account.lastUpdated}
                       onRefresh={() => refreshAccount(account.id)}

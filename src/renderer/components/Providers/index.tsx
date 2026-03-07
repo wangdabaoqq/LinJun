@@ -714,6 +714,9 @@ export function Providers() {
             setCopilotAuthInfo(null);
             setCopilotAuthError(null);
           }}
+          onSuccess={() => {
+            refreshAccounts();
+          }}
           authError={copilotAuthError}
         />
       )}
@@ -778,7 +781,10 @@ export function Providers() {
         onConfirm={() => {
           void performBatchRemove();
         }}
-        title={t.providers.batchDeleteConfirm.replace("{count}", String(selectedAccountIds.size))}
+        title={t.providers.batchDeleteConfirm.replace(
+          "{count}",
+          String(selectedAccountIds.size),
+        )}
         description={t.providers.batchDeleteDesc}
         confirmText={t.common.delete}
         cancelText={t.common.cancel}

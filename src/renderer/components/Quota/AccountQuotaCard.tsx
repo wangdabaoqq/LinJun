@@ -18,6 +18,7 @@ export interface AccountQuotaCardProps {
   badge?: string;
   status: "active" | "limited" | "error" | "refreshing";
   providerId?: string;
+  authFileName?: string;
   rateLimits: {
     primary: QuotaWindow;
     secondary?: QuotaWindow;
@@ -34,6 +35,7 @@ export function AccountQuotaCard({
   badge,
   status,
   providerId,
+  authFileName,
   rateLimits,
   lastUpdated,
   error,
@@ -242,6 +244,7 @@ export function AccountQuotaCard({
         email={email}
         badge={badge}
         providerId={providerId}
+        authFileName={authFileName}
         rateLimits={rateLimits}
       />
     </>

@@ -166,6 +166,9 @@ export const en = {
       "Open the GitHub device login page and enter the code above.",
     copilotDeviceOpen: "Open Login Page",
     copilotDeviceError: "Failed to get GitHub Copilot login code",
+    copilotDeviceWaiting:
+      "Please complete GitHub device login in your browser. It will connect automatically once authorized.",
+    copilotDeviceExpired: "Device code has expired. Please try again.",
     antigravityAuthTitle: "Antigravity",
     antigravityAuthSubtitle: "OAuth Authorization",
     antigravityCallbackLabel: "Callback URL",
