@@ -7,10 +7,11 @@ export interface TokenAccount {
   nickname?: string;
   accountKey?: string;
   oauthSourceKey?: string;
-  status: "online" | "offline";
+  status: "online" | "offline" | "expired";
   enabled: boolean;
   lastUsed: string;
   filePath: string;
+  expiresAt?: string;
 }
 
 interface ProvidersState {

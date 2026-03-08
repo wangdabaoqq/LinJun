@@ -288,6 +288,78 @@ function normalizeAuthFileName(value: string): string {
   return path.basename(value || "").trim();
 }
 
+function unwrapAuthFilePayload(
+  payload: unknown,
+): Record<string, unknown> | null {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    return null;
+  }
+
+  const recordPayload = payload as Record<string, unknown>;
+  const nested = recordPayload.data;
+  if (nested && typeof nested === "object" && !Array.isArray(nested)) {
+    return nested as Record<string, unknown>;
+  }
+
+  return recordPayload;
+}
+
+function resolveAuthFileExpiresAt(
+  authFile: {
+    expires_at?: unknown;
+    expiresAt?: unknown;
+    expired?: unknown;
+  },
+  payload?: unknown,
+): string {
+  const directExpiresAt =
+    (typeof authFile.expires_at === "string" ? authFile.expires_at : "") ||
+    (typeof authFile.expiresAt === "string" ? authFile.expiresAt : "") ||
+    (typeof authFile.expired === "string" ? authFile.expired : "");
+
+  if (directExpiresAt) {
+    return directExpiresAt;
+  }
+
+  const parsedPayload = unwrapAuthFilePayload(payload);
+  if (!parsedPayload) {
+    return "";
+  }
+
+  const nestedToken =
+    parsedPayload.token &&
+    typeof parsedPayload.token === "object" &&
+    !Array.isArray(parsedPayload.token)
+      ? (parsedPayload.token as Record<string, unknown>)
+      : undefined;
+
+  return (
+    (typeof parsedPayload.expired === "string" ? parsedPayload.expired : "") ||
+    (typeof parsedPayload.expires_at === "string"
+      ? parsedPayload.expires_at
+      : "") ||
+    (typeof parsedPayload.expiresAt === "string"
+      ? parsedPayload.expiresAt
+      : "") ||
+    (nestedToken && typeof nestedToken.expiry === "string"
+      ? nestedToken.expiry
+      : "")
+  );
+}
+
+function isExpiredTimestamp(value: string, now = Date.now()): boolean {
+  if (!value) {
+    return false;
+  }
+
+  const expiresAtDate = new Date(value);
+  if (Number.isNaN(expiresAtDate.getTime())) {
+    return false;
+  }
+
+  return expiresAtDate.getTime() < now;
+}
+
 function isValidAuthFileName(value: string): boolean {
   return /^[a-zA-Z0-9@._-]+\.json$/.test(value);
 }
@@ -700,6 +772,7 @@ export function setupProvidersHandlers(): void {
   registerHandle("providers:getAccounts", async () => {
     try {
       const config = proxyManager.loadConfigFromYaml();
+      const now = Date.now();
       const accountRules = normalizeOAuthAccountExcludedModels(
         config?.["oauth-account-excluded-models"],
       );
@@ -734,8 +807,30 @@ export function setupProvidersHandlers(): void {
             ? authFile.status.toLowerCase()
             : "";
         const isEnabled = !disabled;
+
+        let authFilePayload: unknown;
+        let expiresAtStr = resolveAuthFileExpiresAt(authFile);
+
+        if (!expiresAtStr && statusValue !== "expired") {
+          try {
+            authFilePayload = await managementAPI.downloadAuthFile(fileName);
+            expiresAtStr = resolveAuthFileExpiresAt(authFile, authFilePayload);
+          } catch (error) {
+            log.warn(
+              `[IPC] Failed to inspect auth file expiration for ${fileName}:`,
+              error,
+            );
+          }
+        }
+
+        const isTokenExpired =
+          statusValue === "expired" || isExpiredTimestamp(expiresAtStr, now);
+
         const isOnline =
-          isEnabled && !unavailable && statusValue !== "disabled";
+          isEnabled &&
+          !unavailable &&
+          statusValue !== "disabled" &&
+          !isTokenExpired;
         const lastUsed =
           authFile.updated_at ||
           authFile.modtime ||
@@ -756,10 +851,15 @@ export function setupProvidersHandlers(): void {
           email,
           accountKey,
           oauthSourceKey,
-          status: isOnline ? ("online" as const) : ("offline" as const),
+          status: isTokenExpired
+            ? ("expired" as const)
+            : isOnline
+              ? ("online" as const)
+              : ("offline" as const),
           enabled: isEnabled,
           lastUsed,
           filePath: fileName,
+          ...(expiresAtStr ? { expiresAt: expiresAtStr } : {}),
         });
       }
 

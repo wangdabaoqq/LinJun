@@ -8,3 +8,4 @@ dist/
 .env.production
 resources/binaries/*/cliproxy*
 .sisyphus/
+.slim/

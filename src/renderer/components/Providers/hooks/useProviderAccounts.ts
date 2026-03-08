@@ -56,7 +56,40 @@ interface UseProviderAccountsResult {
   handleBatchRemove: () => void;
   performBatchRemove: () => Promise<void>;
   setBatchRemoveConfirm: (value: boolean) => void;
+  // delete expired
+  deleteExpiredConfirmProviderId: string | null;
+  isDeletingExpired: boolean;
+  handleDeleteExpired: (providerId: string) => void;
+  performDeleteExpired: () => Promise<void>;
+  setDeleteExpiredConfirmProviderId: (value: string | null) => void;
 }
+
+function getExpiresAtMs(expiresAt?: string): number | null {
+  if (!expiresAt) {
+    return null;
+  }
+
+  const expiresAtMs = new Date(expiresAt).getTime();
+  return Number.isNaN(expiresAtMs) ? null : expiresAtMs;
+}
+
+function resolveRuntimeStatus(
+  account: TokenAccount,
+  nowMs: number,
+): TokenAccount["status"] {
+  if (account.status === "expired") {
+    return "expired";
+  }
+
+  const expiresAtMs = getExpiresAtMs(account.expiresAt);
+  if (expiresAtMs !== null && expiresAtMs <= nowMs) {
+    return "expired";
+  }
+
+  return account.status;
+}
+
+const MAX_TIMEOUT_MS = 2147483647;
 
 export function useProviderAccounts({
   customProvidersCount,
@@ -77,24 +110,97 @@ export function useProviderAccounts({
     Record<string, boolean>
   >({});
   const [isRemovingAccount, setIsRemovingAccount] = useState(false);
-  const [selectModeProviderId, setSelectModeProviderId] = useState<string | null>(null);
-  const [selectedAccountIds, setSelectedAccountIds] = useState<Set<string>>(new Set());
+  const [selectModeProviderId, setSelectModeProviderId] = useState<
+    string | null
+  >(null);
+  const [selectedAccountIds, setSelectedAccountIds] = useState<Set<string>>(
+    new Set(),
+  );
   const [isBatchRemoving, setIsBatchRemoving] = useState(false);
   const [batchRemoveConfirm, setBatchRemoveConfirm] = useState(false);
+  const [deleteExpiredConfirmProviderId, setDeleteExpiredConfirmProviderId] =
+    useState<string | null>(null);
+  const [isDeletingExpired, setIsDeletingExpired] = useState(false);
+  const [expirationClock, setExpirationClock] = useState(() => Date.now());
 
   useEffect(() => {
-    void loadAccounts();
+    void loadAccounts({ force: true });
   }, [loadAccounts]);
+
+  useEffect(() => {
+    setExpirationClock(Date.now());
+  }, [providerAccounts]);
+
+  const runtimeProviderAccounts = useMemo(
+    () =>
+      providerAccounts.map((account) => ({
+        ...account,
+        status: resolveRuntimeStatus(account, expirationClock),
+      })),
+    [expirationClock, providerAccounts],
+  );
+
+  const nextExpirationAtMs = useMemo(() => {
+    let nextExpiry: number | null = null;
+
+    runtimeProviderAccounts.forEach((account) => {
+      if (account.status === "expired") {
+        return;
+      }
+
+      const expiresAtMs = getExpiresAtMs(account.expiresAt);
+      if (expiresAtMs === null || expiresAtMs <= expirationClock) {
+        return;
+      }
+
+      if (nextExpiry === null || expiresAtMs < nextExpiry) {
+        nextExpiry = expiresAtMs;
+      }
+    });
+
+    return nextExpiry;
+  }, [expirationClock, runtimeProviderAccounts]);
+
+  useEffect(() => {
+    if (nextExpirationAtMs === null) {
+      return;
+    }
+
+    const delay = Math.min(
+      Math.max(nextExpirationAtMs - Date.now(), 250),
+      MAX_TIMEOUT_MS,
+    );
+    const timer = window.setTimeout(() => {
+      setExpirationClock(Date.now());
+    }, delay);
+
+    return () => window.clearTimeout(timer);
+  }, [nextExpirationAtMs]);
+
+  useEffect(() => {
+    const syncExpirationClock = () => {
+      setExpirationClock(Date.now());
+    };
+
+    window.addEventListener("focus", syncExpirationClock);
+    document.addEventListener("visibilitychange", syncExpirationClock);
+
+    return () => {
+      window.removeEventListener("focus", syncExpirationClock);
+      document.removeEventListener("visibilitychange", syncExpirationClock);
+    };
+  }, []);
 
   const refreshAccounts = useCallback(async () => {
     await loadAccounts({ force: true });
   }, [loadAccounts]);
 
   const stats = useMemo(() => {
-    const totalProviders = new Set(providerAccounts.map((a) => a.provider))
-      .size;
-    const totalAccounts = providerAccounts.length;
-    const activeAccounts = providerAccounts.filter(
+    const totalProviders = new Set(
+      runtimeProviderAccounts.map((a) => a.provider),
+    ).size;
+    const totalAccounts = runtimeProviderAccounts.length;
+    const activeAccounts = runtimeProviderAccounts.filter(
       (a) => a.status === "online",
     ).length;
 
@@ -104,7 +210,7 @@ export function useProviderAccounts({
       activeAccounts,
       customCount: customProvidersCount,
     };
-  }, [customProvidersCount, providerAccounts]);
+  }, [customProvidersCount, runtimeProviderAccounts]);
 
   const handleRemoveAccount = useCallback(
     (providerId: string, accountId: string) => {
@@ -272,7 +378,7 @@ export function useProviderAccounts({
   const accountsByProvider = useMemo(() => {
     const byProvider = new Map<string, Account[]>();
 
-    (providerAccounts as TokenAccount[]).forEach((acc) => {
+    runtimeProviderAccounts.forEach((acc) => {
       const accounts = byProvider.get(acc.provider) || [];
       const lastUsedDate = new Date(acc.lastUsed);
       const now = new Date();
@@ -306,13 +412,14 @@ export function useProviderAccounts({
         enabled: acc.enabled,
         lastUsed: lastUsedText,
         filePath: acc.filePath,
+        expiresAt: acc.expiresAt,
       });
       byProvider.set(acc.provider, accounts);
     });
 
     return byProvider;
   }, [
-    providerAccounts,
+    runtimeProviderAccounts,
     t.quota.daysAgo,
     t.quota.hoursAgo,
     t.quota.justNow,
@@ -339,7 +446,6 @@ export function useProviderAccounts({
     () => loadedProviders.filter((provider) => provider.accounts.length > 0),
     [loadedProviders],
   );
-
 
   const enterSelectMode = useCallback((providerId: string) => {
     setSelectModeProviderId(providerId);
@@ -375,14 +481,20 @@ export function useProviderAccounts({
   }, [selectedAccountIds.size]);
 
   const performBatchRemove = useCallback(async () => {
-    if (isBatchRemoving || selectedAccountIds.size === 0 || !selectModeProviderId) return;
+    if (
+      isBatchRemoving ||
+      selectedAccountIds.size === 0 ||
+      !selectModeProviderId
+    )
+      return;
 
     setIsBatchRemoving(true);
     try {
       const filePaths: string[] = [];
       for (const accountId of selectedAccountIds) {
         const account = providerAccounts.find(
-          (acc) => acc.provider === selectModeProviderId && acc.id === accountId,
+          (acc) =>
+            acc.provider === selectModeProviderId && acc.id === accountId,
         );
         if (account?.filePath) {
           filePaths.push(account.filePath);
@@ -390,13 +502,17 @@ export function useProviderAccounts({
       }
 
       if (filePaths.length > 0 && window.electronAPI?.providers) {
-        const result = await window.electronAPI.providers.removeAccounts(filePaths);
+        const result =
+          await window.electronAPI.providers.removeAccounts(filePaths);
         if (result?.success) {
           await loadAccounts({ force: true });
           setBatchRemoveConfirm(false);
           exitSelectMode();
         } else {
-          log.error("[Providers] Failed to batch remove accounts:", result?.error);
+          log.error(
+            "[Providers] Failed to batch remove accounts:",
+            result?.error,
+          );
         }
       }
     } catch (error) {
@@ -411,6 +527,48 @@ export function useProviderAccounts({
     providerAccounts,
     loadAccounts,
     exitSelectMode,
+  ]);
+
+  const handleDeleteExpired = useCallback((providerId: string) => {
+    setDeleteExpiredConfirmProviderId(providerId);
+  }, []);
+
+  const performDeleteExpired = useCallback(async () => {
+    if (isDeletingExpired || !deleteExpiredConfirmProviderId) return;
+
+    setIsDeletingExpired(true);
+    try {
+      const expiredAccounts = runtimeProviderAccounts.filter(
+        (acc) =>
+          acc.provider === deleteExpiredConfirmProviderId &&
+          acc.status === "expired" &&
+          acc.filePath,
+      );
+      const filePaths = expiredAccounts.map((acc) => acc.filePath);
+
+      if (filePaths.length > 0 && window.electronAPI?.providers) {
+        const result =
+          await window.electronAPI.providers.removeAccounts(filePaths);
+        if (result?.success) {
+          await loadAccounts({ force: true });
+          setDeleteExpiredConfirmProviderId(null);
+        } else {
+          log.error(
+            "[Providers] Failed to delete expired accounts:",
+            result?.error,
+          );
+        }
+      }
+    } catch (error) {
+      log.error("[Providers] Error deleting expired accounts:", error);
+    } finally {
+      setIsDeletingExpired(false);
+    }
+  }, [
+    isDeletingExpired,
+    deleteExpiredConfirmProviderId,
+    runtimeProviderAccounts,
+    loadAccounts,
   ]);
 
   return {
@@ -440,5 +598,10 @@ export function useProviderAccounts({
     handleBatchRemove,
     performBatchRemove,
     setBatchRemoveConfirm,
+    deleteExpiredConfirmProviderId,
+    isDeletingExpired,
+    handleDeleteExpired,
+    performDeleteExpired,
+    setDeleteExpiredConfirmProviderId,
   };
 }

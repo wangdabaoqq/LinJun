@@ -159,6 +159,11 @@ export function Providers() {
     handleBatchRemove,
     performBatchRemove,
     setBatchRemoveConfirm,
+    deleteExpiredConfirmProviderId,
+    isDeletingExpired,
+    handleDeleteExpired,
+    performDeleteExpired,
+    setDeleteExpiredConfirmProviderId,
   } = useProviderAccounts({ customProvidersCount: customProviders.length });
 
   const handleSelectProvider = useCallback(
@@ -475,6 +480,7 @@ export function Providers() {
             onToggleSelectAccount={toggleSelectAccount}
             onToggleSelectAll={toggleSelectAll}
             onBatchDelete={handleBatchRemove}
+            onDeleteExpired={handleDeleteExpired}
           />
 
           <RoutingProtocolSection
@@ -809,6 +815,24 @@ export function Providers() {
         confirmText={t.providers.downloadAccountJsonConfirmAction}
         cancelText={t.common.cancel}
         variant="warning"
+      />
+
+      <ConfirmModal
+        isOpen={!!deleteExpiredConfirmProviderId}
+        onClose={() => {
+          if (!isDeletingExpired) {
+            setDeleteExpiredConfirmProviderId(null);
+          }
+        }}
+        onConfirm={() => {
+          void performDeleteExpired();
+        }}
+        title={t.providers.deleteExpiredConfirm}
+        description={t.providers.deleteExpiredDesc}
+        confirmText={t.common.delete}
+        cancelText={t.common.cancel}
+        variant="danger"
+        isLoading={isDeletingExpired}
       />
     </div>
   );

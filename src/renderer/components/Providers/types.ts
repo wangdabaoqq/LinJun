@@ -79,10 +79,11 @@ export interface Account {
   nickname?: string;
   accountKey?: string;
   oauthSourceKey?: string;
-  status: "online" | "offline";
+  status: "online" | "offline" | "expired";
   enabled?: boolean;
   lastUsed: string;
   filePath?: string;
+  expiresAt?: string;
 }
 
 export interface Provider {
@@ -93,7 +94,11 @@ export interface Provider {
   description: string;
   authType: "oauth" | "apikey" | "import" | "oauth-project";
   accounts: Account[];
-  compatStatus?: "fallback" | "migration-pending" | "migration-complete" | "migration-failed";
+  compatStatus?:
+    | "fallback"
+    | "migration-pending"
+    | "migration-complete"
+    | "migration-failed";
 }
 
 export interface AddAccountModalProps {

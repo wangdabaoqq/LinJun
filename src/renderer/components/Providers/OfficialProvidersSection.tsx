@@ -59,6 +59,7 @@ interface OfficialProvidersSectionProps {
   onToggleSelectAccount: (accountId: string) => void;
   onToggleSelectAll: (allIds: string[]) => void;
   onBatchDelete: () => void;
+  onDeleteExpired: (providerId: string) => void;
 }
 
 export function OfficialProvidersSection({
@@ -84,11 +85,12 @@ export function OfficialProvidersSection({
   onToggleSelectAccount,
   onToggleSelectAll,
   onBatchDelete,
+  onDeleteExpired,
 }: OfficialProvidersSectionProps) {
   const t = useTranslations();
   const [accountKeyword, setAccountKeyword] = useState("");
   const [statusFilter, setStatusFilter] = useState<
-    "all" | "enabled" | "disabled"
+    "all" | "enabled" | "disabled" | "expired"
   >("all");
   const [showFilters, setShowFilters] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -158,6 +160,9 @@ export function OfficialProvidersSection({
             return false;
           }
           if (statusFilter === "disabled" && enabled) {
+            return false;
+          }
+          if (statusFilter === "expired" && account.status !== "expired") {
             return false;
           }
 
@@ -289,7 +294,9 @@ export function OfficialProvidersSection({
             <Select
               value={statusFilter}
               onValueChange={(value) =>
-                setStatusFilter(value as "all" | "enabled" | "disabled")
+                setStatusFilter(
+                  value as "all" | "enabled" | "disabled" | "expired",
+                )
               }
             >
               <SelectTrigger
@@ -316,6 +323,12 @@ export function OfficialProvidersSection({
                   className="py-2 text-xs cursor-pointer transition-colors data-[highlighted]:bg-[var(--accent-primary)]/5 data-[highlighted]:text-[var(--text-primary)] data-[state=checked]:bg-[var(--accent-primary)]/10 data-[state=checked]:text-[var(--accent-primary)] text-[var(--text-muted)]"
                 >
                   {t.providers.accountFilterStatusDisabled}
+                </SelectItem>
+                <SelectItem
+                  value="expired"
+                  className="py-2 text-xs cursor-pointer transition-colors data-[highlighted]:bg-red-500/5 data-[highlighted]:text-red-400 data-[state=checked]:bg-red-500/10 data-[state=checked]:text-red-400 text-[var(--text-muted)]"
+                >
+                  {t.providers.accountFilterStatusExpired}
                 </SelectItem>
               </SelectContent>
             </Select>
@@ -345,12 +358,17 @@ export function OfficialProvidersSection({
               getAccountModelRulesMeta={getAccountModelRulesMeta}
               getProviderModelAliasMeta={getProviderModelAliasMeta}
               isSelectMode={selectModeProviderId === provider.id}
-              selectedAccountIds={selectModeProviderId === provider.id ? selectedAccountIds : new Set()}
+              selectedAccountIds={
+                selectModeProviderId === provider.id
+                  ? selectedAccountIds
+                  : new Set()
+              }
               onEnterSelectMode={onEnterSelectMode}
               onExitSelectMode={onExitSelectMode}
               onToggleSelectAccount={onToggleSelectAccount}
               onToggleSelectAll={onToggleSelectAll}
               onBatchDelete={onBatchDelete}
+              onDeleteExpired={onDeleteExpired}
             />
           ))}
         </div>

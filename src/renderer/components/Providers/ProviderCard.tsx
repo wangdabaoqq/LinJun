@@ -1,4 +1,4 @@
-import { memo, useState, useEffect, useRef, useCallback } from "react";
+import { memo, useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
   Check,
   Download,
@@ -7,6 +7,7 @@ import {
   Trash2,
   User,
   X,
+  AlertTriangle,
 } from "lucide-react";
 import { motion } from "motion/react";
 
@@ -51,6 +52,7 @@ interface ProviderCardProps {
   onToggleSelectAccount: (accountId: string) => void;
   onToggleSelectAll: (allIds: string[]) => void;
   onBatchDelete: () => void;
+  onDeleteExpired: (providerId: string) => void;
 }
 
 export const ProviderCard = memo(function ProviderCard({
@@ -74,6 +76,7 @@ export const ProviderCard = memo(function ProviderCard({
   onToggleSelectAccount,
   onToggleSelectAll,
   onBatchDelete,
+  onDeleteExpired,
 }: ProviderCardProps) {
   const t = useTranslations();
   const [visibleCount, setVisibleCount] = useState(ACCOUNT_PAGE_SIZE);
@@ -111,6 +114,11 @@ export const ProviderCard = memo(function ProviderCard({
   const onlineCount = provider.accounts.filter(
     (a) => a.status === "online",
   ).length;
+
+  const expiredCount = useMemo(
+    () => provider.accounts.filter((a) => a.status === "expired").length,
+    [provider.accounts],
+  );
 
   const visibleAccounts = provider.accounts.slice(0, visibleCount);
   const hasMore = visibleCount < provider.accounts.length;
@@ -177,6 +185,11 @@ export const ProviderCard = memo(function ProviderCard({
               <p className="text-[10px] font-bold text-[var(--text-dim)] uppercase tracking-wider whitespace-nowrap">
                 {onlineCount} / {provider.accounts.length}
               </p>
+              {expiredCount > 0 && (
+                <span className="text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider border border-red-500/30 text-red-500 bg-red-500/5 whitespace-nowrap">
+                  {expiredCount} {t.providers.expiredLabel}
+                </span>
+              )}
             </div>
             {provider.compatStatus && (
               <span
@@ -295,17 +308,35 @@ export const ProviderCard = memo(function ProviderCard({
                 </button>
               </div>
             ) : (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onEnterSelectMode(provider.id);
-                }}
-                className="ml-auto flex items-center gap-1.5 px-3 py-1 rounded-full border border-[var(--glass-border)] text-[var(--text-dim)] hover:text-[var(--text-primary)] hover:border-[var(--glass-border-hover)] text-[9px] font-bold uppercase tracking-wider transition-all bg-[var(--text-primary)]/[0.02] hover:bg-[var(--text-primary)]/[0.05]"
-                title={t.providers.batchManage}
-              >
-                <ListChecks className="w-3.5 h-3.5" />
-                {t.providers.batchManage}
-              </button>
+              <div className="ml-auto flex items-center gap-2">
+                {expiredCount > 0 && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDeleteExpired(provider.id);
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-1 rounded-full border border-red-500/20 text-red-500/70 hover:text-red-500 hover:border-red-500/40 hover:bg-red-500/5 text-[9px] font-bold uppercase tracking-wider transition-all"
+                    title={t.providers.deleteExpiredTitle}
+                  >
+                    <AlertTriangle className="w-3 h-3" />
+                    {t.providers.deleteExpiredBtn.replace(
+                      "{count}",
+                      String(expiredCount),
+                    )}
+                  </button>
+                )}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEnterSelectMode(provider.id);
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1 rounded-full border border-[var(--glass-border)] text-[var(--text-dim)] hover:text-[var(--text-primary)] hover:border-[var(--glass-border-hover)] text-[9px] font-bold uppercase tracking-wider transition-all bg-[var(--text-primary)]/[0.02] hover:bg-[var(--text-primary)]/[0.05]"
+                  title={t.providers.batchManage}
+                >
+                  <ListChecks className="w-3.5 h-3.5" />
+                  {t.providers.batchManage}
+                </button>
+              </div>
             )}
           </div>
           <div
@@ -355,7 +386,7 @@ export const ProviderCard = memo(function ProviderCard({
                           <User className="w-3.5 h-3.5" />
                         </div>
                         <div
-                          className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-[var(--bg-primary)] ${isEnabled ? "bg-[var(--accent-primary)]" : "bg-[var(--text-dim)]"}`}
+                          className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-[var(--bg-primary)] ${account.status === "expired" ? "bg-red-500" : isEnabled ? "bg-[var(--accent-primary)]" : "bg-[var(--text-dim)]"}`}
                         />
                       </>
                     )}
@@ -410,14 +441,18 @@ export const ProviderCard = memo(function ProviderCard({
                     <div className="flex items-center gap-2 opacity-0 group-hover/item:opacity-100 transition-all">
                       <span
                         className={`text-[10px] font-bold uppercase tracking-wider ${
-                          isEnabled
-                            ? "text-emerald-500"
-                            : "text-[var(--text-dim)]"
+                          account.status === "expired"
+                            ? "text-red-500"
+                            : isEnabled
+                              ? "text-emerald-500"
+                              : "text-[var(--text-dim)]"
                         }`}
                       >
-                        {isEnabled
-                          ? t.providers.enabledState
-                          : t.providers.disabledState}
+                        {account.status === "expired"
+                          ? t.providers.expiredState
+                          : isEnabled
+                            ? t.providers.enabledState
+                            : t.providers.disabledState}
                       </span>
                       <motion.button
                         role="switch"

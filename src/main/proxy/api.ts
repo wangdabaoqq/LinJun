@@ -838,6 +838,9 @@ export interface ManagementAuthFileItem {
   created_at?: string;
   disabled?: boolean;
   email?: string;
+  expired?: string;
+  expires_at?: string;
+  expiresAt?: string;
   id?: string;
   id_token?: {
     chatgpt_account_id?: string;
