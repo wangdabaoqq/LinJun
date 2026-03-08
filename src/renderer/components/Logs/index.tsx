@@ -16,7 +16,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { useTranslations } from "../../stores/settings";
 import { getProviderIcon } from "../icons/ProviderIcons";
 import { useRequestLogs } from "../../hooks/useRequestLogs";
-import { RequestLogEntry } from "../../types/logs";
+import { RequestLogDiagnostics, RequestLogEntry } from "../../types/logs";
 import { ConfirmModal } from "../ui/ConfirmModal";
 import {
   Select,
@@ -166,6 +166,53 @@ function StatusBadge({ statusCode }: { statusCode: number }) {
   );
 }
 
+function DiagnosticField({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/35 px-4 py-3 backdrop-blur-md shadow-sm">
+      <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--text-dim)]">
+        {label}
+      </p>
+      <p className="mt-1 break-all font-mono text-xs text-[var(--text-primary)]">
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function getEmptyStateCopy(
+  t: ReturnType<typeof useTranslations>,
+  diagnostics: RequestLogDiagnostics | null,
+): { title: string; description: string } {
+  if (!diagnostics) {
+    return {
+      title: t.logs.noLogs,
+      description: t.logs.waitingForRequests,
+    };
+  }
+
+  if (diagnostics.status === "read_error") {
+    return {
+      title: t.logs.readError,
+      description: diagnostics.error || t.logs.scanFailedHint,
+    };
+  }
+
+  if (diagnostics.status === "unrecognized_files") {
+    return {
+      title: t.logs.unrecognizedFiles,
+      description:
+        diagnostics.matchedFiles > 0 && diagnostics.parsedFiles === 0
+          ? t.logs.parsedFailedHint
+          : t.logs.foundFilesButNoLogs,
+    };
+  }
+
+  return {
+    title: t.logs.directoryEmpty,
+    description: t.logs.waitingForRequests,
+  };
+}
+
 interface LogRowProps {
   entry: RequestLogEntry;
   index: number;
@@ -252,7 +299,7 @@ export function Logs() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [copied, setCopied] = useState(false);
-  const { logs, refresh } = useRequestLogs(200);
+  const { logs, diagnostics, refresh } = useRequestLogs(200);
   const scrollParentRef = useRef<HTMLDivElement>(null);
 
   const uniqueProviders = useMemo(
@@ -278,6 +325,10 @@ export function Logs() {
     estimateSize: () => ROW_HEIGHT,
     overscan: 10,
   });
+  const emptyStateCopy = useMemo(
+    () => getEmptyStateCopy(t, diagnostics),
+    [diagnostics, t],
+  );
 
   const handleSelectLog = useCallback((entry: RequestLogEntry) => {
     setSelectedLog(entry);
@@ -472,6 +523,19 @@ export function Logs() {
         </div>
       </div>
 
+      {diagnostics && (
+        <div className="grid gap-3 lg:grid-cols-2">
+          <DiagnosticField
+            label={t.logs.scanDirectory}
+            value={diagnostics.logDir || "-"}
+          />
+          <DiagnosticField
+            label={t.logs.writablePath}
+            value={diagnostics.writablePath || t.logs.notSet}
+          />
+        </div>
+      )}
+
       <div className="glass-card flex-1 flex flex-col min-h-0 overflow-hidden border border-[var(--glass-border)] shadow-2xl bg-[var(--bg-primary)]/40 backdrop-blur-xl rounded-2xl relative">
         <div className="grid grid-cols-[160px_120px_1fr_1fr_1.4fr_100px] gap-4 px-6 py-3 bg-white/[0.02] border-b border-[var(--glass-border)] text-[11px] uppercase tracking-[0.1em] font-medium text-[var(--text-muted)] select-none sticky top-0 z-10 backdrop-blur-md">
           <div className="flex items-center gap-2">{t.logs.time}</div>
@@ -498,12 +562,52 @@ export function Logs() {
               </div>
               <div className="text-center relative z-10 space-y-1">
                 <p className="text-sm font-medium text-[var(--text-muted)] tracking-wide">
-                  {t.logs.noLogs}
+                  {logs.length === 0 ? emptyStateCopy.title : t.logs.noLogs}
                 </p>
                 <p className="text-xs text-[var(--text-dim)] opacity-60">
-                  {t.logs.waitingForRequests}
+                  {logs.length === 0
+                    ? emptyStateCopy.description
+                    : t.logs.waitingForRequests}
                 </p>
               </div>
+
+              {logs.length === 0 && diagnostics && (
+                <div className="w-full max-w-2xl rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/35 p-4 backdrop-blur-md shadow-lg">
+                  <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--text-muted)]">
+                    <Info className="h-4 w-4 text-[var(--accent-primary)]" />
+                    <span>{t.logs.detail}</span>
+                  </div>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                    <DiagnosticField
+                      label={t.logs.filesFound}
+                      value={String(diagnostics.totalFiles)}
+                    />
+                    <DiagnosticField
+                      label={t.logs.matchedFiles}
+                      value={String(diagnostics.matchedFiles)}
+                    />
+                    <DiagnosticField
+                      label={t.logs.parsedFiles}
+                      value={String(diagnostics.parsedFiles)}
+                    />
+                    <DiagnosticField
+                      label={t.logs.ignoredFiles}
+                      value={String(diagnostics.ignoredFiles.length)}
+                    />
+                  </div>
+
+                  {diagnostics.ignoredFiles.length > 0 && (
+                    <div className="mt-4 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 px-4 py-3">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--text-dim)]">
+                        {t.logs.ignoredFiles}
+                      </p>
+                      <p className="mt-2 break-all font-mono text-xs text-[var(--text-muted)]">
+                        {diagnostics.ignoredFiles.join(", ")}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           ) : (
             <div

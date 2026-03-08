@@ -12,3 +12,20 @@ export interface RequestLogEntry {
   userInput?: string;
   requestBody?: string;
 }
+
+export interface RequestLogDiagnostics {
+  logDir: string;
+  writablePath?: string;
+  resolution: "writable_path" | "config_dir" | "auth_dir_fallback";
+  status: "ok" | "directory_empty" | "unrecognized_files" | "read_error";
+  error?: string;
+  totalFiles: number;
+  matchedFiles: number;
+  parsedFiles: number;
+  ignoredFiles: string[];
+}
+
+export interface RequestLogFetchResult {
+  entries: RequestLogEntry[];
+  diagnostics: RequestLogDiagnostics;
+}

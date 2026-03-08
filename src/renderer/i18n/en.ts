@@ -692,6 +692,22 @@ export const en = {
     export: "Export",
     exportSuccess: "Exported successfully",
     exportFailed: "Export failed",
+    scanDirectory: "Scan Directory",
+    writablePath: "WRITABLE_PATH",
+    notSet: "Not set",
+    directoryEmpty: "Log directory is empty",
+    readError: "Failed to read log directory",
+    unrecognizedFiles: "Files found but not recognized as request logs",
+    foundFilesButNoLogs:
+      "The directory contains files, but none match the current request log patterns.",
+    parsedFailedHint:
+      "Matched request log files were found, but none could be parsed successfully.",
+    scanFailedHint:
+      "Check main.log for request log write errors or permissions issues.",
+    filesFound: "Files Found",
+    matchedFiles: "Matched",
+    parsedFiles: "Parsed",
+    ignoredFiles: "Ignored",
   },
   settings: {
     title: "SETTINGS",

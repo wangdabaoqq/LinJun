@@ -1,5 +1,6 @@
 import fs from "fs";
 import fsp from "fs/promises";
+import os from "os";
 import path from "path";
 
 import log from "../utils/logger";
@@ -24,8 +25,38 @@ export interface RequestLogEntry {
   duration?: number;
 }
 
+export type RequestLogDiagnosticsStatus =
+  | "ok"
+  | "directory_empty"
+  | "unrecognized_files"
+  | "read_error";
+
+export interface RequestLogDiagnostics {
+  logDir: string;
+  writablePath?: string;
+  resolution: "writable_path" | "config_dir" | "auth_dir_fallback";
+  status: RequestLogDiagnosticsStatus;
+  error?: string;
+  totalFiles: number;
+  matchedFiles: number;
+  parsedFiles: number;
+  ignoredFiles: string[];
+}
+
+export interface RequestLogFetchResult {
+  entries: RequestLogEntry[];
+  diagnostics: RequestLogDiagnostics;
+}
+
 const SUCCESS_PREFIXES = ["v1-responses", "v1-messages", "v1-chat-completions"];
 const ERROR_PREFIX = "error-v1";
+const DIAGNOSTIC_FILE_LIMIT = 8;
+
+interface ResolvedRequestLogDirectory {
+  logDir: string;
+  writablePath?: string;
+  resolution: RequestLogDiagnostics["resolution"];
+}
 
 function isSuccessLog(name: string): boolean {
   return SUCCESS_PREFIXES.some((prefix) => name.startsWith(prefix));
@@ -34,39 +65,102 @@ function isSuccessLog(name: string): boolean {
 export async function readRecentRequestLogs(
   limit = 50,
 ): Promise<RequestLogEntry[]> {
-  const configDir = proxyManager.getConfigDir();
-  const logDir = path.join(configDir, "logs");
+  const result = await fetchRecentRequestLogs(limit);
+  return result.entries;
+}
 
-  if (!fs.existsSync(logDir)) {
-    return [];
+export async function fetchRecentRequestLogs(
+  limit = 50,
+): Promise<RequestLogFetchResult> {
+  const resolved = resolveRequestLogDirectory();
+  const diagnostics: RequestLogDiagnostics = {
+    logDir: resolved.logDir,
+    writablePath: resolved.writablePath,
+    resolution: resolved.resolution,
+    status: "directory_empty",
+    totalFiles: 0,
+    matchedFiles: 0,
+    parsedFiles: 0,
+    ignoredFiles: [],
+  };
+
+  if (!fs.existsSync(resolved.logDir)) {
+    return { entries: [], diagnostics };
   }
 
-  const dirEntries = await fsp.readdir(logDir);
-  const candidates = dirEntries.filter(
-    (name) => isSuccessLog(name) || name.startsWith(ERROR_PREFIX),
-  );
+  try {
+    const dirEntries = await fsp.readdir(resolved.logDir, {
+      withFileTypes: true,
+    });
+    const fileNames = dirEntries
+      .filter((entry) => entry.isFile())
+      .map((entry) => entry.name);
 
-  const fileStats = await Promise.all(
-    candidates.map(async (name) => {
-      const filePath = path.join(logDir, name);
-      const stat = await fsp.stat(filePath);
-      const status: RequestLogStatus = isSuccessLog(name) ? "success" : "error";
-      return { filePath, mtime: stat.mtimeMs, status };
-    }),
-  );
+    diagnostics.totalFiles = fileNames.length;
 
-  const files = fileStats.sort((a, b) => b.mtime - a.mtime).slice(0, limit);
-
-  const entries: RequestLogEntry[] = [];
-
-  for (const file of files) {
-    const entry = await parseLogFile(file.filePath, file.status);
-    if (entry) {
-      entries.push(entry);
+    if (fileNames.length === 0) {
+      return { entries: [], diagnostics };
     }
-  }
 
-  return entries;
+    const candidates = fileNames.filter(
+      (name) => isSuccessLog(name) || name.startsWith(ERROR_PREFIX),
+    );
+    diagnostics.matchedFiles = candidates.length;
+    diagnostics.ignoredFiles = fileNames
+      .filter((name) => !candidates.includes(name))
+      .slice(0, DIAGNOSTIC_FILE_LIMIT);
+
+    if (candidates.length === 0) {
+      diagnostics.status = "unrecognized_files";
+      return { entries: [], diagnostics };
+    }
+
+    const fileStats = await Promise.allSettled(
+      candidates.map(async (name) => {
+        const filePath = path.join(resolved.logDir, name);
+        const stat = await fsp.stat(filePath);
+        const status: RequestLogStatus = isSuccessLog(name)
+          ? "success"
+          : "error";
+        return { filePath, mtime: stat.mtimeMs, status };
+      }),
+    );
+
+    const files = fileStats
+      .flatMap((result) =>
+        result.status === "fulfilled" ? [result.value] : [],
+      )
+      .sort((a, b) => b.mtime - a.mtime)
+      .slice(0, limit);
+
+    const firstRejected = fileStats.find(
+      (result) => result.status === "rejected",
+    );
+    if (files.length === 0 && firstRejected?.status === "rejected") {
+      diagnostics.status = "read_error";
+      diagnostics.error = String(firstRejected.reason);
+      return { entries: [], diagnostics };
+    }
+
+    const entries: RequestLogEntry[] = [];
+
+    for (const file of files) {
+      const entry = await parseLogFile(file.filePath, file.status);
+      if (entry) {
+        entries.push(entry);
+      }
+    }
+
+    diagnostics.parsedFiles = entries.length;
+    diagnostics.status = entries.length > 0 ? "ok" : "unrecognized_files";
+
+    return { entries, diagnostics };
+  } catch (error) {
+    diagnostics.status = "read_error";
+    diagnostics.error = String(error);
+    log.error("[Logs] Failed to inspect request log directory:", error);
+    return { entries: [], diagnostics };
+  }
 }
 
 export async function deleteAllLogs(): Promise<{
@@ -74,8 +168,7 @@ export async function deleteAllLogs(): Promise<{
   error?: string;
 }> {
   try {
-    const configDir = proxyManager.getConfigDir();
-    const logDir = path.join(configDir, "logs");
+    const { logDir } = resolveRequestLogDirectory();
 
     if (!fs.existsSync(logDir)) {
       return { success: true };
@@ -93,6 +186,70 @@ export async function deleteAllLogs(): Promise<{
   } catch (error) {
     log.error("[Logs] Failed to delete logs:", error);
     return { success: false, error: String(error) };
+  }
+}
+
+function resolveRequestLogDirectory(): ResolvedRequestLogDirectory {
+  const writablePath = getWritablePath();
+  if (writablePath) {
+    return {
+      logDir: path.join(writablePath, "logs"),
+      writablePath,
+      resolution: "writable_path",
+    };
+  }
+
+  const configDir = proxyManager.getConfigDir();
+  if (isDirWritable(path.resolve("logs"))) {
+    return {
+      logDir: path.join(configDir, "logs"),
+      resolution: "config_dir",
+    };
+  }
+
+  const config = proxyManager.loadConfigFromYaml();
+  const authDir = expandHomeDir(
+    config?.["auth-dir"] || proxyManager.getAuthDir(),
+  );
+  return {
+    logDir: path.join(authDir, "logs"),
+    resolution: "auth_dir_fallback",
+  };
+}
+
+function getWritablePath(): string | undefined {
+  for (const key of ["WRITABLE_PATH", "writable_path"]) {
+    const value = process.env[key]?.trim();
+    if (value) {
+      return path.resolve(value);
+    }
+  }
+
+  return undefined;
+}
+
+function expandHomeDir(dirPath: string): string {
+  if (!dirPath.startsWith("~")) {
+    return path.resolve(dirPath);
+  }
+
+  const remainder = dirPath.slice(1).replace(/^[/\\]+/, "");
+  return path.join(os.homedir(), remainder);
+}
+
+function isDirWritable(dirPath: string): boolean {
+  try {
+    const stat = fs.statSync(dirPath);
+    if (!stat.isDirectory()) {
+      return false;
+    }
+
+    const testFile = path.join(dirPath, `.linjun-perm-test-${process.pid}`);
+    fs.writeFileSync(testFile, "", "utf-8");
+    fs.unlinkSync(testFile);
+    return true;
+  } catch {
+    return false;
   }
 }
 

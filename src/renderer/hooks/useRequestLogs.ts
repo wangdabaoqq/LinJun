@@ -1,10 +1,54 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import log from "@renderer/utils/logger";
-import { RequestLogEntry } from "../types/logs";
+import {
+  RequestLogDiagnostics,
+  RequestLogEntry,
+  RequestLogFetchResult,
+} from "../types/logs";
+
+function areLogsEqual(
+  previous: RequestLogEntry[],
+  next: RequestLogEntry[],
+): boolean {
+  if (previous.length === 0 && next.length === 0) {
+    return true;
+  }
+
+  return (
+    previous.length === next.length &&
+    previous.length > 0 &&
+    previous[0]?.id === next[0]?.id &&
+    previous[previous.length - 1]?.id === next[next.length - 1]?.id
+  );
+}
+
+function areDiagnosticsEqual(
+  previous: RequestLogDiagnostics | null,
+  next: RequestLogDiagnostics | null,
+): boolean {
+  if (previous === next) return true;
+  if (!previous || !next) return false;
+
+  return (
+    previous.logDir === next.logDir &&
+    previous.writablePath === next.writablePath &&
+    previous.resolution === next.resolution &&
+    previous.status === next.status &&
+    previous.error === next.error &&
+    previous.totalFiles === next.totalFiles &&
+    previous.matchedFiles === next.matchedFiles &&
+    previous.parsedFiles === next.parsedFiles &&
+    previous.ignoredFiles.join("|") === next.ignoredFiles.join("|")
+  );
+}
 
 export function useRequestLogs(limit = 200, refreshInterval = 3000) {
   const [logs, setLogs] = useState<RequestLogEntry[]>([]);
+  const [diagnostics, setDiagnostics] = useState<RequestLogDiagnostics | null>(
+    null,
+  );
   const prevLogsRef = useRef<RequestLogEntry[]>([]);
+  const prevDiagnosticsRef = useRef<RequestLogDiagnostics | null>(null);
   const isFetchingRef = useRef(false);
 
   const fetchLogs = useCallback(async () => {
@@ -13,21 +57,31 @@ export function useRequestLogs(limit = 200, refreshInterval = 3000) {
 
     isFetchingRef.current = true;
     try {
-      const entries = await window.electronAPI.logs.fetch(limit);
+      const result = (await window.electronAPI.logs.fetch(
+        limit,
+      )) as RequestLogFetchResult;
+      const entries = Array.isArray(result) ? result : result.entries || [];
+      const nextDiagnostics = Array.isArray(result) ? null : result.diagnostics;
 
-      // Diff comparison: skip setState if data hasn't changed
-      const prev = prevLogsRef.current;
-      if (
-        prev.length === entries.length &&
-        prev.length > 0 &&
-        prev[0]?.id === entries[0]?.id &&
-        prev[prev.length - 1]?.id === entries[entries.length - 1]?.id
-      ) {
+      const logsUnchanged = areLogsEqual(prevLogsRef.current, entries);
+      const diagnosticsUnchanged = areDiagnosticsEqual(
+        prevDiagnosticsRef.current,
+        nextDiagnostics,
+      );
+
+      if (logsUnchanged && diagnosticsUnchanged) {
         return;
       }
 
-      prevLogsRef.current = entries;
-      setLogs(entries);
+      if (!logsUnchanged) {
+        prevLogsRef.current = entries;
+        setLogs(entries);
+      }
+
+      if (!diagnosticsUnchanged) {
+        prevDiagnosticsRef.current = nextDiagnostics;
+        setDiagnostics(nextDiagnostics);
+      }
     } catch (error) {
       log.error("[useRequestLogs] Failed to fetch logs", error);
     } finally {
@@ -41,5 +95,5 @@ export function useRequestLogs(limit = 200, refreshInterval = 3000) {
     return () => clearInterval(timer);
   }, [fetchLogs, refreshInterval]);
 
-  return { logs, refresh: fetchLogs };
+  return { logs, diagnostics, refresh: fetchLogs };
 }
