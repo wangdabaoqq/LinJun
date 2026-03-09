@@ -11,6 +11,12 @@ import {
   Info,
   Code,
   Download,
+  Folder,
+  Search,
+  FileCheck,
+  FileX,
+  HardDrive,
+  Terminal,
 } from "lucide-react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useTranslations } from "../../stores/settings";
@@ -166,15 +172,36 @@ function StatusBadge({ statusCode }: { statusCode: number }) {
   );
 }
 
-function DiagnosticField({ label, value }: { label: string; value: string }) {
+function DiagnosticField({
+  label,
+  value,
+  icon: Icon,
+}: {
+  label: string;
+  value: React.ReactNode;
+  icon?: any;
+}) {
   return (
-    <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/35 px-4 py-3 backdrop-blur-md shadow-sm">
-      <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--text-dim)]">
-        {label}
-      </p>
-      <p className="mt-1 break-all font-mono text-xs text-[var(--text-primary)]">
-        {value}
-      </p>
+    <div className="group relative rounded-[2rem] border border-white/5 bg-white/[0.03] p-4 backdrop-blur-2xl shadow-xl overflow-hidden flex flex-col justify-center min-h-[85px]">
+      {/* Decorative gradient background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-[var(--accent-primary)]/10 via-transparent to-transparent opacity-0 group-hover:opacity-100" />
+      <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-[var(--accent-primary)]/5 blur-3xl rounded-full" />
+
+      <div className="relative z-10 flex items-center gap-4">
+        {Icon && (
+          <div className="flex-shrink-0 w-11 h-11 rounded-2xl bg-gradient-to-br from-[var(--bg-secondary)]/80 to-[var(--bg-primary)]/80 flex items-center justify-center text-[var(--accent-primary)] border border-white/5 shadow-lg">
+            <Icon className="w-5 h-5 drop-shadow-[0_0_8px_rgba(var(--accent-primary),0.5)]" />
+          </div>
+        )}
+        <div className="flex-1 min-w-0">
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-dim)] opacity-70">
+            {label}
+          </p>
+          <div className="mt-1.5 font-mono text-[11px] text-[var(--text-primary)] leading-relaxed whitespace-pre-wrap break-all">
+            {value}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -524,13 +551,36 @@ export function Logs() {
       </div>
 
       {diagnostics && (
-        <div className="grid gap-3 lg:grid-cols-2">
+        <div className="grid gap-4 lg:grid-cols-3">
           <DiagnosticField
-            label={t.logs.scanDirectory}
+            label={t.logs.primaryDirectory}
+            icon={Folder}
             value={diagnostics.logDir || "-"}
           />
           <DiagnosticField
+            label={t.logs.scanDirectory}
+            icon={Search}
+            value={
+              diagnostics.scannedDirs.length > 0 ? (
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {diagnostics.scannedDirs.map((dir, i) => (
+                    <span
+                      key={i}
+                      className="px-2.5 py-1 rounded-full bg-[var(--bg-secondary)]/50 border border-white/5 text-[11px] text-[var(--text-primary)] max-w-full break-all"
+                      title={dir}
+                    >
+                      {dir}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                diagnostics.logDir || "-"
+              )
+            }
+          />
+          <DiagnosticField
             label={t.logs.writablePath}
+            icon={HardDrive}
             value={diagnostics.writablePath || t.logs.notSet}
           />
         </div>
@@ -572,37 +622,59 @@ export function Logs() {
               </div>
 
               {logs.length === 0 && diagnostics && (
-                <div className="w-full max-w-2xl rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/35 p-4 backdrop-blur-md shadow-lg">
-                  <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--text-muted)]">
-                    <Info className="h-4 w-4 text-[var(--accent-primary)]" />
+                <div className="w-full max-w-2xl rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/35 p-6 backdrop-blur-md shadow-lg overflow-hidden relative">
+                  <div className="absolute inset-0 bg-gradient-to-br from-[var(--accent-primary)]/5 via-transparent to-transparent pointer-events-none" />
+                  <div className="flex items-center gap-3 text-xs font-bold uppercase tracking-[0.14em] text-[var(--text-primary)] mb-6 relative z-10">
+                    <div className="p-1.5 rounded-lg bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] border border-[var(--accent-primary)]/20 shadow-[0_0_15px_-5px_var(--accent-primary)]">
+                      <Info className="h-4 w-4" />
+                    </div>
                     <span>{t.logs.detail}</span>
                   </div>
-                  <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                  <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4 relative z-10">
                     <DiagnosticField
                       label={t.logs.filesFound}
+                      icon={Folder}
                       value={String(diagnostics.totalFiles)}
                     />
                     <DiagnosticField
                       label={t.logs.matchedFiles}
+                      icon={Search}
                       value={String(diagnostics.matchedFiles)}
                     />
                     <DiagnosticField
                       label={t.logs.parsedFiles}
+                      icon={FileCheck}
                       value={String(diagnostics.parsedFiles)}
                     />
                     <DiagnosticField
                       label={t.logs.ignoredFiles}
+                      icon={FileX}
                       value={String(diagnostics.ignoredFiles.length)}
                     />
                   </div>
 
                   {diagnostics.ignoredFiles.length > 0 && (
-                    <div className="mt-4 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 px-4 py-3">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--text-dim)]">
-                        {t.logs.ignoredFiles}
-                      </p>
-                      <p className="mt-2 break-all font-mono text-xs text-[var(--text-muted)]">
+                    <div className="mt-6 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 p-4 transition-all hover:bg-[var(--bg-secondary)]/40 relative group overflow-hidden">
+                      <div className="absolute inset-0 bg-gradient-to-r from-[var(--error)]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--text-dim)] mb-3 relative z-10">
+                        <Terminal className="w-3.5 h-3.5" />
+                        <span>{t.logs.ignoredFiles}</span>
+                      </div>
+                      <p className="mt-1 font-mono text-[11px] text-[var(--text-muted)] leading-relaxed relative z-10 break-all">
                         {diagnostics.ignoredFiles.join(", ")}
+                      </p>
+                    </div>
+                  )}
+
+                  {diagnostics.compatibilityLogDirs.length > 0 && (
+                    <div className="mt-4 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 p-4 transition-all hover:bg-[var(--bg-secondary)]/40 relative group overflow-hidden">
+                      <div className="absolute inset-0 bg-gradient-to-r from-[var(--accent-primary)]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--text-dim)] mb-3 relative z-10">
+                        <Search className="w-3.5 h-3.5" />
+                        <span>{t.logs.compatibilityDirectories}</span>
+                      </div>
+                      <p className="mt-1 font-mono text-[11px] text-[var(--text-muted)] leading-relaxed whitespace-pre-wrap relative z-10 break-all">
+                        {diagnostics.compatibilityLogDirs.join("\n")}
                       </p>
                     </div>
                   )}

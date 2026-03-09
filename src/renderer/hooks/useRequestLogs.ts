@@ -31,6 +31,9 @@ function areDiagnosticsEqual(
 
   return (
     previous.logDir === next.logDir &&
+    previous.scannedDirs.join("|") === next.scannedDirs.join("|") &&
+    previous.compatibilityLogDirs.join("|") ===
+      next.compatibilityLogDirs.join("|") &&
     previous.writablePath === next.writablePath &&
     previous.resolution === next.resolution &&
     previous.status === next.status &&

@@ -15,6 +15,8 @@ export interface RequestLogEntry {
 
 export interface RequestLogDiagnostics {
   logDir: string;
+  scannedDirs: string[];
+  compatibilityLogDirs: string[];
   writablePath?: string;
   resolution: "writable_path" | "config_dir" | "auth_dir_fallback";
   status: "ok" | "directory_empty" | "unrecognized_files" | "read_error";

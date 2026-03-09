@@ -13,6 +13,8 @@ export function setupLogsHandlers(): void {
         entries: [],
         diagnostics: {
           logDir: "",
+          scannedDirs: [],
+          compatibilityLogDirs: [],
           resolution: "config_dir",
           status: "read_error",
           error: String(error),

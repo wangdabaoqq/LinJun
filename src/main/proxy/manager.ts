@@ -522,6 +522,13 @@ class ProxyManager extends EventEmitter {
 
     const binaryPath = this.getBinaryPath();
     const configPath = this.getConfigPath();
+    const configDir = this.getConfigDir();
+
+    try {
+      fs.mkdirSync(path.join(configDir, "logs"), { recursive: true });
+    } catch (error) {
+      log.warn("[ProxyManager] Failed to prepare config log directory:", error);
+    }
 
     log.info("[ProxyManager] Checking port availability:", this.port);
     try {
@@ -538,6 +545,7 @@ class ProxyManager extends EventEmitter {
       const proc = spawn(binaryPath, ["--config", configPath], {
         stdio: ["ignore", "pipe", "pipe"],
         detached: false,
+        cwd: configDir,
       });
 
       const stderrChunks: string[] = [];
