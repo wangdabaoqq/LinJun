@@ -203,7 +203,12 @@ function getRequestLogDirectories(): RequestLogDirectorySet {
   const authLogDir = path.join(authDir, "logs");
 
   const scannedDirs = Array.from(
-    new Set([primary.logDir, configLogDir, authLogDir]),
+    new Set([
+      primary.logDir,
+      ...(primary.writablePath ? [primary.writablePath] : []),
+      configLogDir,
+      authLogDir,
+    ]),
   );
 
   return {
@@ -307,7 +312,7 @@ function getWritablePath(): string | undefined {
   for (const key of ["WRITABLE_PATH", "writable_path"]) {
     const value = process.env[key]?.trim();
     if (value) {
-      return path.resolve(value);
+      return expandHomeDir(value);
     }
   }
 
