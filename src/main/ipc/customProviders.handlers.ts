@@ -117,33 +117,132 @@ function registerCompatHandlers(channel: string, configKey: string): void {
   );
 }
 
+function unwrapManagementApiCallPayload(payload: unknown): unknown {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    return payload;
+  }
+
+  const objectPayload = payload as {
+    status_code?: unknown;
+    success?: unknown;
+    error?: unknown;
+    body?: unknown;
+    data?: unknown;
+  };
+
+  const statusCode =
+    typeof objectPayload.status_code === "number"
+      ? objectPayload.status_code
+      : undefined;
+
+  if (statusCode && statusCode >= 400) {
+    const bodyText =
+      typeof objectPayload.body === "string" ? objectPayload.body : "";
+    throw new Error(
+      bodyText
+        ? `Model list request failed (${statusCode}): ${bodyText}`
+        : `Model list request failed (${statusCode})`,
+    );
+  }
+
+  if (objectPayload.success === false) {
+    throw new Error(
+      typeof objectPayload.error === "string"
+        ? objectPayload.error
+        : "Model list request failed",
+    );
+  }
+
+  if (typeof objectPayload.body === "string") {
+    try {
+      return JSON.parse(objectPayload.body) as unknown;
+    } catch {
+      return objectPayload.body;
+    }
+  }
+
+  if (objectPayload.data !== undefined) {
+    return objectPayload.data;
+  }
+
+  return payload;
+}
+
 function extractModelsFromApiCallPayload(payload: unknown): {
   id: string;
   owned_by?: string;
 }[] {
   if (Array.isArray(payload)) {
-    return payload.filter(
-      (item): item is { id: string; owned_by?: string } =>
-        !!item &&
-        typeof item === "object" &&
-        typeof (item as { id?: unknown }).id === "string",
-    );
+    return payload.flatMap((item) => {
+      if (!item || typeof item !== "object") {
+        return [];
+      }
+
+      const model = item as {
+        id?: unknown;
+        name?: unknown;
+        owned_by?: unknown;
+        ownedBy?: unknown;
+      };
+
+      const modelId =
+        typeof model.id === "string"
+          ? model.id
+          : typeof model.name === "string"
+            ? model.name
+            : "";
+
+      if (!modelId.trim()) {
+        return [];
+      }
+
+      const ownedBy =
+        typeof model.owned_by === "string"
+          ? model.owned_by
+          : typeof model.ownedBy === "string"
+            ? model.ownedBy
+            : undefined;
+
+      return [{ id: modelId, ...(ownedBy ? { owned_by: ownedBy } : {}) }];
+    });
   }
 
   if (payload && typeof payload === "object") {
     const objectPayload = payload as {
       data?: unknown;
       models?: unknown;
+      items?: unknown;
+      result?: unknown;
       object?: unknown;
       success?: unknown;
     };
 
-    if (Array.isArray(objectPayload.data)) {
-      return extractModelsFromApiCallPayload(objectPayload.data);
+    if (objectPayload.data !== undefined) {
+      const models = extractModelsFromApiCallPayload(objectPayload.data);
+      if (models.length > 0) {
+        return models;
+      }
     }
 
-    if (Array.isArray(objectPayload.models)) {
-      return extractModelsFromApiCallPayload(objectPayload.models);
+    if (objectPayload.models !== undefined) {
+      const models = extractModelsFromApiCallPayload(objectPayload.models);
+      if (models.length > 0) {
+        return models;
+      }
+    }
+
+    if (objectPayload.items !== undefined) {
+      const models = extractModelsFromApiCallPayload(objectPayload.items);
+      if (models.length > 0) {
+        return models;
+      }
+    }
+
+    if (objectPayload.result !== undefined) {
+      const models = extractModelsFromApiCallPayload(objectPayload.result);
+      if (models.length > 0) {
+        return models;
+      }
     }
   }
 
@@ -234,7 +333,9 @@ export function setupCustomProvidersHandlers(): void {
           }
         }
 
-        const models = extractModelsFromApiCallPayload(payload).map(
+        const normalizedPayload = unwrapManagementApiCallPayload(payload);
+
+        const models = extractModelsFromApiCallPayload(normalizedPayload).map(
           (model) => ({
             id: model.id,
             ownedBy:

@@ -51,7 +51,11 @@ export const HeaderEntryList = memo(function HeaderEntryList({
               type="text"
               value={key}
               onChange={(e) => updateHeader(key, e.target.value, value)}
-              placeholder={t.providers.customHeaderKeyPlaceholder}
+              placeholder={
+                headerIndex === 0
+                  ? "Authorization"
+                  : t.providers.customHeaderKeyPlaceholder
+              }
               className="flex-1 glass-input bg-[var(--text-primary)]/[0.03] border border-[var(--glass-border)] text-[var(--text-primary)] font-mono text-sm"
             />
             <ArrowRight className="w-4 h-4 text-[var(--text-primary)]/20 group-hover:text-[var(--text-primary)]/50" />
@@ -59,7 +63,11 @@ export const HeaderEntryList = memo(function HeaderEntryList({
               type="text"
               value={value}
               onChange={(e) => updateHeader(key, key, e.target.value)}
-              placeholder={t.providers.customHeaderValuePlaceholder}
+              placeholder={
+                headerIndex === 0
+                  ? "Bearer sk-"
+                  : t.providers.customHeaderValuePlaceholder
+              }
               className="flex-1 glass-input bg-[var(--text-primary)]/[0.03] border border-[var(--glass-border)] text-[var(--text-primary)] font-mono text-sm"
             />
             <button

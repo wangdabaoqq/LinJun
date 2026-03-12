@@ -759,11 +759,6 @@ export function CustomProviderForm({
       ),
     );
 
-    if (Object.keys(normalizedHeaders).length === 0) {
-      setError(t.providers.customHeadersRequired);
-      return;
-    }
-
     const hasAuthorizationHeader = Object.entries(normalizedHeaders).some(
       ([key, value]) =>
         key.trim().toLowerCase() === "authorization" && value.trim().length > 0,
