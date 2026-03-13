@@ -347,6 +347,7 @@ export const ProviderCard = memo(function ProviderCard({
             {visibleAccounts.map((account) => {
               const { main, sub } = getAccountDisplay(account);
               const isEnabled = account.enabled !== false;
+              const isOffline = account.status === "offline";
               const toggleKey = `${provider.id}:${account.id}`;
               const isTogglePending = !!pendingToggleAccountIds[toggleKey];
               const modelRulesMeta = getAccountModelRulesMeta(
@@ -386,7 +387,7 @@ export const ProviderCard = memo(function ProviderCard({
                           <User className="w-3.5 h-3.5" />
                         </div>
                         <div
-                          className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-[var(--bg-primary)] ${account.status === "expired" ? "bg-red-500" : isEnabled ? "bg-[var(--accent-primary)]" : "bg-[var(--text-dim)]"}`}
+                          className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-[var(--bg-primary)] ${account.status === "expired" ? "bg-red-500" : isOffline ? "bg-amber-500" : isEnabled ? "bg-[var(--accent-primary)]" : "bg-[var(--text-dim)]"}`}
                         />
                       </>
                     )}
@@ -443,16 +444,20 @@ export const ProviderCard = memo(function ProviderCard({
                         className={`text-[10px] font-bold uppercase tracking-wider ${
                           account.status === "expired"
                             ? "text-red-500"
-                            : isEnabled
-                              ? "text-emerald-500"
-                              : "text-[var(--text-dim)]"
+                            : isOffline
+                              ? "text-amber-500"
+                              : isEnabled
+                                ? "text-emerald-500"
+                                : "text-[var(--text-dim)]"
                         }`}
                       >
                         {account.status === "expired"
                           ? t.providers.expiredState
-                          : isEnabled
-                            ? t.providers.enabledState
-                            : t.providers.disabledState}
+                          : isOffline
+                            ? t.status.offline
+                            : isEnabled
+                              ? t.providers.enabledState
+                              : t.providers.disabledState}
                       </span>
                       <motion.button
                         role="switch"

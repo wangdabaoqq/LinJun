@@ -65,6 +65,37 @@ function getAxios404Debug(error: unknown): string {
   return `url=${url} status=${status}${bodyShort ? ` body=${bodyShort}` : ""}`;
 }
 
+function isCodexUnauthorizedError(error: unknown): boolean {
+  if (axios.isAxiosError(error)) {
+    const status = error.response?.status;
+    if (status === 401 || status === 403) {
+      return true;
+    }
+  }
+
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  const message = error.message.toLowerCase();
+  return (
+    message.includes("codex usage request failed (401)") ||
+    message.includes("token_invalidated") ||
+    message.includes("authentication token has been invalidated") ||
+    message.includes("unauthorized")
+  );
+}
+
+async function markCodexTokenExpired(token: TokenReadResult): Promise<void> {
+  const expiredAt = new Date(Date.now() - 1000).toISOString();
+  const marked = await updateTokenFile(token.filePath, { expired: expiredAt });
+  if (marked) {
+    log.warn(
+      `[CodexService] Marked token as expired due to auth failure: ${token.email}`,
+    );
+  }
+}
+
 async function refreshCodexToken(
   refreshToken: string,
 ): Promise<RefreshTokenResponse> {
@@ -249,6 +280,11 @@ export async function fetchCodexUsage(
     try {
       return await fetchCodexUsageViaManagement(token);
     } catch (error) {
+      if (isCodexUnauthorizedError(error)) {
+        await markCodexTokenExpired(token);
+        throw error;
+      }
+
       const isAxios404 =
         axios.isAxiosError(error) && error.response?.status === 404;
       const isWrappedUpstream404 =
@@ -296,7 +332,14 @@ export async function fetchCodexUsage(
     }
   }
 
-  return await fetchCodexUsageWithRefresh(token);
+  try {
+    return await fetchCodexUsageWithRefresh(token);
+  } catch (error) {
+    if (isCodexUnauthorizedError(error)) {
+      await markCodexTokenExpired(token);
+    }
+    throw error;
+  }
 }
 
 import { store } from "../utils/store";

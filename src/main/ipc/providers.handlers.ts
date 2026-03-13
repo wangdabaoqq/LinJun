@@ -360,6 +360,19 @@ function isExpiredTimestamp(value: string, now = Date.now()): boolean {
   return expiresAtDate.getTime() < now;
 }
 
+function isCodexUnauthorizedStatus(
+  statusValue: string,
+  statusMessage: string,
+): boolean {
+  const combinedStatus = `${statusValue} ${statusMessage}`.toLowerCase();
+  return (
+    /\b401\b/.test(combinedStatus) ||
+    combinedStatus.includes("unauthorized") ||
+    combinedStatus.includes("invalid token") ||
+    combinedStatus.includes("invalid_token")
+  );
+}
+
 function isValidAuthFileName(value: string): boolean {
   return /^[a-zA-Z0-9@._-]+\.json$/.test(value);
 }
@@ -806,6 +819,10 @@ export function setupProvidersHandlers(): void {
           typeof authFile.status === "string"
             ? authFile.status.toLowerCase()
             : "";
+        const statusMessage =
+          typeof authFile.status_message === "string"
+            ? authFile.status_message
+            : "";
         const isEnabled = !disabled;
 
         let authFilePayload: unknown;
@@ -824,7 +841,10 @@ export function setupProvidersHandlers(): void {
         }
 
         const isTokenExpired =
-          statusValue === "expired" || isExpiredTimestamp(expiresAtStr, now);
+          statusValue === "expired" ||
+          isExpiredTimestamp(expiresAtStr, now) ||
+          (providerId === "codex" &&
+            isCodexUnauthorizedStatus(statusValue, statusMessage));
 
         const isOnline =
           isEnabled &&
