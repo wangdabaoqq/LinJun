@@ -398,12 +398,19 @@ class ProxyManager extends EventEmitter {
       } as ProxyConfig["remote-management"];
     }
 
+    const configuredAuthDir = parsedConfig["auth-dir"];
+    const hasValidAuthDir =
+      typeof configuredAuthDir === "string" &&
+      configuredAuthDir.trim().length > 0;
     const shouldMigrateAuthDir = shouldMigrateLegacyWindowsAuthDir(
       content,
-      parsedConfig["auth-dir"],
+      configuredAuthDir,
     );
+
     if (shouldMigrateAuthDir) {
-      updates["auth-dir"] = parsedConfig["auth-dir"];
+      updates["auth-dir"] = configuredAuthDir;
+    } else if (!hasValidAuthDir) {
+      updates["auth-dir"] = this.getAuthDir();
     }
 
     if (Object.keys(updates).length > 0) {
@@ -416,7 +423,7 @@ class ProxyManager extends EventEmitter {
         if (!hasAllowRemote) {
           addedKeys.push("remote-management.allow-remote");
         }
-        if (shouldMigrateAuthDir) {
+        if (shouldMigrateAuthDir || !hasValidAuthDir) {
           addedKeys.push("auth-dir");
         }
         if (addedKeys.length > 0) {
