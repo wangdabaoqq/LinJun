@@ -72,6 +72,212 @@ class ManagementAPI {
     return this.getAuthHeaders();
   }
 
+  private normalizeModelEntry(
+    value: unknown,
+    providerHint?: string,
+  ): ModelEntry | null {
+    if (typeof value === "string") {
+      const id = value.trim();
+      if (!id) return null;
+      return {
+        id,
+        object: "model",
+        created: 0,
+        owned_by: providerHint || "",
+      };
+    }
+
+    if (!value || typeof value !== "object") {
+      return null;
+    }
+
+    const record = value as {
+      id?: unknown;
+      name?: unknown;
+      model?: unknown;
+      model_id?: unknown;
+      object?: unknown;
+      created?: unknown;
+      owned_by?: unknown;
+      ownedBy?: unknown;
+      display_name?: unknown;
+      displayName?: unknown;
+      provider?: unknown;
+      source?: unknown;
+      channel?: unknown;
+    };
+
+    const idCandidate =
+      (typeof record.id === "string" && record.id.trim()) ||
+      (typeof record.name === "string" && record.name.trim()) ||
+      (typeof record.model === "string" && record.model.trim()) ||
+      (typeof record.model_id === "string" && record.model_id.trim());
+
+    if (!idCandidate) {
+      return null;
+    }
+
+    const objectValue =
+      typeof record.object === "string" && record.object.trim()
+        ? record.object.trim()
+        : "model";
+
+    const createdValue =
+      typeof record.created === "number" && Number.isFinite(record.created)
+        ? record.created
+        : 0;
+
+    const ownedByValue =
+      (typeof record.owned_by === "string" && record.owned_by.trim()) ||
+      (typeof record.ownedBy === "string" && record.ownedBy.trim()) ||
+      (typeof record.provider === "string" && record.provider.trim()) ||
+      (typeof record.source === "string" && record.source.trim()) ||
+      (typeof record.channel === "string" && record.channel.trim()) ||
+      providerHint ||
+      "";
+
+    return {
+      id: idCandidate,
+      object: objectValue,
+      created: createdValue,
+      owned_by: ownedByValue,
+      ...((typeof record.display_name === "string" &&
+        record.display_name.trim()) ||
+      (typeof record.displayName === "string" && record.displayName.trim())
+        ? {
+            display_name:
+              (typeof record.display_name === "string" &&
+                record.display_name.trim()) ||
+              (typeof record.displayName === "string"
+                ? record.displayName.trim()
+                : ""),
+          }
+        : {}),
+    };
+  }
+
+  private isModelLikeObject(value: unknown): boolean {
+    if (!value || typeof value !== "object") {
+      return false;
+    }
+
+    const record = value as {
+      id?: unknown;
+      name?: unknown;
+      model?: unknown;
+      model_id?: unknown;
+    };
+
+    return Boolean(
+      (typeof record.id === "string" && record.id.trim()) ||
+      (typeof record.name === "string" && record.name.trim()) ||
+      (typeof record.model === "string" && record.model.trim()) ||
+      (typeof record.model_id === "string" && record.model_id.trim()),
+    );
+  }
+
+  private extractModelsFromPayload(
+    payload: unknown,
+    providerHint?: string,
+  ): ModelEntry[] {
+    const dedupe = new Set<string>();
+    const models: ModelEntry[] = [];
+
+    const append = (value: unknown): void => {
+      const model = this.normalizeModelEntry(value, providerHint);
+      if (!model) return;
+      if (dedupe.has(model.id)) return;
+      dedupe.add(model.id);
+      models.push(model);
+    };
+
+    const parse = (value: unknown, sourceKey?: string): void => {
+      if (Array.isArray(value)) {
+        const objectItems = value.filter(
+          (item) => item && typeof item === "object",
+        );
+
+        if (objectItems.length > 0) {
+          objectItems.forEach((item) => {
+            if (this.isModelLikeObject(item)) {
+              append(item);
+            } else {
+              parse(item, sourceKey);
+            }
+          });
+          return;
+        }
+
+        const stringItems = value.filter(
+          (item): item is string => typeof item === "string",
+        );
+        const shouldTreatAsModelStringArray =
+          stringItems.length > 0 &&
+          typeof sourceKey === "string" &&
+          /(?:^|[_-])(models?|ids?|model[_-]?ids?|names?)$/i.test(sourceKey);
+        if (shouldTreatAsModelStringArray) {
+          stringItems.forEach((item) => append(item));
+        }
+        return;
+      }
+
+      if (!value || typeof value !== "object") {
+        return;
+      }
+
+      if (this.isModelLikeObject(value)) {
+        append(value);
+        return;
+      }
+
+      const objectValue = value as {
+        data?: unknown;
+        models?: unknown;
+        items?: unknown;
+        result?: unknown;
+        definitions?: unknown;
+        model_definitions?: unknown;
+        modelDefinitions?: unknown;
+      };
+
+      const knownContainers: Record<string, unknown> = {
+        data: objectValue.data,
+        models: objectValue.models,
+        items: objectValue.items,
+        result: objectValue.result,
+        definitions: objectValue.definitions,
+        model_definitions: objectValue.model_definitions,
+        modelDefinitions: objectValue.modelDefinitions,
+      };
+
+      const hasKnownContainer = Object.values(knownContainers).some(
+        (candidate) => candidate !== undefined,
+      );
+      if (hasKnownContainer) {
+        Object.entries(knownContainers).forEach(([key, candidate]) => {
+          if (candidate !== undefined) {
+            parse(candidate, key);
+          }
+        });
+        return;
+      }
+
+      // Fallback for object maps: { "gpt-5": { ...modelInfo } }
+      Object.values(value as Record<string, unknown>).forEach((nestedValue) => {
+        if (!nestedValue || typeof nestedValue !== "object") {
+          return;
+        }
+
+        if (this.isModelLikeObject(nestedValue)) {
+          append(nestedValue);
+        }
+      });
+    };
+
+    parse(payload);
+    return models;
+  }
+
   async getQwenAuthUrl(): Promise<QwenAuthUrlResponse> {
     try {
       const res = await this.client.get(
@@ -375,15 +581,51 @@ class ManagementAPI {
     }
   }
 
-  async fetchModels(_provider?: string): Promise<ModelEntry[]> {
+  async fetchModels(provider?: string): Promise<ModelEntry[]> {
+    const normalizedProvider = (provider || "").trim().toLowerCase();
+
+    if (normalizedProvider) {
+      try {
+        const res = await this.client.get(
+          `${this.baseURL}/v0/management/model-definitions/${encodeURIComponent(
+            normalizedProvider,
+          )}`,
+          {
+            headers: this.getAuthHeaders(),
+          },
+        );
+
+        const models = this.extractModelsFromPayload(
+          res.data,
+          normalizedProvider,
+        );
+        log.info(
+          `[ManagementAPI] Fetched ${models.length} models via /v0/management/model-definitions/${normalizedProvider}`,
+        );
+        return models;
+      } catch (error) {
+        if (axios.isAxiosError(error) && error.response?.status !== 404) {
+          log.error(
+            `[ManagementAPI] Failed to fetch model definitions for ${normalizedProvider}:`,
+            error,
+          );
+          throw error;
+        }
+
+        log.warn(
+          `[ManagementAPI] model-definitions endpoint unavailable for ${normalizedProvider}, fallback to /v1/models`,
+        );
+      }
+    }
+
     try {
       const res = await this.client.get(`${this.baseURL}/v1/models`, {
         params: { is_webui: true },
         headers: this.getModelAuthHeaders(),
       });
-      const models = res.data?.data ?? [];
+      const models = this.extractModelsFromPayload(res.data);
       log.info(
-        `[ManagementAPI] Fetched ${models.length} models via /v1/models`,
+        `[ManagementAPI] Fetched ${models.length} models via /v1/models fallback`,
       );
       return models;
     } catch (error) {
@@ -821,6 +1063,7 @@ export interface ModelEntry {
   object: string;
   created: number;
   owned_by: string;
+  display_name?: string;
 }
 
 export interface QwenAuthUrlResponse {

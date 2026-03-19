@@ -251,7 +251,7 @@ export function ModelQuotaModal({
           if (cancelled) return;
           if (result?.success) {
             log.info(
-              `[ModelQuotaModal] Fetched ${result.models?.length ?? 0} models via /v1/models, providerId: ${providerId}`,
+              `[ModelQuotaModal] Fetched ${result.models?.length ?? 0} provider models, providerId: ${providerId}`,
             );
             setApiModels(result.models || []);
           } else {
