@@ -286,6 +286,8 @@ function ConfigModal({ tool, onClose }: ConfigModalProps) {
     type: "success" | "error";
     message: string;
   } | null>(null);
+  const [hasDiskConfigContent, setHasDiskConfigContent] = useState(false);
+  const [hasDiskAuthContent, setHasDiskAuthContent] = useState(false);
   const [activeTab, setActiveTab] = useState<
     "connection" | "config" | "auth" | "env"
   >("connection");
@@ -423,6 +425,41 @@ function ConfigModal({ tool, onClose }: ConfigModalProps) {
   useEffect(() => {
     void loadActiveProviders();
   }, []);
+
+  useEffect(() => {
+    let disposed = false;
+
+    const loadConfigFromDisk = async () => {
+      try {
+        const result = await window.electronAPI?.cli.readConfig(tool.name);
+        const config = result?.config;
+
+        const hasConfig = typeof config?.configContent === "string";
+        const hasAuth = typeof config?.authContent === "string";
+
+        if (!disposed && hasConfig) {
+          setConfigContent(config.configContent);
+        }
+
+        if (!disposed && hasAuth) {
+          setAuthContent(config.authContent);
+        }
+
+        if (!disposed) {
+          setHasDiskConfigContent(hasConfig);
+          setHasDiskAuthContent(hasAuth);
+        }
+      } catch (error) {
+        log.error("[Agents] Failed to load CLI config from disk:", error);
+      }
+    };
+
+    void loadConfigFromDisk();
+
+    return () => {
+      disposed = true;
+    };
+  }, [tool.name]);
 
   const getDefaultClaudeConfig = () => {
     return JSON.stringify(
@@ -699,29 +736,39 @@ export IFLOW_modelName="claude-sonnet-4-5"`;
   );
 
   useEffect(() => {
-    if (tool.name === "Claude Code") {
-      setConfigContent(getDefaultClaudeConfig());
-      setEnvContent(getDefaultClaudeEnv());
-    } else if (tool.name === "Gemini CLI") {
-      setEnvContent(getDefaultGeminiEnv());
-    } else if (tool.name === "OpenCode") {
-      setConfigContent(getDefaultOpenCodeConfig());
-    } else if (tool.name === "Amp CLI") {
-      setConfigContent(getDefaultAmpConfig());
-      setAuthContent(getDefaultAmpSecrets());
-      setEnvContent(getDefaultAmpEnv());
-    } else if (tool.name === "Droid CLI") {
-      setConfigContent(getDefaultDroidConfig());
-    } else if (tool.name === "iFlow CLI") {
-      setConfigContent(getDefaultIFlowConfig());
-      setEnvContent(getDefaultIFlowEnv());
-    } else {
-      setConfigContent(getDefaultCodexConfig());
+    if (!hasDiskConfigContent) {
+      if (tool.name === "Claude Code") {
+        setConfigContent(getDefaultClaudeConfig());
+        setEnvContent(getDefaultClaudeEnv());
+      } else if (tool.name === "Gemini CLI") {
+        setEnvContent(getDefaultGeminiEnv());
+      } else if (tool.name === "OpenCode") {
+        setConfigContent(getDefaultOpenCodeConfig());
+      } else if (tool.name === "Amp CLI") {
+        setConfigContent(getDefaultAmpConfig());
+        setAuthContent(getDefaultAmpSecrets());
+        setEnvContent(getDefaultAmpEnv());
+      } else if (tool.name === "Droid CLI") {
+        setConfigContent(getDefaultDroidConfig());
+      } else if (tool.name === "iFlow CLI") {
+        setConfigContent(getDefaultIFlowConfig());
+        setEnvContent(getDefaultIFlowEnv());
+      } else {
+        setConfigContent(getDefaultCodexConfig());
+      }
     }
-    if (tool.name !== "Amp CLI") {
+
+    if (tool.name !== "Amp CLI" && !hasDiskAuthContent) {
       setAuthContent(getDefaultCodexAuth());
     }
-  }, [proxyUrl, apiKey, activeProviders]);
+  }, [
+    proxyUrl,
+    apiKey,
+    activeProviders,
+    hasDiskAuthContent,
+    hasDiskConfigContent,
+    tool.name,
+  ]);
 
   const handleTestConnection = async () => {
     setTestingConnection(true);
@@ -795,6 +842,7 @@ export IFLOW_modelName="claude-sonnet-4-5"`;
         true,
       );
       if (result?.success) {
+        setHasDiskConfigContent(true);
         setSaveMessage({
           type: "success",
           message: `${t.agents.saveSuccess}\n${t.agents.savePath.replace(
@@ -848,6 +896,7 @@ export IFLOW_modelName="claude-sonnet-4-5"`;
         true,
       );
       if (result?.success) {
+        setHasDiskAuthContent(true);
         setSaveMessage({
           type: "success",
           message: `${t.agents.authSaveSuccess}\n${t.agents.savePath.replace(
