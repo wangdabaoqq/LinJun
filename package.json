@@ -1,6 +1,6 @@
 {
   "name": "linjun",
-  "version": "1.0.6-beta.12",
+  "version": "1.0.6-beta.13",
   "description": "霖君 - Cross-platform CLIProxyAPIPlus management tool",
   "main": "./out/main/index.js",
   "author": "wangdaboqq <wangdabao221@gmail.com>",
