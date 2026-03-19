@@ -109,9 +109,9 @@ export function setupQuotaHandlers(): void {
     }
   });
 
-  ipcMain.handle("models:fetch", async () => {
+  ipcMain.handle("models:fetch", async (_event, provider?: string) => {
     try {
-      const models = await managementAPI.fetchModels();
+      const models = await managementAPI.fetchModels(provider);
       return { success: true, models };
     } catch (error) {
       log.error("[IPC] Failed to fetch models:", error);

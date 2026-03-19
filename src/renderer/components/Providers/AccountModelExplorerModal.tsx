@@ -24,6 +24,7 @@ interface AccountModelExplorerModalProps {
   accountRulesBySource: Record<string, string[]>;
   onLoadCatalog: (
     accountFilePath?: string,
+    providerId?: string,
   ) => Promise<Array<{ id: string; ownedBy: string }>>;
   onSave: (sourceKey: string, accountPatterns: string[]) => Promise<void>;
 }
@@ -51,21 +52,6 @@ interface CatalogModel {
   ownedBy: string;
 }
 
-interface ProviderFilterConfig {
-  ownedBy?: string[];
-  idPrefix?: string[];
-}
-
-const PROVIDER_FILTER_CONFIG: Record<string, ProviderFilterConfig> = {
-  copilot: { ownedBy: ["github-copilot"] },
-  codex: { ownedBy: ["github-copilot"] },
-  claude: { ownedBy: ["claude-"] },
-  gemini: { ownedBy: ["google"] },
-  qwen: { ownedBy: ["qwen"] },
-  kiro: { ownedBy: ["aws"] },
-  iflow: { ownedBy: ["iflow"] },
-};
-
 function mergeUniqueCatalogModels(models: CatalogModel[]): CatalogModel[] {
   const seen = new Set<string>();
   const merged: CatalogModel[] = [];
@@ -78,41 +64,6 @@ function mergeUniqueCatalogModels(models: CatalogModel[]): CatalogModel[] {
   });
 
   return merged;
-}
-
-function filterCatalogModelsByProvider(
-  models: CatalogModel[],
-  providerId: string,
-): CatalogModel[] {
-  const providerLower = providerId.trim().toLowerCase();
-  if (!providerLower) return models;
-
-  if (providerLower === "codex") {
-    return models.filter((model) => model.id.toLowerCase().includes("codex"));
-  }
-
-  const config = PROVIDER_FILTER_CONFIG[providerLower];
-  if (config) {
-    return models.filter((model) => {
-      const idLower = model.id.toLowerCase();
-      if (config.ownedBy?.some((vendor) => vendor === model.ownedBy)) {
-        return true;
-      }
-      if (config.idPrefix?.some((prefix) => idLower.startsWith(prefix))) {
-        return true;
-      }
-      return false;
-    });
-  }
-
-  return models.filter((model) => {
-    const idLower = model.id.toLowerCase();
-    return (
-      idLower.startsWith(providerLower) ||
-      model.ownedBy.includes(providerLower) ||
-      providerLower.includes(model.ownedBy)
-    );
-  });
 }
 
 interface ModelCapsuleProps {
@@ -181,11 +132,9 @@ export const AccountModelExplorerModal = memo(
       setIsLoadingCatalog(true);
       setError(null);
       try {
-        const models = await onLoadCatalog(accountFilePath);
+        const models = await onLoadCatalog(accountFilePath, providerId);
         const mergedModels = mergeUniqueCatalogModels(models);
-        setCatalogModels(
-          filterCatalogModelsByProvider(mergedModels, providerId),
-        );
+        setCatalogModels(mergedModels);
       } catch (err) {
         setError(String(err));
       } finally {

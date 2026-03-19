@@ -20,21 +20,6 @@ import { useTranslations } from "../../stores/settings";
 import { sortModelsByDisplayOrder } from "./modelOrder";
 import { VirtualList } from "../shared/VirtualList";
 
-interface ProviderFilterConfig {
-  ownedBy?: string[];
-  idPrefix?: string[];
-}
-
-const PROVIDER_FILTER_CONFIG: Record<string, ProviderFilterConfig> = {
-  copilot: { ownedBy: ["github-copilot"] },
-  codex: { ownedBy: ["openai"] },
-  claude: { idPrefix: ["claude-"] },
-  gemini: { idPrefix: ["gemini-"] },
-  qwen: { idPrefix: ["qwen"] },
-  kiro: { ownedBy: ["aws"] },
-  iflow: { ownedBy: ["iflow"], idPrefix: ["iflow"] },
-};
-
 interface ModelQuotaModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -262,16 +247,13 @@ export function ModelQuotaModal({
               setModelsError(true);
             }
           })
-      : window.electronAPI?.models?.fetch().then((result) => {
+      : window.electronAPI?.models?.fetch(providerId).then((result) => {
           if (cancelled) return;
           if (result?.success) {
-            const filtered = (result.models || []).filter(
-              (m: { owned_by: string }) => m.owned_by !== "antigravity",
-            );
             log.info(
-              `[ModelQuotaModal] Fetched ${result.models?.length ?? 0} models via /v1/models, after filter: ${filtered.length}, providerId: ${providerId}`,
+              `[ModelQuotaModal] Fetched ${result.models?.length ?? 0} models via /v1/models, providerId: ${providerId}`,
             );
-            setApiModels(filtered);
+            setApiModels(result.models || []);
           } else {
             log.warn("[ModelQuotaModal] API returned failure:", result?.error);
             setModelsError(true);
@@ -290,36 +272,13 @@ export function ModelQuotaModal({
     return () => {
       cancelled = true;
     };
-  }, [isOpen, isApiModelProvider, authFileName]);
+  }, [isOpen, isApiModelProvider, authFileName, providerId]);
 
   const providerApiModels = useMemo(() => {
     if (!isApiModelProvider) return [];
-    // Per-account endpoint already returns models scoped to this account — skip filtering
-    if (authFileName) return apiModels;
-    if (!providerId) return apiModels;
-    const providerLower = providerId.toLowerCase();
-
-    const config = PROVIDER_FILTER_CONFIG[providerLower];
-    if (config) {
-      return apiModels.filter((m) => {
-        const idLower = m.id.toLowerCase();
-        const ownedLower = m.owned_by.toLowerCase();
-        if (config.ownedBy?.some((v) => v === ownedLower)) return true;
-        if (config.idPrefix?.some((p) => idLower.startsWith(p))) return true;
-        return false;
-      });
-    }
-
-    return apiModels.filter((m) => {
-      const idLower = m.id.toLowerCase();
-      const ownedLower = m.owned_by.toLowerCase();
-      return (
-        idLower.startsWith(providerLower) ||
-        ownedLower.includes(providerLower) ||
-        providerLower.includes(ownedLower)
-      );
-    });
-  }, [apiModels, providerId, authFileName, isApiModelProvider]);
+    // Use API response as-is (no extra local filtering).
+    return apiModels;
+  }, [apiModels, isApiModelProvider]);
 
   const allModels: QuotaWindow[] = useMemo(() => {
     const list: QuotaWindow[] = [];

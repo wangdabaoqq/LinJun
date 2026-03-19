@@ -87,6 +87,7 @@ interface UseOAuthRulesResult {
   handleOpenProviderModelAlias: (providerId: string) => void;
   handleLoadModelCatalog: (
     accountFilePath?: string,
+    providerId?: string,
   ) => Promise<Array<{ id: string; ownedBy: string }>>;
   handleLoadAccountPreview: (filePath: string) => Promise<unknown>;
   handleSaveAccountMetadata: (
@@ -394,10 +395,11 @@ export function useOAuthRules(): UseOAuthRulesResult {
   const handleLoadModelCatalog = useCallback(
     async (
       accountFilePath?: string,
+      providerId?: string,
     ): Promise<Array<{ id: string; ownedBy: string }>> => {
       const result = accountFilePath
         ? await window.electronAPI?.providers?.getAccountModels(accountFilePath)
-        : await window.electronAPI?.models?.fetch();
+        : await window.electronAPI?.models?.fetch(providerId);
       if (!result?.success) {
         throw new Error(
           result?.error || t.providers.accountModelRulesLoadFailed,

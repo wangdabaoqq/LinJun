@@ -19,7 +19,10 @@ interface ProviderModelRulesModalProps {
   sourceOptions: string[];
   initialSourceKey: string;
   patternsBySource: Record<string, string[]>;
-  onLoadCatalog: () => Promise<Array<{ id: string; ownedBy: string }>>;
+  onLoadCatalog: (
+    accountFilePath?: string,
+    providerId?: string,
+  ) => Promise<Array<{ id: string; ownedBy: string }>>;
   onSave: (sourceKey: string, providerPatterns: string[]) => Promise<void>;
 }
 
@@ -27,21 +30,6 @@ interface CatalogModel {
   id: string;
   ownedBy: string;
 }
-
-interface ProviderFilterConfig {
-  ownedBy?: string[];
-  idPrefix?: string[];
-}
-
-const PROVIDER_FILTER_CONFIG: Record<string, ProviderFilterConfig> = {
-  copilot: { ownedBy: ["github-copilot"] },
-  codex: { ownedBy: ["github-copilot"] },
-  claude: { ownedBy: ["claude-"] },
-  gemini: { ownedBy: ["google"] },
-  qwen: { ownedBy: ["qwen"] },
-  kiro: { ownedBy: ["aws"] },
-  iflow: { ownedBy: ["iflow"] },
-};
 
 function normalizePatterns(patterns: string[]): string[] {
   return Array.from(new Set(patterns.map((p) => p.trim()).filter(Boolean)));
@@ -66,41 +54,6 @@ function normalizeCatalogModels(
   });
 
   return merged;
-}
-
-function filterCatalogModelsByProvider(
-  models: CatalogModel[],
-  providerId: string,
-): CatalogModel[] {
-  const providerLower = providerId.trim().toLowerCase();
-  if (!providerLower) return models;
-
-  if (providerLower === "codex") {
-    return models.filter((model) => model.id.toLowerCase().includes("codex"));
-  }
-
-  const config = PROVIDER_FILTER_CONFIG[providerLower];
-  if (config) {
-    return models.filter((model) => {
-      const idLower = model.id.toLowerCase();
-      if (config.ownedBy?.some((vendor) => vendor === model.ownedBy)) {
-        return true;
-      }
-      if (config.idPrefix?.some((prefix) => idLower.startsWith(prefix))) {
-        return true;
-      }
-      return false;
-    });
-  }
-
-  return models.filter((model) => {
-    const idLower = model.id.toLowerCase();
-    return (
-      idLower.startsWith(providerLower) ||
-      model.ownedBy.includes(providerLower) ||
-      providerLower.includes(model.ownedBy)
-    );
-  });
 }
 
 export const ProviderModelRulesModal = memo(function ProviderModelRulesModal({
@@ -142,10 +95,9 @@ export const ProviderModelRulesModal = memo(function ProviderModelRulesModal({
     const load = async () => {
       setIsLoadingCatalog(true);
       try {
-        const result = await onLoadCatalog();
+        const result = await onLoadCatalog(undefined, providerId);
         const normalized = normalizeCatalogModels(result);
-        const filtered = filterCatalogModelsByProvider(normalized, providerId);
-        setCatalogModels(filtered.map((item) => item.id));
+        setCatalogModels(normalized.map((item) => item.id));
       } catch (err) {
         setError(err instanceof Error ? err.message : String(err));
       } finally {

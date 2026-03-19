@@ -666,7 +666,7 @@ export function Providers() {
               (sourceKey) => [sourceKey, getProviderRulesBySource(sourceKey)],
             ),
           )}
-          onLoadCatalog={() => handleLoadModelCatalog()}
+          onLoadCatalog={handleLoadModelCatalog}
           onSave={handleSaveProviderModelRules}
         />
       )}

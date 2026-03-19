@@ -169,7 +169,7 @@ const electronAPI = {
     },
   },
   models: {
-    fetch: () => ipcRenderer.invoke("models:fetch"),
+    fetch: (provider?: string) => ipcRenderer.invoke("models:fetch", provider),
   },
   oauthRules: {
     get: () => ipcRenderer.invoke("oauthRules:get"),

@@ -375,14 +375,16 @@ class ManagementAPI {
     }
   }
 
-  async fetchModels(): Promise<ModelEntry[]> {
+  async fetchModels(_provider?: string): Promise<ModelEntry[]> {
     try {
       const res = await this.client.get(`${this.baseURL}/v1/models`, {
         params: { is_webui: true },
         headers: this.getModelAuthHeaders(),
       });
       const models = res.data?.data ?? [];
-      log.info(`[ManagementAPI] Fetched ${models.length} models`);
+      log.info(
+        `[ManagementAPI] Fetched ${models.length} models via /v1/models`,
+      );
       return models;
     } catch (error) {
       log.error("[ManagementAPI] Failed to fetch models:", error);
