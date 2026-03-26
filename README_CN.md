@@ -193,13 +193,17 @@ LinJun/
 | 构建工具 | Vite + electron-vite  |
 | 打包工具 | electron-builder      |
 
-## 📁 Token 存储
+## 📁 认证文件存储
 
-认证 Token 存储在 `~/.cli-proxy-api/` 目录下的 JSON 文件中：
+认证信息由 CLIProxyAPIPlus 的 `auth-files` 统一管理，并不是固定存放在 `~/.cli-proxy-api/` 目录下。
+
+LinJun 通过本地 management API 读取账号信息。若认证文件以本地文件形式保存，则会使用 `config.yaml` 中配置的 `auth-dir`；如果未配置，则默认位于 Electron `userData` 目录下的 `cli-proxy/auth`。
+
+常见的认证文件名包括：
 
 - `codex-{email}-Plus.json`
 - `antigravity-{email}.json`
-- `kiro-google-{id}.json`
+- `kiro-{auth-method}-{id}.json`
 - 等等
 
 ## ❓ 常见问题

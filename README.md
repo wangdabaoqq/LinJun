@@ -193,13 +193,17 @@ LinJun/
 | Build     | Vite + electron-vite  |
 | Packaging | electron-builder      |
 
-## 📁 Token Storage
+## 📁 Auth File Storage
 
-Authentication tokens are stored in `~/.cli-proxy-api/` directory as JSON files:
+Authentication is managed through CLIProxyAPIPlus `auth-files`, not a fixed `~/.cli-proxy-api/` directory.
+
+LinJun reads accounts from the local management API. When auth files are stored locally, they use the configured `auth-dir` from `config.yaml`; if that is not set, the default location is the app's `cli-proxy/auth` directory under Electron `userData`.
+
+Typical auth filenames include:
 
 - `codex-{email}-Plus.json`
 - `antigravity-{email}.json`
-- `kiro-google-{id}.json`
+- `kiro-{auth-method}-{id}.json`
 - etc.
 
 ## ❓ FAQ
