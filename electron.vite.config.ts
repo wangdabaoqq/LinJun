@@ -16,6 +16,9 @@ export default defineConfig({
   },
   renderer: {
     plugins: [react()],
+    build: {
+      assetsInlineLimit: 0,
+    },
     resolve: {
       alias: {
         "@": resolve("src/renderer"),
