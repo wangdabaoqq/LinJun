@@ -42,6 +42,75 @@ function formatKiroErrorForLog(error: unknown): string {
   return String(error);
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function parseNestedManagementPayload(value: unknown): unknown {
+  if (typeof value !== "string") {
+    return value;
+  }
+
+  try {
+    return JSON.parse(value) as unknown;
+  } catch {
+    throw new Error("Invalid management api-call payload for Kiro usage");
+  }
+}
+
+function extractKiroErrorDetail(value: unknown): string | undefined {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return undefined;
+    }
+
+    try {
+      return extractKiroErrorDetail(JSON.parse(trimmed) as unknown) || trimmed;
+    } catch {
+      return trimmed;
+    }
+  }
+
+  if (!isRecord(value)) {
+    return undefined;
+  }
+
+  if (typeof value.message === "string" && value.message.trim()) {
+    return value.message.trim();
+  }
+
+  if (typeof value.error === "string" && value.error.trim()) {
+    return value.error.trim();
+  }
+
+  if (typeof value.detail === "string" && value.detail.trim()) {
+    return value.detail.trim();
+  }
+
+  if (isRecord(value.error)) {
+    if (typeof value.error.message === "string" && value.error.message.trim()) {
+      return value.error.message.trim();
+    }
+
+    if (typeof value.error.detail === "string" && value.error.detail.trim()) {
+      return value.error.detail.trim();
+    }
+  }
+
+  return undefined;
+}
+
+function isKiroUsageResponse(value: unknown): value is KiroUsageResponse {
+  return (
+    isRecord(value) &&
+    ("usageBreakdownList" in value ||
+      "subscriptionInfo" in value ||
+      "userInfo" in value ||
+      "nextDateReset" in value)
+  );
+}
+
 function _getAssumedKiroExpiresAt(): string {
   return new Date(Date.now() + KIRO_ACCESS_TOKEN_TTL_MS).toISOString();
 }
@@ -149,20 +218,29 @@ async function fetchKiroUsage(accessToken: string): Promise<KiroUsageResponse> {
 function extractKiroUsageFromManagementPayload(
   payload: unknown,
 ): KiroUsageResponse {
-  let parsedPayload: unknown = payload;
-  if (typeof parsedPayload === "string") {
-    try {
-      parsedPayload = JSON.parse(parsedPayload);
-    } catch {
-      throw new Error("Invalid management api-call payload for Kiro usage");
-    }
-  }
+  const parsedPayload = parseNestedManagementPayload(payload);
 
-  if (!parsedPayload || typeof parsedPayload !== "object") {
+  if (!isRecord(parsedPayload)) {
     throw new Error("Invalid management api-call payload for Kiro usage");
   }
 
-  const objectPayload = parsedPayload as Record<string, unknown>;
+  const objectPayload = parsedPayload;
+
+  const statusCode =
+    typeof objectPayload.status_code === "number"
+      ? objectPayload.status_code
+      : typeof objectPayload.statusCode === "number"
+        ? objectPayload.statusCode
+        : undefined;
+  if (statusCode && statusCode >= 400) {
+    const detail = extractKiroErrorDetail(objectPayload.body);
+    throw new Error(
+      detail
+        ? `Kiro usage request failed (${statusCode}): ${detail}`
+        : `Kiro usage request failed (${statusCode})`,
+    );
+  }
+
   if (objectPayload.success === false) {
     throw new Error(
       typeof objectPayload.error === "string"
@@ -171,17 +249,24 @@ function extractKiroUsageFromManagementPayload(
     );
   }
 
-  const candidate =
-    objectPayload.data && typeof objectPayload.data === "object"
-      ? objectPayload.data
-      : objectPayload;
+  const bodyPayload =
+    objectPayload.body !== undefined
+      ? parseNestedManagementPayload(objectPayload.body)
+      : undefined;
+  if (isKiroUsageResponse(bodyPayload)) {
+    return bodyPayload;
+  }
 
-  if (
-    candidate &&
-    typeof candidate === "object" &&
-    ("usageBreakdownList" in candidate || "subscriptionInfo" in candidate)
-  ) {
-    return candidate as KiroUsageResponse;
+  const dataPayload =
+    objectPayload.data !== undefined
+      ? parseNestedManagementPayload(objectPayload.data)
+      : undefined;
+  if (isKiroUsageResponse(dataPayload)) {
+    return dataPayload;
+  }
+
+  if (isKiroUsageResponse(objectPayload)) {
+    return objectPayload;
   }
 
   throw new Error("Unexpected Kiro usage payload from management api-call");

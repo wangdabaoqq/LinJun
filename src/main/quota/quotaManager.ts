@@ -432,12 +432,12 @@ function convertKiroUsageToQuotaAccount(
 ): QuotaAccount {
   const breakdown = usage.usageBreakdownList?.[0];
   const currentUsage =
-    breakdown?.freeTrialInfo?.currentUsageWithPrecision ??
     breakdown?.currentUsageWithPrecision ??
+    breakdown?.freeTrialInfo?.currentUsageWithPrecision ??
     0;
   const usageLimit =
-    breakdown?.freeTrialInfo?.usageLimitWithPrecision ??
     breakdown?.usageLimitWithPrecision ??
+    breakdown?.freeTrialInfo?.usageLimitWithPrecision ??
     0;
   const _resetSeconds =
     breakdown?.nextDateReset ??
