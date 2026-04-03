@@ -148,7 +148,27 @@ function formatTimestamp(timestamp: string): string {
   }
 }
 
-function getStatusColor(statusCode: number): string {
+function getEffectiveStatus(
+  status: RequestLogEntry["status"],
+  statusCode: number,
+): RequestLogEntry["status"] {
+  if (statusCode >= 400) {
+    return "error";
+  }
+
+  return status;
+}
+
+function getStatusColor(
+  status: RequestLogEntry["status"],
+  statusCode: number,
+): string {
+  const effectiveStatus = getEffectiveStatus(status, statusCode);
+
+  if (effectiveStatus === "success")
+    return "text-green-600 bg-green-500/10 border-green-500/20 dark:text-green-400 dark:bg-green-500/10 dark:border-green-500/20";
+  if (effectiveStatus === "error")
+    return "text-red-600 bg-red-500/10 border-red-500/20 dark:text-red-400 dark:bg-red-500/10 dark:border-red-500/20";
   if (statusCode >= 200 && statusCode < 300)
     return "text-green-600 bg-green-500/10 border-green-500/20 dark:text-green-400 dark:bg-green-500/10 dark:border-green-500/20";
   if (statusCode >= 400)
@@ -156,18 +176,30 @@ function getStatusColor(statusCode: number): string {
   return "text-amber-600 bg-amber-500/10 border-amber-500/20 dark:text-amber-400 dark:bg-amber-500/10 dark:border-amber-500/20";
 }
 
-function StatusBadge({ statusCode }: { statusCode: number }) {
-  const isSuccess = statusCode >= 200 && statusCode < 300;
-  const isError = statusCode >= 400;
+function StatusBadge({
+  status,
+  statusCode,
+}: {
+  status: RequestLogEntry["status"];
+  statusCode: number;
+}) {
+  const t = useTranslations();
+  const effectiveStatus = getEffectiveStatus(status, statusCode);
+  const isSuccess = effectiveStatus === "success";
+  const isError = effectiveStatus === "error";
+  const statusLabel = isSuccess ? t.logs.success : t.logs.error;
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold border transition-all duration-300 ${getStatusColor(statusCode)}`}
+      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold border transition-all duration-300 ${getStatusColor(status, statusCode)}`}
+      title={`${statusLabel} · ${statusCode}`}
     >
       <span
         className={`w-1.5 h-1.5 rounded-full ${isSuccess ? "bg-[var(--success)] animate-pulse" : isError ? "bg-[var(--error)]" : "bg-[var(--warning)]"}`}
       ></span>
-      {statusCode}
+      <span>{statusLabel}</span>
+      <span className="opacity-40">·</span>
+      <span className="font-mono tabular-nums">{statusCode}</span>
     </span>
   );
 }
@@ -311,7 +343,7 @@ const LogRow = memo(function LogRow({ entry, index, onClick }: LogRowProps) {
       </div>
 
       <div className="flex justify-end">
-        <StatusBadge statusCode={entry.statusCode} />
+        <StatusBadge status={entry.status} statusCode={entry.statusCode} />
       </div>
     </div>
   );
@@ -339,7 +371,8 @@ export function Logs() {
 
   const filteredLogs = useMemo(() => {
     return logs.filter((l) => {
-      if (filter !== "all" && l.status !== filter) return false;
+      const effectiveStatus = getEffectiveStatus(l.status, l.statusCode);
+      if (filter !== "all" && effectiveStatus !== filter) return false;
       if (providerFilter !== "all" && l.provider !== providerFilter)
         return false;
       return true;
@@ -761,7 +794,10 @@ export function Logs() {
                   </div>
                 </div>
                 <div className="flex items-center gap-4">
-                  <StatusBadge statusCode={selectedLog.statusCode} />
+                  <StatusBadge
+                    status={selectedLog.status}
+                    statusCode={selectedLog.statusCode}
+                  />
                   <div className="h-8 w-px bg-[var(--glass-border)]" />
                   <button
                     onClick={() => setSelectedLog(null)}

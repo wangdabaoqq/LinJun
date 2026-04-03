@@ -53,6 +53,20 @@ export interface RequestLogFetchResult {
 const SUCCESS_PREFIXES = ["v1-responses", "v1-messages", "v1-chat-completions"];
 const ERROR_PREFIX = "error-v1";
 const DIAGNOSTIC_FILE_LIMIT = 8;
+// File name substrings that indicate non-conversation log files (token counting, etc.)
+const IGNORED_LOG_SUBSTRINGS = ["count_tokens", "token_count"];
+const INTERNAL_USER_INPUT_PATTERNS = [
+  /^warmup\b/i,
+  /^please write a \d+\s*(?:-|to)\s*\d+\s+word title for the following\b/i,
+  /^\[suggestion mode:\s*/i,
+  /^<system-reminder>/i,
+  /<system-reminder>/i,
+  /^<environment_context>/i,
+  /^<permissions\b/i,
+  /^<collaboration_mode>/i,
+  /^# AGENTS\.md/i,
+  /^# .+\.md\b/i,
+];
 
 interface ResolvedRequestLogDirectory {
   logDir: string;
@@ -73,6 +87,7 @@ interface RequestLogFileCandidate {
 }
 
 function isSuccessLog(name: string): boolean {
+  if (IGNORED_LOG_SUBSTRINGS.some((sub) => name.includes(sub))) return false;
   return SUCCESS_PREFIXES.some((prefix) => name.startsWith(prefix));
 }
 
@@ -136,14 +151,16 @@ export async function fetchRecentRequestLogs(
   try {
     const files = candidates.sort((a, b) => b.mtime - a.mtime).slice(0, limit);
 
-    const entries: RequestLogEntry[] = [];
+    const parsedEntries: RequestLogEntry[] = [];
 
     for (const file of files) {
       const entry = await parseLogFile(file.filePath, file.status);
       if (entry) {
-        entries.push(entry);
+        parsedEntries.push(entry);
       }
     }
+
+    const entries = dedupeRequestLogEntries(parsedEntries);
 
     diagnostics.parsedFiles = entries.length;
     diagnostics.status = entries.length > 0 ? "ok" : "unrecognized_files";
@@ -160,6 +177,73 @@ export async function fetchRecentRequestLogs(
     return { entries: [], diagnostics };
   }
 }
+
+function dedupeRequestLogEntries(
+  entries: RequestLogEntry[],
+): RequestLogEntry[] {
+  // Group entries that share the same userInput (or both empty) within a
+  // 60-second window.  These are almost always CLIProxyAPIPlus retries /
+  // failover attempts for the same original request.
+  // From each group, keep only the "best" entry (prefer 2xx, then lowest code).
+
+  const WINDOW_MS = 60_000;
+
+  interface Group {
+    best: RequestLogEntry;
+    latestTs: number;
+  }
+
+  const groups: Group[] = [];
+
+  for (const entry of entries) {
+    const ts = parseTimestampMs(entry.timestamp);
+    const key = entry.userInput ?? "";
+
+    // Try to find an existing group this entry belongs to
+    let matched = false;
+    for (const group of groups) {
+      const groupKey = group.best.userInput ?? "";
+      if (groupKey !== key) continue;
+      if (Math.abs(ts - group.latestTs) > WINDOW_MS) continue;
+
+      // Same userInput within window → pick the better entry
+      group.latestTs = Math.max(group.latestTs, ts);
+      if (isBetterEntry(entry, group.best)) {
+        group.best = entry;
+      }
+      matched = true;
+      break;
+    }
+
+    if (!matched) {
+      groups.push({ best: entry, latestTs: ts });
+    }
+  }
+
+  return groups.map((g) => g.best);
+}
+
+function parseTimestampMs(timestamp: string): number {
+  if (!timestamp) return 0;
+  try {
+    const ms = new Date(timestamp).getTime();
+    return isNaN(ms) ? 0 : ms;
+  } catch {
+    return 0;
+  }
+}
+
+/** Return true if `a` is a better representative entry than `b`. */
+function isBetterEntry(a: RequestLogEntry, b: RequestLogEntry): boolean {
+  const aOk = a.statusCode >= 200 && a.statusCode < 300;
+  const bOk = b.statusCode >= 200 && b.statusCode < 300;
+  // Prefer success over failure
+  if (aOk && !bOk) return true;
+  if (!aOk && bOk) return false;
+  // Both same success/fail category → prefer the one with a lower status code
+  return a.statusCode < b.statusCode;
+}
+
 
 export async function deleteAllLogs(): Promise<{
   success: boolean;
@@ -357,6 +441,11 @@ async function parseLogFile(
     const responseSection = extractSection(content, "=== RESPONSE ===");
 
     if (!requestInfo && !requestBodySection) {
+      return null;
+    }
+
+    // Skip non-conversation requests early (before doing expensive parsing)
+    if (requestBodySection && isNonConversationRequest(requestBodySection)) {
       return null;
     }
 
@@ -578,88 +667,205 @@ function inferModelFromText(text: string): string | undefined {
   return match ? match[1] : undefined;
 }
 
+/**
+ * Detect non-conversation requests that should be excluded from the log list
+ * entirely (MCP tool probes, warmup, title generation, suggestion mode, etc.)
+ */
+function isNonConversationRequest(requestBody: string): boolean {
+  try {
+    const parsed = JSON.parse(requestBody) as Record<string, unknown>;
+
+    // MCP tool probe: max_tokens=1 with tools array
+    if (parsed.max_tokens === 1) return true;
+
+    // Check prompt field for internal patterns
+    if (typeof parsed.prompt === "string") {
+      const normalized = normalizeInputText(parsed.prompt);
+      if (/^warmup\b/i.test(normalized)) return true;
+    }
+
+    // Check the last user message for internal patterns
+    const messages =
+      (parsed.messages as unknown[]) || (parsed.input as unknown[]);
+    if (!Array.isArray(messages)) return false;
+
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const msg = messages[i] as Record<string, unknown> | null;
+      if (!msg || msg.role !== "user") continue;
+
+      const text = getFirstUserText(msg.content);
+      if (!text) continue;
+
+      const normalized = normalizeInputText(text);
+
+      // Warmup probe
+      if (/^warmup\b/i.test(normalized)) return true;
+      // Title generation
+      if (
+        /^please write a \d+\s*(?:-|to)\s*\d+\s+word title for the following\b/i.test(
+          normalized,
+        )
+      )
+        return true;
+      // Suggestion mode
+      if (/^\[suggestion mode:\s*/i.test(normalized)) return true;
+
+      // This is the last user message and it's not internal → real conversation
+      break;
+    }
+
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+function getFirstUserText(content: unknown): string | undefined {
+  if (typeof content === "string") return content;
+  if (!Array.isArray(content)) return undefined;
+  for (const item of content) {
+    if (typeof item === "string") return item;
+    if (item && typeof item === "object") {
+      const block = item as Record<string, unknown>;
+      if (
+        (block.type === "text" || block.type === "input_text") &&
+        typeof block.text === "string"
+      ) {
+        return block.text;
+      }
+    }
+  }
+  return undefined;
+}
+
 function extractUserInput(requestBody: string): string | undefined {
   if (!requestBody) return undefined;
 
   try {
     const parsed = JSON.parse(requestBody) as Record<string, unknown>;
-    const candidates: string[] = [];
 
-    collectUserInputFromMessages(parsed.input, candidates);
-    collectUserInputFromMessages(parsed.messages, candidates);
+    // Skip MCP tool probe requests (e.g. Claude Code sending "count" with max_tokens:1
+    // to verify each MCP tool definition — these are not real user conversations)
+    if (parsed.max_tokens === 1) return undefined;
 
+    // Try v1-responses format (OpenAI): parsed.input array with input_text blocks
+    const fromInput = extractFromLastUserMessage(parsed.input, "input_text");
+    if (fromInput) return truncateUserInput(fromInput, 200);
+
+    // Try v1-messages format (Anthropic): parsed.messages array with text blocks
+    const fromMessages = extractFromLastUserMessage(parsed.messages, "text");
+    if (fromMessages) return truncateUserInput(fromMessages, 200);
+
+    // Fallback: prompt field
     if (typeof parsed.prompt === "string") {
       const normalizedPrompt = normalizeInputText(parsed.prompt);
-      if (normalizedPrompt) {
-        candidates.push(normalizedPrompt);
+      if (normalizedPrompt && !isInternalUserInput(normalizedPrompt)) {
+        return truncateUserInput(normalizedPrompt, 200);
       }
     }
 
-    if (candidates.length === 0) {
-      return undefined;
-    }
-
-    const latestInput = candidates[candidates.length - 1];
-    return truncateUserInput(latestInput, 200);
+    return undefined;
   } catch {
     return undefined;
   }
 }
 
-function collectUserInputFromMessages(
+/**
+ * Find the last role:"user" message in the array, then extract real user input
+ * from its content blocks. Searches from the end of the array backwards.
+ */
+function extractFromLastUserMessage(
   messages: unknown,
-  candidates: string[],
-): void {
-  if (!Array.isArray(messages)) return;
+  preferredContentType: "input_text" | "text",
+): string | undefined {
+  if (!Array.isArray(messages)) return undefined;
 
-  for (const message of messages) {
+  // Iterate from last to first to find the last user message with real input
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const message = messages[i];
     if (!message || typeof message !== "object") continue;
 
     const messageRecord = message as Record<string, unknown>;
     if (messageRecord.role !== "user") continue;
 
-    collectUserInputFromContent(messageRecord.content, candidates);
+    const result = extractRealInputFromContent(
+      messageRecord.content,
+      preferredContentType,
+    );
+    if (result) return result;
   }
+
+  return undefined;
 }
 
-function collectUserInputFromContent(
+/**
+ * Extract real user input from a single message's content.
+ *
+ * Strategy:
+ * 1. If content is a plain string and not internal → return it directly
+ * 2. If content is an array of blocks:
+ *    a. Prefer blocks that have cache_control (marks real user input in v1-messages)
+ *    b. Otherwise pick the last non-internal block of the preferred type
+ *    c. Fall back to any last non-internal text block
+ */
+function extractRealInputFromContent(
   content: unknown,
-  candidates: string[],
-): void {
+  preferredContentType: "input_text" | "text",
+): string | undefined {
+  // Plain string content (e.g. messages:[{role:"user",content:"hi"}])
   if (typeof content === "string") {
     const normalized = normalizeInputText(content);
-    if (normalized) {
-      candidates.push(normalized);
+    if (normalized && !isInternalUserInput(normalized)) {
+      return normalized;
     }
-    return;
+    return undefined;
   }
 
-  if (!Array.isArray(content)) return;
+  if (!Array.isArray(content)) return undefined;
+
+  let cacheControlCandidate: string | undefined;
+  let preferredCandidate: string | undefined;
+  let fallbackCandidate: string | undefined;
 
   for (const item of content) {
     if (typeof item === "string") {
       const normalized = normalizeInputText(item);
-      if (normalized) {
-        candidates.push(normalized);
+      if (normalized && !isInternalUserInput(normalized)) {
+        fallbackCandidate = normalized;
       }
       continue;
     }
 
     if (!item || typeof item !== "object") continue;
 
-    const contentRecord = item as Record<string, unknown>;
-    const contentType =
-      typeof contentRecord.type === "string" ? contentRecord.type : "";
+    const block = item as Record<string, unknown>;
+    const blockType = typeof block.type === "string" ? block.type : "";
 
-    if (contentType !== "input_text" && contentType !== "text") continue;
+    if (blockType !== "input_text" && blockType !== "text") continue;
+    if (typeof block.text !== "string") continue;
 
-    if (typeof contentRecord.text === "string") {
-      const normalized = normalizeInputText(contentRecord.text);
-      if (normalized) {
-        candidates.push(normalized);
-      }
+    const normalized = normalizeInputText(block.text);
+    if (!normalized || isInternalUserInput(normalized)) continue;
+
+    // cache_control is a strong signal that this block is real user input
+    // (Claude Code / v1-messages attaches cache_control to the actual user text)
+    if (block.cache_control && typeof block.cache_control === "object") {
+      cacheControlCandidate = normalized;
+    }
+
+    if (blockType === preferredContentType) {
+      preferredCandidate = normalized;
+    } else {
+      fallbackCandidate = normalized;
     }
   }
+
+  // Priority: cache_control marked block > preferred type > any text block
+  return cacheControlCandidate || preferredCandidate || fallbackCandidate;
+}
+
+function isInternalUserInput(value: string): boolean {
+  return INTERNAL_USER_INPUT_PATTERNS.some((pattern) => pattern.test(value));
 }
 
 function normalizeInputText(value: string): string {
