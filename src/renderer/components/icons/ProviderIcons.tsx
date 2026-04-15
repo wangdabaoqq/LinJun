@@ -2,6 +2,7 @@ import React from "react";
 import Claude from "@lobehub/icons/es/Claude";
 import OpenAI from "@lobehub/icons/es/OpenAI";
 import Gemini from "@lobehub/icons/es/Gemini";
+import Antigravity from "@lobehub/icons/es/Antigravity";
 import Google from "@lobehub/icons/es/Google";
 import GithubCopilot from "@lobehub/icons/es/GithubCopilot";
 import Qwen from "@lobehub/icons/es/Qwen";
@@ -25,7 +26,6 @@ import Spark from "@lobehub/icons/es/Spark";
 import Stepfun from "@lobehub/icons/es/Stepfun";
 import Ollama from "@lobehub/icons/es/Ollama";
 import ZenMux from "@lobehub/icons/es/ZenMux";
-import antigravityPng from "../../assets/antigravity.png";
 import kiroPng from "../../assets/kiro.png";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -65,9 +65,9 @@ export {
   ZenMux,
 };
 
-// Custom icons for providers not in @lobehub/icons
+// Wrapped/custom icons for providers
 export const AntigravityIcon = ({ className }: { className?: string }) => (
-  <img src={antigravityPng} alt="Antigravity" className={className} />
+  <Antigravity.Color className={className} />
 );
 
 export const KiroIcon = ({ className }: { className?: string }) => (

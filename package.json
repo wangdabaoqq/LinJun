@@ -31,7 +31,7 @@
     "download:binary": "ts-node scripts/download-binary.ts"
   },
   "dependencies": {
-    "@lobehub/icons": "^4.0.3",
+    "@lobehub/icons": "^4.8.0",
     "@radix-ui/react-popover": "^1.1.15",
     "@radix-ui/react-select": "^2.2.6",
     "@tanstack/react-virtual": "^3.13.18",
