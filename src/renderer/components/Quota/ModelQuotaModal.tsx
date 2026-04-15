@@ -475,8 +475,8 @@ export function ModelQuotaModal({
       <div
         className={`flex items-center justify-center p-1 rounded-full transition-all duration-300 ${
           isSelected
-            ? "bg-white/10 ring-1 ring-white/20 shadow-inner"
-            : "bg-white/5 border border-white/5"
+            ? "bg-white/10 ring-1 ring-white/20 shadow-inner dark:bg-[rgba(var(--accent-primary-rgb),0.12)] dark:ring-0 dark:border dark:border-[rgba(var(--accent-primary-rgb),0.24)]"
+            : "bg-white/5 border border-white/5 dark:bg-white/5 dark:border-[rgba(255,255,255,0.08)]"
         }`}
       >
         <div className="w-3.5 h-3.5 flex items-center justify-center transition-transform duration-300">
@@ -585,7 +585,7 @@ export function ModelQuotaModal({
                               {isSelected && (
                                 <motion.div
                                   layoutId="modal-vendor-tab-bg"
-                                  className="absolute inset-0 bg-[var(--bg-primary)] border border-[var(--accent-primary)]/30 rounded-full -z-10 shadow-[0_2px_10px_rgba(0,0,0,0.1)]"
+                                  className="absolute inset-0 bg-[var(--bg-primary)] border border-[var(--accent-primary)]/30 dark:border-[rgba(var(--accent-primary-rgb),0.22)] rounded-full -z-10 shadow-[0_2px_10px_rgba(0,0,0,0.1)]"
                                   transition={{
                                     type: "spring",
                                     bounce: 0.1,
@@ -613,10 +613,10 @@ export function ModelQuotaModal({
                 <div className="flex items-center bg-[var(--bg-secondary)]/30 backdrop-blur-md rounded-full p-1 border border-[var(--glass-border)] shrink-0">
                   <button
                     onClick={() => setViewMode("grid")}
-                    className={`p-2 rounded-full transition-all duration-300 ${
+                    className={`p-2 rounded-full transition-all duration-300 dark:outline-none dark:focus:outline-none dark:focus-visible:outline-none dark:focus-visible:ring-0 ${
                       viewMode === "grid"
-                        ? "bg-[var(--bg-primary)] text-[var(--accent-primary)] shadow-sm border border-[var(--glass-border)]"
-                        : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                        ? "bg-[var(--bg-primary)] text-[var(--accent-primary)] shadow-sm border border-[var(--glass-border)] dark:border-[rgba(var(--accent-primary-rgb),0.22)]"
+                        : "text-[var(--text-muted)] hover:text-[var(--text-primary)] dark:border dark:border-[rgba(255,255,255,0.08)]"
                     }`}
                     title={t.quota.gridView}
                   >
@@ -624,10 +624,10 @@ export function ModelQuotaModal({
                   </button>
                   <button
                     onClick={() => setViewMode("list")}
-                    className={`p-2 rounded-full transition-all duration-300 ${
+                    className={`p-2 rounded-full transition-all duration-300 dark:outline-none dark:focus:outline-none dark:focus-visible:outline-none dark:focus-visible:ring-0 ${
                       viewMode === "list"
-                        ? "bg-[var(--bg-primary)] text-[var(--accent-primary)] shadow-sm border border-[var(--glass-border)]"
-                        : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                        ? "bg-[var(--bg-primary)] text-[var(--accent-primary)] shadow-sm border border-[var(--glass-border)] dark:border-[rgba(var(--accent-primary-rgb),0.22)]"
+                        : "text-[var(--text-muted)] hover:text-[var(--text-primary)] dark:border dark:border-[rgba(255,255,255,0.08)]"
                     }`}
                     title={t.quota.listView}
                   >

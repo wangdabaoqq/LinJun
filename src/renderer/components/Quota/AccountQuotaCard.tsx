@@ -177,7 +177,7 @@ export function AccountQuotaCard({
               {showAllModelsButton && (
                 <button
                   onClick={() => setIsModalOpen(true)}
-                  className="w-full py-1.5 px-3 text-[10px] font-medium tracking-wide text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)]/80 rounded-lg transition-all duration-200 flex items-center justify-center gap-1.5 group/btn border border-transparent hover:border-[var(--glass-border)]"
+                  className="w-full py-1.5 px-3 text-[10px] font-medium tracking-wide text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)]/80 rounded-xl transition-all duration-200 flex items-center justify-center gap-1.5 group/btn border border-transparent hover:border-[var(--glass-border)]"
                 >
                   <span className="opacity-70 group-hover/btn:opacity-100 transition-opacity">
                     {t.quota.viewAllModels}
@@ -213,7 +213,7 @@ export function AccountQuotaCard({
               {showAllModelsButton && (
                 <button
                   onClick={() => setIsModalOpen(true)}
-                  className="w-full mt-2 py-1.5 px-3 text-[10px] font-medium tracking-wide text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)]/80 rounded-lg transition-all duration-200 flex items-center justify-center gap-1.5 group/btn border border-transparent hover:border-[var(--glass-border)]"
+                  className="w-full mt-2 py-1.5 px-3 text-[10px] font-medium tracking-wide text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)]/80 rounded-xl transition-all duration-200 flex items-center justify-center gap-1.5 group/btn border border-transparent hover:border-[var(--glass-border)]"
                 >
                   <span className="opacity-70 group-hover/btn:opacity-100 transition-opacity">
                     {t.quota.viewAllModels}

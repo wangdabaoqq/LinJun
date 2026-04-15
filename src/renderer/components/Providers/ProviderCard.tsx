@@ -237,10 +237,10 @@ export const ProviderCard = memo(function ProviderCard({
 
               <button
                 onClick={() => onEditProviderModelAlias(provider.id)}
-                className={`inline-flex items-center gap-1.5 px-2 py-0.5 max-w-[152px] rounded-full border text-[9px] font-bold uppercase tracking-wider whitespace-nowrap transition-colors ${
+                className={`inline-flex items-center gap-1.5 px-2 py-0.5 max-w-[152px] rounded-full border text-[9px] font-bold uppercase tracking-wider whitespace-nowrap transition-colors dark:outline-none dark:focus:outline-none dark:focus-visible:outline-none dark:focus-visible:ring-0 ${
                   providerAliasMeta.count > 0
-                    ? "border-[var(--accent-primary)]/30 text-[var(--accent-primary)] hover:border-[var(--accent-primary)]/50 hover:bg-[var(--accent-primary)]/10"
-                    : "border-[var(--glass-border)] text-[var(--text-dim)] hover:text-[var(--text-primary)] hover:border-[var(--glass-border-hover)]"
+                    ? "border-[var(--accent-primary)]/30 text-[var(--accent-primary)] hover:border-[var(--accent-primary)]/50 hover:bg-[var(--accent-primary)]/10 dark:border-[rgba(var(--accent-primary-rgb),0.28)] dark:hover:border-[rgba(var(--accent-primary-rgb),0.4)]"
+                    : "border-[var(--glass-border)] text-[var(--text-dim)] hover:text-[var(--text-primary)] hover:border-[var(--glass-border-hover)] dark:border-[rgba(255,255,255,0.08)] dark:hover:border-[rgba(255,255,255,0.14)]"
                 }`}
                 title={t.providers.accountModelAliasManage}
               >
