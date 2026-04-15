@@ -23,6 +23,10 @@ function isExpectedManagementAvailabilityError(error: unknown): boolean {
   return status === 401 || status === 403 || status === 404;
 }
 
+const MODEL_DEFINITION_PROVIDER_ALIASES: Record<string, string> = {
+  copilot: "github-copilot",
+};
+
 class ManagementAPI {
   private client: AxiosInstance;
 
@@ -585,10 +589,14 @@ class ManagementAPI {
     const normalizedProvider = (provider || "").trim().toLowerCase();
 
     if (normalizedProvider) {
+      const endpointProvider =
+        MODEL_DEFINITION_PROVIDER_ALIASES[normalizedProvider] ||
+        normalizedProvider;
+
       try {
         const res = await this.client.get(
           `${this.baseURL}/v0/management/model-definitions/${encodeURIComponent(
-            normalizedProvider,
+            endpointProvider,
           )}`,
           {
             headers: this.getAuthHeaders(),
@@ -600,13 +608,13 @@ class ManagementAPI {
           normalizedProvider,
         );
         log.info(
-          `[ManagementAPI] Fetched ${models.length} models via /v0/management/model-definitions/${normalizedProvider}`,
+          `[ManagementAPI] Fetched ${models.length} models via /v0/management/model-definitions/${endpointProvider}`,
         );
         return models;
       } catch (error) {
         if (axios.isAxiosError(error) && error.response?.status !== 404) {
           log.error(
-            `[ManagementAPI] Failed to fetch model definitions for ${normalizedProvider}:`,
+            `[ManagementAPI] Failed to fetch model definitions for ${normalizedProvider} (endpoint: ${endpointProvider}):`,
             error,
           );
           throw error;
