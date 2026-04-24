@@ -22,7 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Initial release
-- Multi-provider support: Claude, Gemini, OpenAI Codex, Qwen, Antigravity, iFlow, Kiro, Vertex AI, GitHub Copilot
+- Multi-provider support: Claude, Gemini, OpenAI Codex, Qwen, Antigravity, iFlow, Vertex AI
 - Real-time quota tracking per account
 - One-click agent configuration for Claude Code, OpenCode, Gemini CLI
 - Live dashboard for monitoring request traffic and token usage

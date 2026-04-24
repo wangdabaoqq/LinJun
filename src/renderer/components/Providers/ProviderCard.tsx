@@ -148,10 +148,7 @@ export const ProviderCard = memo(function ProviderCard({
       } else if (account.filePath) {
         const filename = account.filePath.split(/[/\\]/).pop() || "";
         main = filename
-          .replace(
-            /^(claude|gemini|codex|antigravity|qwen|iflow|github-copilot|kiro)-/i,
-            "",
-          )
+          .replace(/^(claude|gemini|codex|antigravity|qwen|iflow)-/i, "")
           .replace(/\.json$/i, "");
         sub = filename;
       } else {

@@ -21,7 +21,6 @@ import {
   AntigravityModelQuota,
 } from "./antigravityService";
 import { store } from "../utils/store";
-import { getKiroUsage, KiroUsageResponse } from "./kiroService";
 import {
   fetchCustomUserSelf,
   fetchCustomPricing,
@@ -67,16 +66,16 @@ export interface ProviderInfo {
   color: "teal" | "magenta" | "indigo";
 }
 
-const PROVIDER_META: Record<
-  ProviderType,
-  { name: string; icon: string; color: "teal" | "magenta" | "indigo" }
+const PROVIDER_META: Partial<
+  Record<
+    ProviderType,
+    { name: string; icon: string; color: "teal" | "magenta" | "indigo" }
+  >
 > = {
   codex: { name: "Codex", icon: "◈", color: "teal" },
   antigravity: { name: "Antigravity", icon: "⚛", color: "magenta" },
   claude: { name: "Claude", icon: "◆", color: "indigo" },
   gemini: { name: "Gemini", icon: "◇", color: "teal" },
-  kiro: { name: "Kiro", icon: "◎", color: "magenta" },
-  copilot: { name: "Copilot", icon: "⬡", color: "indigo" },
   qwen: { name: "Qwen", icon: "◎", color: "teal" },
   iflow: { name: "iFlow", icon: "◉", color: "magenta" },
   custom: { name: "Custom", icon: "<>", color: "indigo" },
@@ -424,47 +423,6 @@ function _formatUnixSecondsToLocal(seconds?: number): string {
   })}`;
 }
 
-function convertKiroUsageToQuotaAccount(
-  token: TokenReadResult,
-  usage: KiroUsageResponse,
-  displayEmail: string,
-  accountId: string,
-): QuotaAccount {
-  const breakdown = usage.usageBreakdownList?.[0];
-  const currentUsage =
-    breakdown?.currentUsageWithPrecision ??
-    breakdown?.freeTrialInfo?.currentUsageWithPrecision ??
-    0;
-  const usageLimit =
-    breakdown?.usageLimitWithPrecision ??
-    breakdown?.freeTrialInfo?.usageLimitWithPrecision ??
-    0;
-  const _resetSeconds =
-    breakdown?.nextDateReset ??
-    usage.nextDateReset ??
-    breakdown?.freeTrialInfo?.freeTrialExpiry;
-  const usedPercent = usageLimit > 0 ? (currentUsage / usageLimit) * 100 : 0;
-  const isLimited = usedPercent >= 100;
-
-  return {
-    id: accountId,
-    provider: token.provider,
-    email: displayEmail,
-    badge: usage.subscriptionInfo?.subscriptionTitle || "Kiro",
-    authFileName: path.basename(token.filePath),
-    status: isLimited ? "limited" : "active",
-    rateLimits: {
-      primary: {
-        label: breakdown?.displayName || "Credit",
-        usedPercent,
-        resetIn: "",
-        limitReached: isLimited,
-      },
-    },
-    lastUpdated: new Date(),
-  };
-}
-
 function createErrorQuotaAccount(
   token: TokenReadResult,
   error: string,
@@ -518,19 +476,12 @@ export async function getProviders(): Promise<ProviderInfo[]> {
   const results: ProviderInfo[] = [];
 
   for (const { provider, accountCount } of summary) {
-    let validCount = accountCount;
-
-    if (provider === "kiro") {
-      const tokens = await getTokensByProvider(provider);
-      validCount = tokens.length;
-    }
-
-    if (validCount > 0) {
+    if (accountCount > 0) {
       results.push({
         id: provider,
         name: PROVIDER_META[provider]?.name || provider,
         icon: PROVIDER_META[provider]?.icon || "◈",
-        accountCount: validCount,
+        accountCount,
         color: PROVIDER_META[provider]?.color || "teal",
       });
     }
@@ -538,12 +489,17 @@ export async function getProviders(): Promise<ProviderInfo[]> {
 
   const customProviders = getCustomProviders();
   if (customProviders.length > 0) {
+    const customMeta = PROVIDER_META.custom || {
+      name: "Custom",
+      icon: "<>",
+      color: "indigo" as const,
+    };
     results.push({
       id: "custom",
-      name: PROVIDER_META.custom.name,
-      icon: PROVIDER_META.custom.icon,
+      name: customMeta.name,
+      icon: customMeta.icon,
       accountCount: customProviders.length,
-      color: PROVIDER_META.custom.color,
+      color: customMeta.color,
     });
   }
   return results;
@@ -554,7 +510,6 @@ export async function getQuotaByProvider(
 ): Promise<QuotaAccount[]> {
   const tokens = await getTokensByProvider(provider);
   const results: QuotaAccount[] = [];
-  const providerCounts = new Map<string, number>();
 
   if (provider === "custom") {
     const customProviders = getCustomProviders();
@@ -645,32 +600,6 @@ export async function getQuotaByProvider(
             error instanceof Error ? error.message : "Unknown error",
           ),
         );
-      }
-    } else if (provider === "kiro") {
-      try {
-        const usage = await getKiroUsage(token);
-        let displayEmail = token.email || usage.userInfo?.email || "";
-        if (!displayEmail || displayEmail === "unknown") {
-          displayEmail = path.basename(token.filePath, ".json");
-        }
-        const baseName = displayEmail;
-        const count = providerCounts.get(baseName) ?? 0;
-        const nextCount = count + 1;
-        providerCounts.set(baseName, nextCount);
-        const suffix = nextCount > 1 ? `-${nextCount}` : "";
-        const safeName = `${baseName}${suffix}`;
-        const accountId = `${token.provider}-${safeName}`;
-        results.push(
-          convertKiroUsageToQuotaAccount(token, usage, safeName, accountId),
-        );
-      } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : String(error);
-        log.error(
-          `[QuotaManager] Failed to fetch Kiro quota for ${token.filePath}:`,
-          errorMessage,
-        );
-        results.push(createErrorQuotaAccount(token, errorMessage));
       }
     } else if (provider === "claude") {
       if (!token.authIndex) {
@@ -888,28 +817,6 @@ export async function refreshQuota(
     try {
       const usage = await fetchAntigravityUsage(token);
       return convertAntigravityUsageToQuotaAccount(token, usage);
-    } catch (error) {
-      return createErrorQuotaAccount(
-        token,
-        error instanceof Error ? error.message : "Unknown error",
-      );
-    }
-  }
-
-  if (token.provider === "kiro") {
-    try {
-      const usage = await getKiroUsage(token);
-      let displayEmail = token.email || usage.userInfo?.email || "";
-      if (!displayEmail || displayEmail === "unknown") {
-        displayEmail = path.basename(token.filePath, ".json");
-      }
-      const accountId = `${token.provider}-${displayEmail}`;
-      return convertKiroUsageToQuotaAccount(
-        token,
-        usage,
-        displayEmail,
-        accountId,
-      );
     } catch (error) {
       return createErrorQuotaAccount(
         token,

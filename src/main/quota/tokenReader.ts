@@ -34,8 +34,6 @@ export type ProviderType =
   | "antigravity"
   | "claude"
   | "gemini"
-  | "kiro"
-  | "copilot"
   | "qwen"
   | "iflow"
   | "custom";
@@ -47,7 +45,7 @@ export interface TokenFile {
   email?: string;
   expired?: string;
   expires_at?: string;
-  type?: ProviderType | "github-copilot";
+  type?: ProviderType;
 
   // Gemini
   token?: {
@@ -74,7 +72,7 @@ export interface TokenFile {
   paid_tier_id?: string;
   paid_tier_name?: string;
 
-  // Kiro specific (camelCase)
+  // Legacy camelCase token fields (silently ignored for unsupported providers)
   accessToken?: string;
   refreshToken?: string;
   profileArn?: string;
@@ -82,7 +80,7 @@ export interface TokenFile {
   authMethod?: string;
   provider?: string;
 
-  // GitHub Copilot specific
+  // Legacy account metadata
   token_type?: string;
   scope?: string;
   username?: string;
@@ -107,6 +105,47 @@ export interface TokenReadResult {
   filePath: string;
   enabled: boolean;
   raw: TokenFile;
+}
+
+const SUPPORTED_PROVIDER_IDS = new Set<ProviderType>([
+  "codex",
+  "antigravity",
+  "claude",
+  "gemini",
+  "qwen",
+  "iflow",
+  "custom",
+]);
+
+const UNSUPPORTED_PROVIDER_IDS = new Set(["kiro", "copilot", "github-copilot"]);
+
+function normalizeProviderValue(value: unknown): string {
+  if (typeof value !== "string") {
+    return "";
+  }
+
+  return value.trim().toLowerCase();
+}
+
+function isUnsupportedProviderValue(value: unknown): boolean {
+  const normalized = normalizeProviderValue(value);
+  return normalized.length > 0 && UNSUPPORTED_PROVIDER_IDS.has(normalized);
+}
+
+function isUnsupportedProviderFilename(filename: string): boolean {
+  const normalized = filename.trim().toLowerCase();
+  return /^(kiro|copilot|github-copilot)([-_.]|$)/.test(normalized);
+}
+
+function toSupportedProvider(value: unknown): ProviderType | null {
+  const normalized = normalizeProviderValue(value);
+  if (!normalized) {
+    return null;
+  }
+
+  return SUPPORTED_PROVIDER_IDS.has(normalized as ProviderType)
+    ? (normalized as ProviderType)
+    : null;
 }
 
 export async function scanTokenFiles(): Promise<TokenReadResult[]> {
@@ -193,6 +232,14 @@ async function readTokenFilesFromManagement(): Promise<TokenReadResult[]> {
       if (!name.endsWith(".json")) {
         continue;
       }
+      if (
+        isUnsupportedProviderValue(authFile.provider) ||
+        isUnsupportedProviderValue(authFile.type) ||
+        isUnsupportedProviderValue(authFile.account_type) ||
+        isUnsupportedProviderFilename(name)
+      ) {
+        continue;
+      }
       if (authFile.disabled === true) {
         continue;
       }
@@ -247,7 +294,7 @@ async function readTokenFilesFromManagement(): Promise<TokenReadResult[]> {
 
     const policyHint = likelyAccessPolicyConflict
       ? ` Current config host=${configuredHost} with remote-management.allow-remote=false may block management access. Use localhost bind host or enable allow-remote.`
-      : " Ensure CLIProxyAPIPlus is running and management API is reachable.";
+      : " Ensure CLIProxyAPI is running and management API is reachable.";
 
     log.warn("[TokenReader] Failed to read management auth-files:", error);
     throw new Error(
@@ -283,9 +330,20 @@ function parseTokenFileData(
   fallbackAccountId?: string,
 ): TokenReadResult | null {
   const filename = path.basename(filePath);
+  if (
+    isUnsupportedProviderFilename(filename) ||
+    isUnsupportedProviderValue(data.type) ||
+    isUnsupportedProviderValue(data.provider) ||
+    isUnsupportedProviderValue(data.account_type)
+  ) {
+    return null;
+  }
+
   const provider: ProviderType | null =
-    parseProviderFromFilename(filename) ||
-    (data.type === "github-copilot" ? "copilot" : data.type) ||
+    toSupportedProvider(parseProviderFromFilename(filename)) ||
+    toSupportedProvider(data.type) ||
+    toSupportedProvider(data.provider) ||
+    toSupportedProvider(data.account_type) ||
     null;
 
   const accessToken =
@@ -295,13 +353,7 @@ function parseTokenFileData(
   const expiredStr =
     data.expired || data.expires_at || data.token?.expiry || data.expiresAt;
 
-  const isCopilot = provider === "copilot";
-  const requiresRefreshToken = provider === "kiro";
-  if (
-    !provider ||
-    !accessToken ||
-    (requiresRefreshToken && !refreshToken && !isCopilot)
-  ) {
+  if (!provider || !accessToken) {
     log.warn(`[TokenReader] Invalid token file: ${filePath}`);
     return null;
   }
@@ -341,7 +393,6 @@ function parseTokenFileData(
  * Examples:
  *   codex-wangdabao221@outlook.com-Plus.json -> codex
  *   antigravity-wangdabao221_gmail_com.json -> antigravity
- *   kiro-google-EHGA3GRVQMUK.json -> kiro
  */
 function parseProviderFromFilename(filename: string): ProviderType | null {
   const providers: ProviderType[] = [
@@ -349,8 +400,6 @@ function parseProviderFromFilename(filename: string): ProviderType | null {
     "antigravity",
     "claude",
     "gemini",
-    "kiro",
-    "copilot",
     "qwen",
     "iflow",
   ];
@@ -370,8 +419,6 @@ function getDefaultOAuthSourceKey(provider: ProviderType): string | undefined {
   if (provider === "qwen") return "qwen";
   if (provider === "iflow") return "iflow";
   if (provider === "antigravity") return "antigravity";
-  if (provider === "copilot") return "copilot";
-  if (provider === "kiro") return "kiro";
   return undefined;
 }
 

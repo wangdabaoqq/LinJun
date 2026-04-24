@@ -7,8 +7,6 @@ export type Provider =
   | "qwen"
   | "antigravity"
   | "iflow"
-  | "copilot"
-  | "kiro"
   | "custom";
 
 const electronAPI = {
@@ -352,23 +350,6 @@ const electronAPI = {
   },
   codex: {
     getAuthUrl: () => ipcRenderer.invoke("codex:getAuthUrl"),
-  },
-  copilot: {
-    getAuthUrl: () => ipcRenderer.invoke("copilot:getAuthUrl"),
-  },
-  kiro: {
-    getAuthUrl: (params?: {
-      method?: string;
-      startUrl?: string;
-      region?: string;
-    }) => ipcRenderer.invoke("kiro:getAuthUrl", params),
-    getAuthStatus: (state: string) =>
-      ipcRenderer.invoke("kiro:getAuthStatus", state),
-    importToken: () => ipcRenderer.invoke("kiro:import"),
-    importFromToken: (tokenJson: string) =>
-      ipcRenderer.invoke("kiro:importFromToken", tokenJson),
-    refreshToken: (filePath: string) =>
-      ipcRenderer.invoke("kiro:refreshToken", filePath),
   },
   openaiCompat: {
     getAll: () => ipcRenderer.invoke("openaiCompat:getAll"),

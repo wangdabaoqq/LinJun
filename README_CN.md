@@ -19,18 +19,18 @@
 </p>
 
 <p align="center">
-  <strong>跨平台 AI 代理管理工具，支持 Claude、Gemini、Codex、Copilot、Qwen、iFlow、Kiro 等。</strong>
+  <strong>跨平台 AI 代理管理工具，支持 Claude、Gemini、Codex、Qwen、iFlow、Antigravity 等。</strong>
 </p>
 
 <p align="center">
-  LinJun 是一款原生桌面应用，用于管理 <a href="https://github.com/router-for-me/CLIProxyAPIPlus">CLIProxyAPIPlus</a> —— 一个为 AI 编程助手提供支持的本地代理服务器。它帮助你在 <strong>macOS</strong>、<strong>Windows</strong> 和 <strong>Linux</strong> 上统一管理多个 AI 账户、追踪配额、配置 CLI 工具。
+  LinJun 是一款原生桌面应用，用于管理 <a href="https://github.com/router-for-me/CLIProxyAPI">CLIProxyAPI</a> —— 一个为 AI 编程助手提供支持的本地代理服务器。它帮助你在 <strong>macOS</strong>、<strong>Windows</strong> 和 <strong>Linux</strong> 上统一管理多个 AI 账户、追踪配额、配置 CLI 工具。
 </p>
 
 ## ✨ 功能特性
 
-- 🔌 **扩展服务商支持**：支持 Claude、Gemini、Codex、Qwen、Antigravity、iFlow、GitHub Copilot、Kiro、自定义服务商、AmpCode
+- 🔌 **扩展服务商支持**：支持 Claude、Gemini、Codex、Qwen、Antigravity、iFlow、自定义服务商、AmpCode
 - 📊 **配额 + 模型可见性**：可在配额页通过 **查看全部模型** 浏览按服务商隔离的模型目录
-- 🧠 **服务商感知模型过滤**：配额模型列表会按当前服务商上下文过滤（如 Codex/Copilot/Kiro）
+- 🧠 **服务商感知模型过滤**：配额模型列表会按当前服务商上下文过滤（如 Codex/Claude/Gemini）
 - ⚡ **大体量日志性能优化**：日志页已支持虚拟列表与增量轮询，大数据量下保持流畅
 - 🚀 **一键配置 Agent**：自动检测并配置 Claude Code、OpenCode、Gemini CLI 等工具
 - 📈 **实时仪表盘**：监控请求流量、Token 使用量和成功率
@@ -43,18 +43,16 @@
 
 ### AI 服务商
 
-| 服务商         | 认证方式       |
-| -------------- | -------------- |
-| Claude Code    | OAuth          |
-| Gemini CLI     | OAuth          |
-| OpenAI Codex   | OAuth          |
-| Qwen Code      | OAuth          |
-| Antigravity    | OAuth (Google) |
-| iFlow          | OAuth          |
-| GitHub Copilot | OAuth          |
-| Kiro           | OAuth          |
-| 自定义服务商   | API Key        |
-| AmpCode        | API Key        |
+| 服务商       | 认证方式       |
+| ------------ | -------------- |
+| Claude Code  | OAuth          |
+| Gemini CLI   | OAuth          |
+| OpenAI Codex | OAuth          |
+| Qwen Code    | OAuth          |
+| Antigravity  | OAuth (Google) |
+| iFlow        | OAuth          |
+| 自定义服务商 | API Key        |
+| AmpCode      | API Key        |
 
 ### 兼容的 CLI Agent
 
@@ -97,7 +95,7 @@ cd LinJun
 # 安装依赖
 bun install
 
-# 下载 CLIProxyAPIPlus 二进制文件
+# 下载 CLIProxyAPI 二进制文件
 bun run download:binary
 
 # 启动开发服务器
@@ -166,7 +164,7 @@ LinJun/
 │   ├── main/                    # Electron 主进程
 │   │   ├── index.ts            # 应用入口
 │   │   ├── tray.ts             # 系统托盘集成
-│   │   ├── proxy/              # CLIProxyAPIPlus 管理
+│   │   ├── proxy/              # CLIProxyAPI 管理
 │   │   │   ├── manager.ts      # 进程生命周期
 │   │   │   └── api.ts          # 管理 API 客户端
 │   │   ├── ipc/                # IPC 处理器
@@ -195,7 +193,7 @@ LinJun/
 
 ## 📁 认证文件存储
 
-认证信息由 CLIProxyAPIPlus 的 `auth-files` 统一管理，并不是固定存放在 `~/.cli-proxy-api/` 目录下。
+认证信息由 CLIProxyAPI 的 `auth-files` 统一管理，并不是固定存放在 `~/.cli-proxy-api/` 目录下。
 
 LinJun 通过本地 management API 读取账号信息。若认证文件以本地文件形式保存，则会使用 `config.yaml` 中配置的 `auth-dir`；如果未配置，则默认位于 Electron `userData` 目录下的 `cli-proxy/auth`。
 
@@ -203,7 +201,6 @@ LinJun 通过本地 management API 读取账号信息。若认证文件以本地
 
 - `codex-{email}-Plus.json`
 - `antigravity-{email}.json`
-- `kiro-{auth-method}-{id}.json`
 - 等等
 
 ## ❓ 常见问题
@@ -230,7 +227,7 @@ MIT 许可证。详见 [LICENSE](LICENSE)。
 
 ## 🙏 致谢
 
-- [CLIProxyAPIPlus](https://github.com/router-for-me/CLIProxyAPIPlus) - 强大的代理服务器
+- [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI) - 强大的代理服务器
 - [Quotio](https://github.com/nguyenphutrong/quotio) - 项目灵感来源
 - [Electron](https://www.electronjs.org/) - 跨平台框架
 - [Vite](https://vitejs.dev/) - 快速构建工具

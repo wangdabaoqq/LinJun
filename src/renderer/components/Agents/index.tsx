@@ -140,40 +140,6 @@ const PROVIDER_MODEL_MAP: Record<string, ProviderModels> = {
       reasoning: true,
     },
   },
-  kiro: {
-    "kiro-claude-haiku-4-5": {
-      limit: { context: 200000, output: 64000 },
-      name: "Kiro Claude Haiku 4 5",
-    },
-    "kiro-claude-haiku-4-5-agentic": {
-      limit: { context: 200000, output: 64000 },
-      name: "Kiro Claude Haiku 4 5 Agentic",
-    },
-    "kiro-claude-opus-4-5": {
-      limit: { context: 200000, output: 64000 },
-      name: "Kiro Claude Opus 4 5",
-    },
-    "kiro-claude-opus-4-5-agentic": {
-      limit: { context: 200000, output: 64000 },
-      name: "Kiro Claude Opus 4 5 Agentic",
-    },
-    "kiro-claude-sonnet-4": {
-      limit: { context: 200000, output: 64000 },
-      name: "Kiro Claude Sonnet 4",
-    },
-    "kiro-claude-sonnet-4-5": {
-      limit: { context: 200000, output: 64000 },
-      name: "Kiro Claude Sonnet 4 5",
-    },
-    "kiro-claude-sonnet-4-5-agentic": {
-      limit: { context: 200000, output: 64000 },
-      name: "Kiro Claude Sonnet 4 5 Agentic",
-    },
-    "kiro-claude-sonnet-4-agentic": {
-      limit: { context: 200000, output: 64000 },
-      name: "Kiro Claude Sonnet 4 Agentic",
-    },
-  },
   antigravity: {
     "gemini-2.5-computer-use-preview-10-2025": {
       limit: { context: 1048576, output: 65536 },
@@ -222,7 +188,6 @@ const DROID_PROVIDER_MAP: Record<string, string> = {
   claude: "anthropic",
   codex: "openai",
   gemini: "generic-chat-completion-api",
-  kiro: "anthropic",
   antigravity: "generic-chat-completion-api",
 };
 

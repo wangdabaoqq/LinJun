@@ -23,10 +23,6 @@ function isExpectedManagementAvailabilityError(error: unknown): boolean {
   return status === 401 || status === 403 || status === 404;
 }
 
-const MODEL_DEFINITION_PROVIDER_ALIASES: Record<string, string> = {
-  copilot: "github-copilot",
-};
-
 class ManagementAPI {
   private client: AxiosInstance;
 
@@ -381,31 +377,6 @@ class ManagementAPI {
     }
   }
 
-  async getKiroAuthUrl(params?: {
-    method?: string;
-    startUrl?: string;
-    region?: string;
-  }): Promise<QwenAuthUrlResponse> {
-    try {
-      const res = await this.client.get(
-        `${this.baseURL}/v0/management/kiro-auth-url`,
-        {
-          params: {
-            is_webui: true,
-            method: params?.method,
-            startUrl: params?.startUrl,
-            region: params?.region,
-          },
-          headers: this.getAuthHeaders(),
-        },
-      );
-      return res.data;
-    } catch (error) {
-      log.warn("[ManagementAPI] Kiro management auth URL unavailable:", error);
-      return { status: "error", url: "", state: "" };
-    }
-  }
-
   async getAuthStatus(state: string): Promise<{
     status: "pending" | "wait" | "ok" | "error" | "device_code" | "auth_url";
     verification_url?: string;
@@ -425,31 +396,6 @@ class ManagementAPI {
     } catch (error) {
       log.error("[ManagementAPI] Failed to get auth status:", error);
       return { status: "error", error: "auth status failed" };
-    }
-  }
-
-  async getKiroAuthStatus(state: string) {
-    return this.getAuthStatus(state);
-  }
-
-  async getCopilotAuthUrl(): Promise<CopilotAuthUrlResponse> {
-    try {
-      const res = await this.client.get(
-        `${this.baseURL}/v0/management/github-auth-url`,
-        {
-          headers: this.getAuthHeaders(),
-        },
-      );
-      return res.data;
-    } catch (error) {
-      log.error("[ManagementAPI] Failed to get Copilot auth URL:", error);
-      return {
-        status: "error",
-        url: "",
-        state: "",
-        user_code: "",
-        verification_uri: "",
-      };
     }
   }
 
@@ -589,9 +535,7 @@ class ManagementAPI {
     const normalizedProvider = (provider || "").trim().toLowerCase();
 
     if (normalizedProvider) {
-      const endpointProvider =
-        MODEL_DEFINITION_PROVIDER_ALIASES[normalizedProvider] ||
-        normalizedProvider;
+      const endpointProvider = normalizedProvider;
 
       try {
         const res = await this.client.get(
@@ -1062,8 +1006,6 @@ export type Provider =
   | "qwen"
   | "antigravity"
   | "iflow"
-  | "copilot"
-  | "kiro"
   | "custom";
 
 export interface ModelEntry {
@@ -1117,14 +1059,6 @@ export interface AuthFileMetadataUpdates {
   priority?: number;
   prefix?: string;
   proxyUrl?: string;
-}
-
-export interface CopilotAuthUrlResponse {
-  status: "ok" | "error";
-  url: string;
-  state: string;
-  user_code: string;
-  verification_uri: string;
 }
 
 export interface UsageTokenDetail {

@@ -9,19 +9,27 @@ import axios from "axios";
 import { proxyManager } from "./manager";
 import log from "../utils/logger";
 
-const DEFAULT_REPOS = [
-  "router-for-me/CLIProxyAPIPlus",
-  "Ravens2121/CLIProxyAPIPlus",
-];
+const DEFAULT_REPOS = ["router-for-me/CLIProxyAPI"];
 
 const GITHUB_API_BASE = (
   process.env.CLIPROXY_GITHUB_API_BASE || "https://api.github.com"
 ).replace(/\/+$/, "");
 
-const CLIPROXY_RELEASES_BASE = (
+const DEFAULT_CLIPROXY_REPO_BASE =
+  "https://g-proxy.940703.xyz/https://github.com/router-for-me/CLIProxyAPI";
+
+function normalizeReleasesBase(url: string): string {
+  const normalized = url.replace(/\/+$/, "");
+  return normalized.endsWith("/releases")
+    ? normalized
+    : `${normalized}/releases`;
+}
+
+const CLIPROXY_RELEASES_BASE = normalizeReleasesBase(
   process.env.CLIPROXY_RELEASES_BASE ||
-  "https://g-proxy.940703.xyz/https://github.com/router-for-me/CLIProxyAPIPlus/releases"
-).replace(/\/+$/, "");
+    process.env.CLIPROXY_REPO_BASE ||
+    DEFAULT_CLIPROXY_REPO_BASE,
+);
 
 const CLIPROXY_PROXY_PREFIX = (
   process.env.CLIPROXY_PROXY_PREFIX || "https://g-proxy.940703.xyz"
@@ -251,7 +259,7 @@ async function fetchLatestProxyRelease(): Promise<{
     "";
   const tag = parseReleaseTagFromUrl(finalUrl);
   if (!tag) {
-    throw new Error("Failed to parse latest CLIProxyAPIPlus release tag");
+    throw new Error("Failed to parse latest CLIProxyAPI release tag");
   }
 
   return {
@@ -306,7 +314,7 @@ async function resolveReleaseAssetFromTagPattern(
 ): Promise<{ release: ReleaseInfo; asset: ReleaseAsset; repo: string } | null> {
   const { latestTag } = await fetchLatestProxyRelease();
   const version = parseTagVersion(latestTag);
-  const prefixes = ["CLIProxyAPIPlus", "cli-proxy-api-plus", "cliproxy"];
+  const prefixes = ["CLIProxyAPI", "cli-proxy-api", "cliproxy"];
   const platformTokens = getAssetPlatformTokens(target);
   const extensions = getAssetExtensions(target);
 
@@ -338,7 +346,7 @@ async function resolveReleaseAssetFromTagPattern(
             name: assetName,
             browser_download_url: mirroredDownloadUrl,
           },
-          repo: "router-for-me/CLIProxyAPIPlus",
+          repo: "router-for-me/CLIProxyAPI",
         };
       }
     } catch {
@@ -395,10 +403,10 @@ function getBinaryCandidates(targetBinaryName: string): string[] {
 
   return [
     targetBinaryName,
-    `cli-proxy-api-plus${ext}`,
-    `CLIProxyAPIPlus${ext}`,
+    `cli-proxy-api${ext}`,
+    `CLIProxyAPI${ext}`,
     `cliproxyapi${ext}`,
-    `cliproxy-api-plus${ext}`,
+    `cliproxy${ext}`,
   ];
 }
 
@@ -435,7 +443,7 @@ function findBinary(rootDir: string, binaryName: string): string | null {
       if (
         fallback === null &&
         (fileNameLower.includes("cliproxy") ||
-          fileNameLower.includes("cli-proxy-api-plus"))
+          fileNameLower.includes("cli-proxy-api"))
       ) {
         fallback = fullPath;
       }
@@ -680,7 +688,7 @@ async function resolveReleaseAsset(target: PlatformTarget): Promise<{
     return fallback;
   }
 
-  throw new Error("No matching CLIProxyAPIPlus release asset found");
+  throw new Error("No matching CLIProxyAPI release asset found");
 }
 
 function getCurrentBinaryVersion(): string {
@@ -700,7 +708,7 @@ export function getProxyBinaryVersion(): ProxyBinaryVersionInfo {
     return {
       success: false,
       version: "unknown",
-      error: "CLIProxyAPIPlus binary not found",
+      error: "CLIProxyAPI binary not found",
     };
   }
 
@@ -711,7 +719,7 @@ export function getProxyBinaryVersion(): ProxyBinaryVersionInfo {
       return {
         success: false,
         version,
-        error: "Failed to parse CLIProxyAPIPlus version",
+        error: "Failed to parse CLIProxyAPI version",
       };
     }
 
@@ -857,7 +865,7 @@ async function downloadLatestBinary(
   }
 
   log.info(
-    `[ProxyUpdater] Installed CLIProxyAPIPlus ${release.tag_name} to ${managedBinaryPath}`,
+    `[ProxyUpdater] Installed CLIProxyAPI ${release.tag_name} to ${managedBinaryPath}`,
   );
 }
 
@@ -893,7 +901,7 @@ export async function updateProxyBinaryAndRestart(
       reportProgress(onProgress, {
         stage: "restarting",
         percent: 8,
-        message: "Stopping CLIProxyAPIPlus",
+        message: "Stopping CLIProxyAPI",
       });
 
       await proxyManager.stop();
@@ -905,7 +913,7 @@ export async function updateProxyBinaryAndRestart(
       reportProgress(onProgress, {
         stage: "restarting",
         percent: 97,
-        message: "Restarting CLIProxyAPIPlus",
+        message: "Restarting CLIProxyAPI",
       });
 
       await proxyManager.start();

@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-linjun is a cross-platform desktop application for managing CLIProxyAPIPlus, built with:
+linjun is a cross-platform desktop application for managing CLIProxyAPI, built with:
 
 - **Electron 33+** - Desktop framework
 - **React 18** - UI library
@@ -30,7 +30,7 @@ bun run build:win      # Windows (nsis)
 bun run build:linux    # Linux (AppImage, deb)
 bun run build:all      # All platforms
 
-# Download CLIProxyAPIPlus binary
+# Download CLIProxyAPI binary
 bun run download:binary
 ```
 
@@ -219,7 +219,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
 1. **`nodeIntegration: false`** - Always disabled in renderer
 2. **`contextIsolation: true`** - Always enabled
 3. **Validate IPC inputs** - Never trust renderer data
-4. **CLIProxyAPIPlus binds to `127.0.0.1`** - Localhost only
+4. **CLIProxyAPI binds to `127.0.0.1`** - Localhost only
 
 ## File Templates
 

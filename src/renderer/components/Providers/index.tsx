@@ -27,7 +27,6 @@ import {
 import { useProviderAuth } from "./hooks/useProviderAuth";
 import { AddAccountModal } from "./AddAccountModal";
 import { AddProviderModal } from "./AddProviderModal";
-import { CopilotAuthModal } from "./CopilotAuthModal";
 import { AmpcodeSettingsModal } from "./AmpcodeSettingsModal";
 import { AccountModelExplorerModal } from "./AccountModelExplorerModal";
 import { AccountModelAliasModal } from "./AccountModelAliasModal";
@@ -42,16 +41,8 @@ import { useProviderAccounts } from "./hooks/useProviderAccounts";
 
 export function Providers() {
   const t = useTranslations();
-  const {
-    isAuthenticating,
-    authError,
-    setAuthError,
-    copilotAuthInfo,
-    setCopilotAuthInfo,
-    copilotAuthError,
-    setCopilotAuthError,
-    triggerAuth,
-  } = useProviderAuth();
+  const { isAuthenticating, authError, setAuthError, triggerAuth } =
+    useProviderAuth();
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [addAccountProvider, setAddAccountProvider] = useState<Omit<
@@ -190,8 +181,7 @@ export function Providers() {
         providerInfo.id === "claude" ||
         providerInfo.id === "gemini" ||
         providerInfo.id === "qwen" ||
-        providerInfo.id === "iflow" ||
-        providerInfo.id === "kiro"
+        providerInfo.id === "iflow"
       ) {
         setAddAccountProvider(providerInfo);
       } else {
@@ -710,20 +700,6 @@ export function Providers() {
           provider={ampcodeProvider}
           onClose={() => setShowAmpcodeSettings(false)}
           onSaved={() => void loadCustomProviders()}
-        />
-      )}
-
-      {copilotAuthInfo && (
-        <CopilotAuthModal
-          authInfo={copilotAuthInfo}
-          onClose={() => {
-            setCopilotAuthInfo(null);
-            setCopilotAuthError(null);
-          }}
-          onSuccess={() => {
-            refreshAccounts();
-          }}
-          authError={copilotAuthError}
         />
       )}
 

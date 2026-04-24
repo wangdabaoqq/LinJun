@@ -211,7 +211,7 @@ function DiagnosticField({
 }: {
   label: string;
   value: React.ReactNode;
-  icon?: any;
+  icon?: React.ComponentType<{ className?: string }>;
 }) {
   return (
     <div className="group relative rounded-[2rem] border border-white/5 bg-white/[0.03] p-4 backdrop-blur-2xl shadow-xl overflow-hidden flex flex-col justify-center min-h-[85px]">

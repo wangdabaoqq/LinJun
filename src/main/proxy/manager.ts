@@ -179,7 +179,7 @@ function getDefaultConfig(authDir: string, secret: string): string {
     quotingType: '"',
     forceQuotes: true,
   });
-  return `# CLIProxyAPIPlus Configuration (managed by linjun)\n${yamlContent}`;
+  return `# CLIProxyAPI Configuration (managed by linjun)\n${yamlContent}`;
 }
 
 function extractQuotedAuthDir(content: string): string | null {

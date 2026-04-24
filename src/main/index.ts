@@ -10,10 +10,6 @@ import { TrayManager } from "./tray/TrayManager";
 import { setupIpcHandlers } from "./ipc/handlers";
 import { proxyManager } from "./proxy/manager";
 import { store } from "./utils/store";
-import {
-  startKiroAutoRefresh,
-  stopKiroAutoRefresh,
-} from "./quota/kiroAutoRefresh";
 
 let mainWindow: BrowserWindow | null = null;
 let isQuitting = false;
@@ -159,7 +155,6 @@ app
   .then(async () => {
     await initializeApp();
     setupIpcHandlers();
-    startKiroAutoRefresh();
     createWindow();
 
     if (mainWindow) {
@@ -186,6 +181,5 @@ app.on("window-all-closed", () => {
 app.on("before-quit", async () => {
   isQuitting = true;
   TrayManager.getInstance().destroy();
-  stopKiroAutoRefresh();
   await proxyManager.stop();
 });

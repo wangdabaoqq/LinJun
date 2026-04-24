@@ -1,17 +1,14 @@
-# CLIProxyAPI Plus
+# CLIProxyAPI
 
 [English](README.md) | 中文
 
-这是 [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI) 的 Plus 版本，在原有基础上增加了第三方供应商的支持。
+该构建使用 [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI)。
 
-所有的第三方供应商支持都由第三方社区维护者提供，CLIProxyAPI 不提供技术支持。如需取得支持，请与对应的社区维护者联系。
+如需发行说明与支持信息，请参考 CLIProxyAPI 官方仓库。
 
-该 Plus 版本的主线功能与主线功能强制同步。
+## 说明
 
-## 与主线版本版本差异
-
-- 新增 GitHub Copilot 支持（OAuth 登录），由[em4go](https://github.com/em4go/CLIProxyAPI/tree/feature/github-copilot-auth)提供
-- 新增 Kiro (AWS CodeWhisperer) 支持 (OAuth 登录), 由[fuko2935](https://github.com/fuko2935/CLIProxyAPI/tree/feature/kiro-integration)、[Ravens2121](https://github.com/Ravens2121/CLIProxyAPIPlus/)提供
+- 此目录用于存放桌面应用打包所需的代理二进制文件。
 
 ## 贡献
 

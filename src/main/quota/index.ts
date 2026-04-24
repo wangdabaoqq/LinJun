@@ -20,18 +20,6 @@ export type {
 } from "./antigravityService";
 
 export {
-  getKiroUsage,
-  isKiroTokenValid,
-  refreshKiroTokenManually,
-  isKiroRefreshBlocked,
-} from "./kiroService";
-export type {
-  KiroUsageResponse,
-  KiroUsageEntry,
-  KiroRefreshResult,
-} from "./kiroService";
-
-export {
   getProviders,
   getQuotaByProvider,
   getQuotaByProviderStream,

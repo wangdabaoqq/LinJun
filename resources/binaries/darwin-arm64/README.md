@@ -1,17 +1,14 @@
-# CLIProxyAPI Plus
+# CLIProxyAPI
 
 English | [Chinese](README_CN.md)
 
-This is the Plus version of [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI), adding support for third-party providers on top of the mainline project.
+This build uses [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI).
 
-All third-party provider support is maintained by community contributors; CLIProxyAPI does not provide technical support. Please contact the corresponding community maintainer if you need assistance.
+Please refer to the official CLIProxyAPI repository for release notes and support.
 
-The Plus release stays in lockstep with the mainline features.
+## Notes
 
-## Differences from the Mainline
-
-- Added GitHub Copilot support (OAuth login), provided by [em4go](https://github.com/em4go/CLIProxyAPI/tree/feature/github-copilot-auth)
-- Added Kiro (AWS CodeWhisperer) support (OAuth login), provided by [fuko2935](https://github.com/fuko2935/CLIProxyAPI/tree/feature/kiro-integration), [Ravens2121](https://github.com/Ravens2121/CLIProxyAPIPlus/)
+- This folder stores packaged proxy binaries for the desktop app.
 
 ## Contributing
 

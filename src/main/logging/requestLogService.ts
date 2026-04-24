@@ -1,5 +1,5 @@
-import fs from "fs";
-import fsp from "fs/promises";
+import fs from "node:fs";
+import fsp from "node:fs/promises";
 import os from "os";
 import path from "path";
 
@@ -50,9 +50,21 @@ export interface RequestLogFetchResult {
   diagnostics: RequestLogDiagnostics;
 }
 
+export interface RequestLogFetchOptions {
+  directoryOverride?: {
+    primaryLogDir: string;
+    scannedDirs?: string[];
+    compatibilityLogDirs?: string[];
+    writablePath?: string;
+    resolution?: RequestLogDiagnostics["resolution"];
+  };
+}
+
 const SUCCESS_PREFIXES = ["v1-responses", "v1-messages", "v1-chat-completions"];
 const ERROR_PREFIX = "error-v1";
 const DIAGNOSTIC_FILE_LIMIT = 8;
+const REQUEST_LOG_DIRECTORY_OVERRIDE_KEY =
+  "__LINJUN_REQUEST_LOG_DIRECTORY_OVERRIDE__" as const;
 // File name substrings that indicate non-conversation log files (token counting, etc.)
 const IGNORED_LOG_SUBSTRINGS = ["count_tokens", "token_count"];
 const INTERNAL_USER_INPUT_PATTERNS = [
@@ -100,8 +112,11 @@ export async function readRecentRequestLogs(
 
 export async function fetchRecentRequestLogs(
   limit = 50,
+  options?: RequestLogFetchOptions,
 ): Promise<RequestLogFetchResult> {
-  const directories = getRequestLogDirectories();
+  const directories = buildRequestLogDirectories(
+    options?.directoryOverride || getRequestLogDirectoryOverrideFromGlobal(),
+  );
   const diagnostics: RequestLogDiagnostics = {
     logDir: directories.primary.logDir,
     scannedDirs: directories.scannedDirs,
@@ -178,11 +193,69 @@ export async function fetchRecentRequestLogs(
   }
 }
 
+function getRequestLogDirectoryOverrideFromGlobal():
+  | RequestLogFetchOptions["directoryOverride"]
+  | undefined {
+  const globalRecord = globalThis as Record<string, unknown>;
+  const rawValue = globalRecord[REQUEST_LOG_DIRECTORY_OVERRIDE_KEY];
+  if (!rawValue || typeof rawValue !== "object" || Array.isArray(rawValue)) {
+    return undefined;
+  }
+
+  const override = rawValue as RequestLogFetchOptions["directoryOverride"];
+  if (!override?.primaryLogDir || typeof override.primaryLogDir !== "string") {
+    return undefined;
+  }
+
+  return override;
+}
+
+function buildRequestLogDirectories(
+  directoryOverride?: RequestLogFetchOptions["directoryOverride"],
+): RequestLogDirectorySet {
+  if (!directoryOverride) {
+    return getRequestLogDirectories();
+  }
+
+  const primaryLogDir = path.resolve(directoryOverride.primaryLogDir);
+  const scannedDirs = Array.from(
+    new Set(
+      (directoryOverride.scannedDirs || [primaryLogDir]).map((dir) =>
+        path.resolve(dir),
+      ),
+    ),
+  );
+
+  if (!scannedDirs.includes(primaryLogDir)) {
+    scannedDirs.unshift(primaryLogDir);
+  }
+
+  const compatibilityLogDirs = directoryOverride.compatibilityLogDirs
+    ? Array.from(
+        new Set(
+          directoryOverride.compatibilityLogDirs
+            .map((dir) => path.resolve(dir))
+            .filter((dir) => dir !== primaryLogDir),
+        ),
+      )
+    : scannedDirs.filter((dir) => dir !== primaryLogDir);
+
+  return {
+    primary: {
+      logDir: primaryLogDir,
+      writablePath: directoryOverride.writablePath,
+      resolution: directoryOverride.resolution || "writable_path",
+    },
+    scannedDirs,
+    compatibilityLogDirs,
+  };
+}
+
 function dedupeRequestLogEntries(
   entries: RequestLogEntry[],
 ): RequestLogEntry[] {
   // Group entries that share the same userInput (or both empty) within a
-  // 60-second window.  These are almost always CLIProxyAPIPlus retries /
+  // 60-second window.  These are almost always CLIProxyAPI retries /
   // failover attempts for the same original request.
   // From each group, keep only the "best" entry (prefer 2xx, then lowest code).
 
@@ -244,7 +317,6 @@ function isBetterEntry(a: RequestLogEntry, b: RequestLogEntry): boolean {
   return a.statusCode < b.statusCode;
 }
 
-
 export async function deleteAllLogs(): Promise<{
   success: boolean;
   error?: string;
@@ -254,11 +326,20 @@ export async function deleteAllLogs(): Promise<{
     let deletedCount = 0;
 
     for (const logDir of scannedDirs) {
-      if (!fs.existsSync(logDir)) {
+      let dirEntries: string[];
+      try {
+        dirEntries = await fsp.readdir(logDir);
+      } catch (error) {
+        if (isDirectoryMissingError(error)) {
+          continue;
+        }
+        throw error;
+      }
+
+      if (dirEntries.length === 0) {
         continue;
       }
 
-      const dirEntries = await fsp.readdir(logDir);
       const files = dirEntries.filter(
         (name) => isSuccessLog(name) || name.startsWith(ERROR_PREFIX),
       );
@@ -337,15 +418,6 @@ async function inspectRequestLogDirectory(logDir: string): Promise<{
   candidates: RequestLogFileCandidate[];
   error?: string;
 }> {
-  if (!fs.existsSync(logDir)) {
-    return {
-      totalFiles: 0,
-      matchedFiles: 0,
-      ignoredFiles: [],
-      candidates: [],
-    };
-  }
-
   try {
     const dirEntries = await fsp.readdir(logDir, { withFileTypes: true });
     const fileNames = dirEntries
@@ -382,6 +454,15 @@ async function inspectRequestLogDirectory(logDir: string): Promise<{
         rejected?.status === "rejected" ? String(rejected.reason) : undefined,
     };
   } catch (error) {
+    if (isDirectoryMissingError(error)) {
+      return {
+        totalFiles: 0,
+        matchedFiles: 0,
+        ignoredFiles: [],
+        candidates: [],
+      };
+    }
+
     return {
       totalFiles: 0,
       matchedFiles: 0,
@@ -390,6 +471,19 @@ async function inspectRequestLogDirectory(logDir: string): Promise<{
       error: String(error),
     };
   }
+}
+
+function isDirectoryMissingError(error: unknown): boolean {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+
+  const code =
+    "code" in error && typeof (error as { code?: unknown }).code === "string"
+      ? (error as { code: string }).code || ""
+      : "";
+
+  return code === "ENOENT" || code === "ENOTDIR";
 }
 
 function getWritablePath(): string | undefined {
@@ -622,8 +716,8 @@ function inferProviderFromUrl(url?: string): string | undefined {
   ) {
     return "Gemini";
   }
-  if (urlLower.includes("github.com") || urlLower.includes("copilot")) {
-    return "Copilot";
+  if (urlLower.includes("github.com")) {
+    return "GitHub";
   }
   if (urlLower.includes("qwen") || urlLower.includes("dashscope")) {
     return "Qwen";

@@ -86,6 +86,4 @@ export const OAUTH_SOURCE_OPTIONS_BY_PROVIDER: Record<string, string[]> = {
   codex: ["codex"],
   qwen: ["qwen"],
   iflow: ["iflow"],
-  copilot: ["copilot"],
-  kiro: ["kiro"],
 };

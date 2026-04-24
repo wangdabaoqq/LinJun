@@ -24,6 +24,10 @@ export class TrayManager {
   private isRunning: boolean = false;
   private quotaInterval: NodeJS.Timeout | null = null;
   private warningState: boolean = false;
+  private readonly handleProxyStatusChange = (running: boolean): void => {
+    this.isRunning = running;
+    this.updateContextMenu();
+  };
 
   private constructor() {}
 
@@ -58,10 +62,7 @@ export class TrayManager {
     this.updateContextMenu();
     this.setupIpcHandlers();
 
-    proxyManager.on("statusChange", (running: boolean) => {
-      this.isRunning = running;
-      this.updateContextMenu();
-    });
+    proxyManager.on("statusChange", this.handleProxyStatusChange);
 
     this.startQuotaPolling();
   }
@@ -202,6 +203,7 @@ export class TrayManager {
   }
 
   public destroy(): void {
+    proxyManager.off("statusChange", this.handleProxyStatusChange);
     this.stopQuotaPolling();
     this.trayWindow?.destroy();
     this.tray?.destroy();

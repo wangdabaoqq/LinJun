@@ -1,16 +1,9 @@
-import React from "react";
 import Claude from "@lobehub/icons/es/Claude";
 import OpenAI from "@lobehub/icons/es/OpenAI";
 import Gemini from "@lobehub/icons/es/Gemini";
-import GithubCopilot from "@lobehub/icons/es/GithubCopilot";
 import Qwen from "@lobehub/icons/es/Qwen";
 
-import {
-  AntigravityIcon,
-  IFlowIcon,
-  KiroIcon,
-  CustomIcon,
-} from "../icons/ProviderIcons";
+import { AntigravityIcon, IFlowIcon, CustomIcon } from "../icons/ProviderIcons";
 
 import { Provider } from "./types";
 
@@ -61,22 +54,6 @@ export const allProviders: Omit<Provider, "accounts">[] = [
     icon: <IFlowIcon />,
     color: "teal",
     description: "Claude 4 Sonnet, Gemini 2.5 Pro",
-    authType: "oauth",
-  },
-  {
-    id: "copilot",
-    name: "GitHub Copilot",
-    icon: <GithubCopilot size={24} />,
-    color: "teal",
-    description: "GPT-4o, Claude 3.5, Gemini 2.0",
-    authType: "oauth",
-  },
-  {
-    id: "kiro",
-    name: "Kiro",
-    icon: <KiroIcon className="w-6 h-6 object-contain" />,
-    color: "indigo",
-    description: "Claude Sonnet 4, Amazon Nova",
     authType: "oauth",
   },
   {

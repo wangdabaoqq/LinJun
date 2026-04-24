@@ -106,11 +106,3 @@ export interface AddAccountModalProps {
   onClose: () => void;
   onAdd: (account: Omit<Account, "id" | "status" | "lastUsed">) => void;
 }
-
-export interface CopilotAuthInfo {
-  status: "ok" | "error";
-  url: string;
-  state: string;
-  user_code: string;
-  verification_uri: string;
-}

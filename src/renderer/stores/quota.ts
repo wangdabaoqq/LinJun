@@ -6,8 +6,6 @@ export type ProviderType =
   | "antigravity"
   | "claude"
   | "gemini"
-  | "kiro"
-  | "copilot"
   | "qwen"
   | "iflow"
   | "custom";

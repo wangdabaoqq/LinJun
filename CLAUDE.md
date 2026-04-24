@@ -1,13 +1,13 @@
-# linjun - 跨平台 CLIProxyAPIPlus 管理工具
+# linjun - 跨平台 CLIProxyAPI 管理工具
 
 ## 项目概述
 
-基于 CLIProxyAPIPlus 构建的跨平台桌面应用，提供类似 Quotio 的功能，支持 **Windows / macOS / Linux** 三端。
+基于 CLIProxyAPI 构建的跨平台桌面应用，提供类似 Quotio 的功能，支持 **Windows / macOS / Linux** 三端。
 
 ### 参考项目
 
 - [Quotio](https://github.com/nguyenphutrong/quotio) - macOS 原生 Swift 实现（仅 macOS）
-- [CLIProxyAPIPlus](https://github.com/router-for-me/CLIProxyAPIPlus) - 核心代理服务器（Go 实现）
+- [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI) - 核心代理服务器（Go 实现）
 - [ProxyPilot](https://github.com/Finesssee/ProxyPilot) - Windows 原生实现
 - [ZeroLimit](https://github.com/0xtbug/zero-limit) - Tauri + React 实现（参考 UI 设计）
 
@@ -17,14 +17,14 @@
 
 ### 方案：Electron + React + TypeScript
 
-| 组件         | 技术栈                  | 说明                        |
-| ------------ | ----------------------- | --------------------------- |
-| **框架**     | Electron 33+            | 跨平台桌面应用框架          |
-| **前端**     | React 18 + TypeScript   | UI 开发                     |
-| **样式**     | Tailwind CSS            | 快速 UI 开发                |
-| **构建**     | Vite + electron-builder | 开发构建工具链              |
-| **进程管理** | child_process           | 管理 CLIProxyAPIPlus 二进制 |
-| **系统托盘** | Electron Tray API       | 原生托盘支持                |
+| 组件         | 技术栈                  | 说明                    |
+| ------------ | ----------------------- | ----------------------- |
+| **框架**     | Electron 33+            | 跨平台桌面应用框架      |
+| **前端**     | React 18 + TypeScript   | UI 开发                 |
+| **样式**     | Tailwind CSS            | 快速 UI 开发            |
+| **构建**     | Vite + electron-builder | 开发构建工具链          |
+| **进程管理** | child_process           | 管理 CLIProxyAPI 二进制 |
+| **系统托盘** | Electron Tray API       | 原生托盘支持            |
 
 ### Electron 优势
 
@@ -33,11 +33,11 @@
 3. **跨平台一致**：一套代码，三端运行
 4. **原生能力**：完整的系统托盘、通知、菜单支持
 
-### CLIProxyAPIPlus 集成方式
+### CLIProxyAPI 集成方式
 
-由于 CLIProxyAPIPlus 是 Go 编写的，Electron 通过以下方式集成：
+由于 CLIProxyAPI 是 Go 编写的，Electron 通过以下方式集成：
 
-1. **内嵌二进制**：将 CLIProxyAPIPlus 二进制打包到应用中
+1. **内嵌二进制**：将 CLIProxyAPI 二进制打包到应用中
 2. **进程管理**：使用 `child_process` 启动/停止代理进程
 3. **HTTP 通信**：通过 Management API 与代理交互
 
@@ -47,7 +47,7 @@
 
 ### Phase 1 - MVP
 
-- [ ] 内嵌 CLIProxyAPIPlus 二进制，启动/停止代理服务
+- [ ] 内嵌 CLIProxyAPI 二进制，启动/停止代理服务
 - [ ] 系统托盘图标 + 基础菜单
 - [ ] 单账户 OAuth 登录（Claude/Gemini/OpenAI）
 - [ ] 基础状态显示（运行中/已停止）
@@ -89,7 +89,7 @@ cliPlus/
 │   ├── main/                   # Electron 主进程
 │   │   ├── index.ts            # 主进程入口
 │   │   ├── tray.ts             # 系统托盘
-│   │   ├── proxy/              # CLIProxyAPIPlus 管理
+│   │   ├── proxy/              # CLIProxyAPI 管理
 │   │   │   ├── manager.ts      # 进程管理
 │   │   │   ├── api.ts          # Management API 封装
 │   │   │   └── binary.ts       # 二进制路径处理
@@ -121,14 +121,14 @@ cliPlus/
 │   ├── icon.png
 │   ├── icon.ico
 │   ├── icon.icns
-│   └── binaries/               # CLIProxyAPIPlus 二进制
+│   └── binaries/               # CLIProxyAPI 二进制
 │       ├── darwin-arm64/
 │       ├── darwin-x64/
 │       ├── win32-x64/
 │       └── linux-x64/
 │
 └── scripts/
-    └── download-binary.ts      # 下载 CLIProxyAPIPlus 二进制
+    └── download-binary.ts      # 下载 CLIProxyAPI 二进制
 ```
 
 ---
@@ -157,7 +157,7 @@ pnpm install
 pnpm add electron-store zustand axios
 pnpm add -D @types/node tailwindcss postcss autoprefixer
 
-# 下载 CLIProxyAPIPlus 二进制（需要实现脚本）
+# 下载 CLIProxyAPI 二进制（需要实现脚本）
 pnpm run download:binary
 
 # 开发模式
@@ -167,7 +167,7 @@ pnpm dev
 pnpm build
 ```
 
-### CLIProxyAPIPlus 进程管理
+### CLIProxyAPI 进程管理
 
 ```typescript
 // src/main/proxy/manager.ts
@@ -487,7 +487,7 @@ pnpm build:all
 
 ---
 
-## CLIProxyAPIPlus Management API
+## CLIProxyAPI Management API
 
 ### 常用接口
 
@@ -530,12 +530,12 @@ export const managementAPI = {
 
 ## 相关资源
 
-### CLIProxyAPIPlus
+### CLIProxyAPI
 
 - 官方文档: https://help.router-for.me/
-- GitHub: https://github.com/router-for-me/CLIProxyAPIPlus
+- GitHub: https://github.com/router-for-me/CLIProxyAPI
 - Management API: https://help.router-for.me/management/api
-- Releases (二进制下载): https://github.com/router-for-me/CLIProxyAPIPlus/releases
+- Releases (二进制下载): https://github.com/router-for-me/CLIProxyAPI/releases
 
 ### Electron 开发
 
@@ -566,7 +566,7 @@ Electron 应用默认较大（~150MB），可通过以下方式优化：
 1. 启用 `contextIsolation`
 2. 禁用 `nodeIntegration`
 3. 使用 `preload` 脚本暴露安全的 API
-4. CLIProxyAPIPlus 仅监听 `127.0.0.1`
+4. CLIProxyAPI 仅监听 `127.0.0.1`
 
 ### macOS 签名
 

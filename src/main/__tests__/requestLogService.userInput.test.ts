@@ -4,6 +4,11 @@ import path from "path";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+let mockConfigDir = "/tmp/linjun-config";
+let mockAuthDir = "/tmp/linjun-auth";
+const REQUEST_LOG_DIRECTORY_OVERRIDE_KEY =
+  "__LINJUN_REQUEST_LOG_DIRECTORY_OVERRIDE__" as const;
+
 vi.mock("../utils/logger", () => ({
   default: {
     info: vi.fn(),
@@ -14,13 +19,17 @@ vi.mock("../utils/logger", () => ({
 
 vi.mock("../proxy/manager", () => ({
   proxyManager: {
-    getConfigDir: vi.fn(() => "/tmp/linjun-config"),
-    getAuthDir: vi.fn(() => "/tmp/linjun-auth"),
+    getConfigDir: vi.fn(() => mockConfigDir),
+    getAuthDir: vi.fn(() => mockAuthDir),
     loadConfigFromYaml: vi.fn(() => ({})),
   },
 }));
 
-function makeLog(requestBody: string, timestamp = "2026-04-01T12:00:00.000Z", status = "200"): string {
+function makeLog(
+  requestBody: string,
+  timestamp = "2026-04-01T12:00:00.000Z",
+  status = "200",
+): string {
   return `=== REQUEST INFO ===
 Timestamp: ${timestamp}
 Method: POST
@@ -37,14 +46,27 @@ describe("requestLogService user input extraction", () => {
   let tempRoot: string;
 
   beforeEach(async () => {
-    vi.resetModules();
+    vi.restoreAllMocks();
+    vi.clearAllMocks();
     tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "linjun-logs-"));
+    mockConfigDir = tempRoot;
+    mockAuthDir = path.join(tempRoot, "auth");
     await fs.mkdir(path.join(tempRoot, "logs"), { recursive: true });
-    process.env.WRITABLE_PATH = tempRoot;
+    (globalThis as Record<string, unknown>)[
+      REQUEST_LOG_DIRECTORY_OVERRIDE_KEY
+    ] = {
+      primaryLogDir: path.join(tempRoot, "logs"),
+      scannedDirs: [path.join(tempRoot, "logs"), tempRoot],
+      compatibilityLogDirs: [tempRoot],
+      writablePath: tempRoot,
+      resolution: "writable_path",
+    };
   });
 
   afterEach(async () => {
-    delete process.env.WRITABLE_PATH;
+    delete (globalThis as Record<string, unknown>)[
+      REQUEST_LOG_DIRECTORY_OVERRIDE_KEY
+    ];
     await fs.rm(tempRoot, { recursive: true, force: true });
   });
 
@@ -52,7 +74,7 @@ describe("requestLogService user input extraction", () => {
     const logContent = makeLog(
       JSON.stringify({
         messages: [
-          { role: "user", content: "帮我分析下 Kiro 配额问题" },
+          { role: "user", content: "帮我分析下 Claude 配额问题" },
           {
             role: "user",
             content:
@@ -68,9 +90,8 @@ describe("requestLogService user input extraction", () => {
       "utf-8",
     );
 
-    const { fetchRecentRequestLogs } = await import(
-      "../logging/requestLogService"
-    );
+    const { fetchRecentRequestLogs } =
+      await import("../logging/requestLogService");
     const result = await fetchRecentRequestLogs(10);
 
     // Title generation requests are excluded entirely
@@ -86,9 +107,8 @@ describe("requestLogService user input extraction", () => {
       "utf-8",
     );
 
-    const { fetchRecentRequestLogs } = await import(
-      "../logging/requestLogService"
-    );
+    const { fetchRecentRequestLogs } =
+      await import("../logging/requestLogService");
     const result = await fetchRecentRequestLogs(10);
 
     // Warmup requests are non-conversation → excluded entirely
@@ -101,8 +121,7 @@ describe("requestLogService user input extraction", () => {
         messages: [
           {
             role: "user",
-            content:
-              "[SUGGESTION MODE: Synthesize a concise completion]",
+            content: "[SUGGESTION MODE: Synthesize a concise completion]",
           },
         ],
       }),
@@ -114,9 +133,8 @@ describe("requestLogService user input extraction", () => {
       "utf-8",
     );
 
-    const { fetchRecentRequestLogs } = await import(
-      "../logging/requestLogService"
-    );
+    const { fetchRecentRequestLogs } =
+      await import("../logging/requestLogService");
     const result = await fetchRecentRequestLogs(10);
 
     // Suggestion mode requests are non-conversation → excluded entirely
@@ -142,9 +160,8 @@ describe("requestLogService user input extraction", () => {
       "utf-8",
     );
 
-    const { fetchRecentRequestLogs } = await import(
-      "../logging/requestLogService"
-    );
+    const { fetchRecentRequestLogs } =
+      await import("../logging/requestLogService");
     const result = await fetchRecentRequestLogs(10);
 
     expect(result.entries).toHaveLength(1);
@@ -167,9 +184,8 @@ describe("requestLogService user input extraction", () => {
       "utf-8",
     );
 
-    const { fetchRecentRequestLogs } = await import(
-      "../logging/requestLogService"
-    );
+    const { fetchRecentRequestLogs } =
+      await import("../logging/requestLogService");
     const result = await fetchRecentRequestLogs(10);
 
     expect(result.entries).toHaveLength(1);
@@ -207,9 +223,8 @@ describe("requestLogService user input extraction", () => {
       "utf-8",
     );
 
-    const { fetchRecentRequestLogs } = await import(
-      "../logging/requestLogService"
-    );
+    const { fetchRecentRequestLogs } =
+      await import("../logging/requestLogService");
     const result = await fetchRecentRequestLogs(10);
 
     expect(result.entries).toHaveLength(1);
@@ -242,9 +257,8 @@ describe("requestLogService user input extraction", () => {
       "utf-8",
     );
 
-    const { fetchRecentRequestLogs } = await import(
-      "../logging/requestLogService"
-    );
+    const { fetchRecentRequestLogs } =
+      await import("../logging/requestLogService");
     const result = await fetchRecentRequestLogs(10);
 
     expect(result.entries).toHaveLength(1);
@@ -291,9 +305,8 @@ describe("requestLogService user input extraction", () => {
       "utf-8",
     );
 
-    const { fetchRecentRequestLogs } = await import(
-      "../logging/requestLogService"
-    );
+    const { fetchRecentRequestLogs } =
+      await import("../logging/requestLogService");
     const result = await fetchRecentRequestLogs(10);
 
     expect(result.entries).toHaveLength(1);
@@ -327,9 +340,8 @@ describe("requestLogService user input extraction", () => {
       "utf-8",
     );
 
-    const { fetchRecentRequestLogs } = await import(
-      "../logging/requestLogService"
-    );
+    const { fetchRecentRequestLogs } =
+      await import("../logging/requestLogService");
     const result = await fetchRecentRequestLogs(10);
 
     expect(result.entries).toHaveLength(1);
@@ -356,9 +368,8 @@ describe("requestLogService user input extraction", () => {
       "utf-8",
     );
 
-    const { fetchRecentRequestLogs } = await import(
-      "../logging/requestLogService"
-    );
+    const { fetchRecentRequestLogs } =
+      await import("../logging/requestLogService");
     const result = await fetchRecentRequestLogs(10);
 
     expect(result.entries).toHaveLength(1);
@@ -378,9 +389,8 @@ describe("requestLogService user input extraction", () => {
       "utf-8",
     );
 
-    const { fetchRecentRequestLogs } = await import(
-      "../logging/requestLogService"
-    );
+    const { fetchRecentRequestLogs } =
+      await import("../logging/requestLogService");
     const result = await fetchRecentRequestLogs(10);
 
     expect(result.entries).toHaveLength(1);
@@ -393,7 +403,7 @@ describe("requestLogService user input extraction", () => {
     // to verify each MCP tool definition — not real user conversations
     const logContent = makeLog(
       JSON.stringify({
-        model: "kiro-minimax-m2-1-agentic",
+        model: "qwen2.5-coder-32b-instruct",
         max_tokens: 1,
         messages: [{ role: "user", content: "count" }],
         tools: [{ name: "mcp__playwright__browser_click", type: "custom" }],
@@ -406,9 +416,8 @@ describe("requestLogService user input extraction", () => {
       "utf-8",
     );
 
-    const { fetchRecentRequestLogs } = await import(
-      "../logging/requestLogService"
-    );
+    const { fetchRecentRequestLogs } =
+      await import("../logging/requestLogService");
     const result = await fetchRecentRequestLogs(10);
 
     // max_tokens=1 → MCP probe → excluded entirely
@@ -420,7 +429,7 @@ describe("requestLogService user input extraction", () => {
     // not real conversations — they should not appear in log entries at all
     const logContent = makeLog(
       JSON.stringify({
-        model: "kiro-minimax-m2-1-agentic",
+        model: "qwen2.5-coder-32b-instruct",
         messages: [{ role: "user", content: "foo" }],
         tools: [{ name: "mcp__playwright__browser_click", type: "custom" }],
       }),
@@ -436,9 +445,8 @@ describe("requestLogService user input extraction", () => {
       "utf-8",
     );
 
-    const { fetchRecentRequestLogs } = await import(
-      "../logging/requestLogService"
-    );
+    const { fetchRecentRequestLogs } =
+      await import("../logging/requestLogService");
     const result = await fetchRecentRequestLogs(10);
 
     // count_tokens files should be completely excluded
@@ -446,7 +454,7 @@ describe("requestLogService user input extraction", () => {
   });
 
   it("deduplicates retry entries within 60s window, keeping the successful one", async () => {
-    // Simulate CLIProxyAPIPlus retry: same user message, different timestamps
+    // Simulate CLIProxyAPI retry: same user message, different timestamps
     // within 60s, multiple failures then one success
     const body = JSON.stringify({
       messages: [{ role: "user", content: "帮我查一下" }],
@@ -475,9 +483,8 @@ describe("requestLogService user input extraction", () => {
       "utf-8",
     );
 
-    const { fetchRecentRequestLogs } = await import(
-      "../logging/requestLogService"
-    );
+    const { fetchRecentRequestLogs } =
+      await import("../logging/requestLogService");
     const result = await fetchRecentRequestLogs(50);
 
     // All 4 entries share the same userInput within 60s → deduped to 1
@@ -504,9 +511,8 @@ describe("requestLogService user input extraction", () => {
       "utf-8",
     );
 
-    const { fetchRecentRequestLogs } = await import(
-      "../logging/requestLogService"
-    );
+    const { fetchRecentRequestLogs } =
+      await import("../logging/requestLogService");
     const result = await fetchRecentRequestLogs(50);
 
     // 5 minutes apart → two separate conversations

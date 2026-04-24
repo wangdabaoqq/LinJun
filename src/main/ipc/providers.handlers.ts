@@ -1,14 +1,9 @@
-import { spawn } from "child_process";
-import crypto from "crypto";
-import fs from "fs";
-import fsp from "fs/promises";
 import path from "path";
 
-import { app, ipcMain } from "electron";
+import { ipcMain } from "electron";
 
 import { managementAPI } from "../proxy/api";
 import { proxyManager } from "../proxy/manager";
-import { refreshKiroTokenManually, scanTokenFiles } from "../quota";
 import {
   emitConflictDetected,
   emitFallbackHit,
@@ -377,6 +372,36 @@ function isValidAuthFileName(value: string): boolean {
   return /^[a-zA-Z0-9@._-]+\.json$/.test(value);
 }
 
+const SUPPORTED_PROVIDER_IDS = new Set([
+  "codex",
+  "claude",
+  "gemini",
+  "qwen",
+  "iflow",
+  "antigravity",
+  "custom",
+]);
+
+const UNSUPPORTED_PROVIDER_IDS = new Set(["kiro", "copilot", "github-copilot"]);
+
+function normalizeProviderCandidate(value: unknown): string {
+  if (typeof value !== "string") {
+    return "";
+  }
+
+  return value.trim().toLowerCase();
+}
+
+function isUnsupportedProviderCandidate(value: unknown): boolean {
+  const normalized = normalizeProviderCandidate(value);
+  return normalized.length > 0 && UNSUPPORTED_PROVIDER_IDS.has(normalized);
+}
+
+function isUnsupportedProviderFileName(fileName: string): boolean {
+  const normalized = fileName.trim().toLowerCase();
+  return /^(kiro|copilot|github-copilot)([-_.]|$)/.test(normalized);
+}
+
 function resolveProviderId(value: {
   provider?: string;
   type?: string;
@@ -390,14 +415,12 @@ function resolveProviderId(value: {
     "qwen",
     "iflow",
     "antigravity",
-    "copilot",
-    "kiro",
+    "custom",
   ]);
   const providerAliases: Record<string, string> = {
     openai: "codex",
     "openai-chatgpt": "codex",
     chatgpt: "codex",
-    "github-copilot": "copilot",
   };
 
   const candidates = [value.provider, value.type, value.accountType].filter(
@@ -797,12 +820,23 @@ export function setupProvidersHandlers(): void {
           authFile.name || authFile.id || "",
         );
         if (!fileName) continue;
+        if (
+          isUnsupportedProviderCandidate(authFile.provider) ||
+          isUnsupportedProviderCandidate(authFile.type) ||
+          isUnsupportedProviderCandidate(authFile.account_type) ||
+          isUnsupportedProviderFileName(fileName)
+        ) {
+          continue;
+        }
         const providerId = resolveProviderId({
           provider: authFile.provider,
           type: authFile.type,
           accountType: authFile.account_type,
           name: fileName,
         });
+        if (!SUPPORTED_PROVIDER_IDS.has(providerId)) {
+          continue;
+        }
         const email =
           (typeof authFile.email === "string" && authFile.email.trim()) ||
           (typeof authFile.account === "string" && authFile.account.trim()) ||
@@ -1236,46 +1270,6 @@ export function setupProvidersHandlers(): void {
     }
   });
 
-  registerHandle("copilot:getAuthUrl", async () => {
-    try {
-      return await managementAPI.getCopilotAuthUrl();
-    } catch (error) {
-      log.error("[IPC] Failed to get Copilot auth URL:", error);
-      return {
-        status: "error",
-        url: "",
-        state: "",
-        user_code: "",
-        verification_uri: "",
-      };
-    }
-  });
-
-  registerHandle(
-    "kiro:getAuthUrl",
-    async (
-      _event,
-      params?: { method?: string; startUrl?: string; region?: string },
-    ) => {
-      try {
-        const result = await managementAPI.getKiroAuthUrl(params);
-        return result;
-      } catch (error) {
-        log.error("[IPC] Failed to get Kiro auth URL:", error);
-        return { status: "error", url: "", state: "" };
-      }
-    },
-  );
-
-  registerHandle("kiro:getAuthStatus", async (_event, state: string) => {
-    try {
-      return await managementAPI.getKiroAuthStatus(state);
-    } catch (error) {
-      log.error("[IPC] Failed to get Kiro auth status:", error);
-      return { status: "error" };
-    }
-  });
-
   registerHandle("qwen:getAuthStatus", async (_event, state: string) => {
     try {
       return await managementAPI.getAuthStatus(state);
@@ -1291,240 +1285,6 @@ export function setupProvidersHandlers(): void {
     } catch (error) {
       log.error("[IPC] Failed to get OAuth auth status:", error);
       return { status: "error" };
-    }
-  });
-
-  registerHandle("kiro:import", async () => {
-    try {
-      const homeDir = app.getPath("home");
-      const ssoDir = path.join(homeDir, ".aws", "sso", "cache");
-
-      if (!fs.existsSync(ssoDir)) {
-        return { success: false, error: "AWS SSO cache directory not found" };
-      }
-
-      const kiroFile = path.join(ssoDir, "kiro-auth-token.json");
-      if (!fs.existsSync(kiroFile)) {
-        return {
-          success: false,
-          error: "Kiro auth token not found. Please login to Kiro IDE first.",
-        };
-      }
-
-      proxyManager.ensureConfig();
-      const binaryPath = proxyManager.getBinaryPath();
-      const configPath = proxyManager.getConfigPath();
-
-      if (!fs.existsSync(binaryPath)) {
-        return {
-          success: false,
-          error:
-            "Proxy binary not found. Please download/install CLIProxyAPIPlus first.",
-        };
-      }
-      if (!fs.existsSync(configPath)) {
-        return {
-          success: false,
-          error:
-            "Proxy config not found. Please start proxy once to initialize config.",
-        };
-      }
-
-      const result = await new Promise<{
-        success: boolean;
-        filePath?: string;
-        error?: string;
-      }>((resolve) => {
-        const child = spawn(
-          binaryPath,
-          ["--config", configPath, "--kiro-import"],
-          {
-            stdio: ["ignore", "pipe", "pipe"],
-            windowsHide: true,
-          },
-        );
-
-        let stdout = "";
-        let stderr = "";
-
-        child.stdout?.on("data", (data) => {
-          stdout += data.toString();
-        });
-        child.stderr?.on("data", (data) => {
-          stderr += data.toString();
-        });
-
-        child.once("error", (error) => {
-          resolve({ success: false, error: String(error) });
-        });
-
-        child.once("exit", (code) => {
-          if (code === 0) {
-            const match = stdout.match(/Authentication saved to\s+(.+)\s*/);
-            const filePath = match?.[1]?.trim();
-            if (filePath) {
-              log.info(`[IPC] Kiro token imported via cliproxy: ${filePath}`);
-            } else {
-              log.info("[IPC] Kiro token imported via cliproxy");
-            }
-            resolve({ success: true, filePath });
-            return;
-          }
-
-          const message = (stderr || stdout).trim() || `Exit code ${code}`;
-          resolve({ success: false, error: message });
-        });
-      });
-
-      return result;
-    } catch (error) {
-      log.error("[IPC] Failed to import Kiro token:", error);
-      return { success: false, error: String(error) };
-    }
-  });
-
-  registerHandle("kiro:importFromToken", async (_event, tokenJson: string) => {
-    try {
-      if (!tokenJson || !tokenJson.trim()) {
-        return { success: false, error: "Token JSON is required" };
-      }
-
-      let parsed: Record<string, unknown>;
-      try {
-        parsed = JSON.parse(tokenJson);
-      } catch {
-        return { success: false, error: "Invalid token JSON" };
-      }
-
-      const nestedToken =
-        parsed.token && typeof parsed.token === "object"
-          ? (parsed.token as Record<string, unknown>)
-          : undefined;
-
-      const accessToken =
-        (typeof parsed.accessToken === "string" ? parsed.accessToken : "") ||
-        (typeof parsed.access_token === "string" ? parsed.access_token : "") ||
-        (nestedToken && typeof nestedToken.access_token === "string"
-          ? nestedToken.access_token
-          : "");
-
-      const refreshToken =
-        (typeof parsed.refreshToken === "string" ? parsed.refreshToken : "") ||
-        (typeof parsed.refresh_token === "string"
-          ? parsed.refresh_token
-          : "") ||
-        (nestedToken && typeof nestedToken.refresh_token === "string"
-          ? nestedToken.refresh_token
-          : "");
-
-      if (!accessToken || !refreshToken) {
-        return {
-          success: false,
-          error: "Token JSON must include accessToken and refreshToken",
-        };
-      }
-
-      const authMethodRaw =
-        (typeof parsed.authMethod === "string" ? parsed.authMethod : "") ||
-        (typeof parsed.auth_method === "string" ? parsed.auth_method : "") ||
-        "builder-id";
-      const authMethod = authMethodRaw.toLowerCase();
-      const safeAuthMethod =
-        authMethod.replace(/[^a-z0-9-]/g, "") || "builder-id";
-
-      const expiresAt =
-        (typeof parsed.expiresAt === "string" ? parsed.expiresAt : "") ||
-        (typeof parsed.expired === "string" ? parsed.expired : "") ||
-        (nestedToken && typeof nestedToken.expiry === "string"
-          ? nestedToken.expiry
-          : "") ||
-        new Date(Date.now() + 60 * 60 * 1000).toISOString();
-
-      const email =
-        (typeof parsed.email === "string" ? parsed.email : "") ||
-        (typeof parsed.username === "string" ? parsed.username : "");
-      const safeEmail = email
-        ? email.toLowerCase().replace(/[^a-z0-9._-]/g, "-")
-        : "";
-
-      const authDir = proxyManager.getAuthDir();
-      if (!fs.existsSync(authDir)) {
-        await fsp.mkdir(authDir, { recursive: true });
-      }
-
-      const randomId = crypto.randomBytes(8).toString("hex").toUpperCase();
-      const destFilename = safeEmail
-        ? `kiro-${safeAuthMethod}-${safeEmail}.json`
-        : `kiro-${safeAuthMethod}-${randomId}.json`;
-      const destPath = path.join(authDir, destFilename);
-
-      const profileArn =
-        (typeof parsed.profileArn === "string" ? parsed.profileArn : "") ||
-        (typeof parsed.profile_arn === "string" ? parsed.profile_arn : "");
-      const providerName =
-        typeof parsed.provider === "string" ? parsed.provider : "AWS";
-
-      const tokenData: Record<string, unknown> = {
-        type: "kiro",
-        provider: providerName,
-        auth_method: authMethod,
-        profile_arn: profileArn,
-        access_token: accessToken,
-        refresh_token: refreshToken,
-        expires_at: expiresAt,
-        disabled: false,
-      };
-
-      if (safeEmail) tokenData.email = safeEmail;
-      if (typeof parsed.clientId === "string")
-        tokenData.client_id = parsed.clientId;
-      if (typeof parsed.clientSecret === "string") {
-        tokenData.client_secret = parsed.clientSecret;
-      }
-      if (typeof parsed.clientIdHash === "string") {
-        tokenData.client_id_hash = parsed.clientIdHash;
-      }
-      if (typeof parsed.startUrl === "string")
-        tokenData.start_url = parsed.startUrl;
-      if (typeof parsed.region === "string") tokenData.region = parsed.region;
-
-      await fsp.writeFile(
-        destPath,
-        JSON.stringify(tokenData, null, 2),
-        "utf-8",
-      );
-      log.info(`[IPC] Kiro token imported from input: ${destPath}`);
-
-      return { success: true, filePath: destPath };
-    } catch (error) {
-      log.error(
-        "[IPC] Failed to import Kiro token from input:",
-        error instanceof Error ? error.message : String(error),
-      );
-      return { success: false, error: String(error) };
-    }
-  });
-
-  registerHandle("kiro:refreshToken", async (_event, filePath: string) => {
-    try {
-      const tokens = await scanTokenFiles();
-      const token = tokens.find((t) => t.filePath === filePath);
-
-      if (!token) {
-        return { success: false, error: "Token file not found" };
-      }
-
-      if (token.provider !== "kiro") {
-        return { success: false, error: "Not a Kiro token file" };
-      }
-
-      return await refreshKiroTokenManually(token);
-    } catch (error) {
-      log.error(
-        "[IPC] Failed to refresh Kiro token:",
-        error instanceof Error ? error.message : String(error),
-      );
-      return { success: false, error: String(error) };
     }
   });
 }

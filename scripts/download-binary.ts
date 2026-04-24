@@ -1,19 +1,12 @@
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const fs = require("fs") as typeof import("fs");
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const path = require("path") as typeof import("path");
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const { spawnSync } =
-  require("child_process") as typeof import("child_process");
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const { createGunzip } = require("zlib") as typeof import("zlib");
+import * as fs from "fs";
+import * as path from "path";
+
+import { spawnSync } from "child_process";
+import { createGunzip } from "zlib";
 
 const OUTPUT_ROOT = path.resolve(process.cwd(), "resources/binaries");
 const TMP_ROOT = path.resolve(process.cwd(), ".tmp/download-binary");
-const DEFAULT_REPOS = [
-  "router-for-me/CLIProxyAPIPlus",
-  "Ravens2121/CLIProxyAPIPlus",
-];
+const DEFAULT_REPOS = ["router-for-me/CLIProxyAPI"];
 const GITHUB_API_BASE = (
   process.env.CLIPROXY_GITHUB_API_BASE || "https://api.github.com"
 ).replace(/\/+$/, "");
@@ -139,7 +132,7 @@ async function resolveReleaseAssetFromTagPattern(
 ): Promise<{ release: ReleaseInfo; asset: ReleaseAsset } | null> {
   const tag = await fetchLatestTag(repo);
   const version = tag.replace(/^v/i, "");
-  const prefixes = ["CLIProxyAPIPlus", "cli-proxy-api-plus", "cliproxy"];
+  const prefixes = ["CLIProxyAPI", "cli-proxy-api", "cliproxy"];
   const platformTokens = getAssetPlatformTokens(target);
   const extensions = getAssetExtensions(target);
 
@@ -275,10 +268,10 @@ function getBinaryCandidates(targetBinaryName: string): string[] {
 
   return [
     targetBinaryName,
-    `cli-proxy-api-plus${ext}`,
-    `CLIProxyAPIPlus${ext}`,
+    `cli-proxy-api${ext}`,
+    `CLIProxyAPI${ext}`,
     `cliproxyapi${ext}`,
-    `cliproxy-api-plus${ext}`,
+    `cliproxy${ext}`,
   ];
 }
 
@@ -403,7 +396,7 @@ function findBinary(rootDir: string, binaryName: string): string | null {
       if (
         fallback === null &&
         (fileNameLower.includes("cliproxy") ||
-          fileNameLower.includes("cli-proxy-api-plus"))
+          fileNameLower.includes("cli-proxy-api"))
       ) {
         fallback = fullPath;
       }

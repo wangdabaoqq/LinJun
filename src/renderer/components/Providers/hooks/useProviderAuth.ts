@@ -1,19 +1,14 @@
 import { useState } from "react";
 import log from "@renderer/utils/logger";
 
-import { useTranslations } from "../../../stores/settings";
 import { useProvidersStore } from "../../../stores/providers";
-import { Provider, CopilotAuthInfo } from "../types";
+import { Provider } from "../types";
 
 export function useProviderAuth() {
-  const t = useTranslations();
   const loadAccounts = useProvidersStore((state) => state.loadAccounts);
 
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
-  const [copilotAuthInfo, setCopilotAuthInfo] =
-    useState<CopilotAuthInfo | null>(null);
-  const [copilotAuthError, setCopilotAuthError] = useState<string | null>(null);
 
   const triggerAuth = async (providerInfo: Omit<Provider, "accounts">) => {
     if (!window.electronAPI) {
@@ -153,43 +148,6 @@ export function useProviderAuth() {
       return;
     }
 
-    if (providerInfo.id === "copilot") {
-      log.info("[Auth] Using Copilot device login");
-      try {
-        const result = await window.electronAPI.copilot?.getAuthUrl();
-        if (result?.status === "ok") {
-          setCopilotAuthInfo(result);
-        } else {
-          setCopilotAuthError(t.providers.copilotDeviceError);
-        }
-      } catch (err) {
-        log.error("[Auth] Copilot login error:", err);
-        setCopilotAuthError(String(err));
-      } finally {
-        setIsAuthenticating(false);
-      }
-      return;
-    }
-
-    if (providerInfo.id === "kiro") {
-      log.info("[Auth] Using Kiro import");
-      try {
-        const result = await window.electronAPI.kiro?.importToken();
-        if (result?.success) {
-          loadAccounts({ force: true });
-          setIsAuthenticating(false);
-        } else {
-          setAuthError(result?.error || "Failed to import Kiro token");
-          setIsAuthenticating(false);
-        }
-      } catch (err) {
-        log.error("[Auth] Kiro import error:", err);
-        setAuthError(String(err));
-        setIsAuthenticating(false);
-      }
-      return;
-    }
-
     try {
       log.info("[Auth] Using OAuth for:", providerInfo.id);
       const result = await window.electronAPI.api.startAuth(
@@ -217,10 +175,6 @@ export function useProviderAuth() {
     isAuthenticating,
     authError,
     setAuthError,
-    copilotAuthInfo,
-    setCopilotAuthInfo,
-    copilotAuthError,
-    setCopilotAuthError,
     triggerAuth,
   };
 }

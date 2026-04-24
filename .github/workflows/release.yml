@@ -71,7 +71,7 @@ jobs:
       - name: Install dependencies
         run: bun install
 
-      - name: Download CLIProxyAPIPlus binary
+      - name: Download CLIProxyAPI binary
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -82,19 +82,19 @@ jobs:
           if [ "${{ matrix.cli-platform }}" = "windows" ]; then
             EXT="zip"
             BINARY_NAME="cliproxy.exe"
-            SRC_NAME="cli-proxy-api-plus.exe"
+            SRC_NAME="cli-proxy-api.exe"
           else
             EXT="tar.gz"
             BINARY_NAME="cliproxy"
-            SRC_NAME="cli-proxy-api-plus"
+            SRC_NAME="cli-proxy-api"
           fi
 
           LATEST_TAG=$(curl -sIL -o /dev/null -w '%{url_effective}' \
-            https://github.com/router-for-me/CLIProxyAPIPlus/releases/latest \
+            https://github.com/router-for-me/CLIProxyAPI/releases/latest \
             | grep -o '[^/]*$')
           VERSION="${LATEST_TAG#v}"
 
-          DOWNLOAD_URL="https://github.com/router-for-me/CLIProxyAPIPlus/releases/download/${LATEST_TAG}/CLIProxyAPIPlus_${VERSION}_${{ matrix.cli-platform }}_${{ matrix.cli-arch }}.${EXT}"
+          DOWNLOAD_URL="https://github.com/router-for-me/CLIProxyAPI/releases/download/${LATEST_TAG}/CLIProxyAPI_${VERSION}_${{ matrix.cli-platform }}_${{ matrix.cli-arch }}.${EXT}"
 
           echo "Downloading: $DOWNLOAD_URL"
           curl -fSL -o "archive.${EXT}" "$DOWNLOAD_URL"

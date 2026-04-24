@@ -4,7 +4,6 @@ import OpenAI from "@lobehub/icons/es/OpenAI";
 import Gemini from "@lobehub/icons/es/Gemini";
 import Antigravity from "@lobehub/icons/es/Antigravity";
 import Google from "@lobehub/icons/es/Google";
-import GithubCopilot from "@lobehub/icons/es/GithubCopilot";
 import Qwen from "@lobehub/icons/es/Qwen";
 import DeepSeek from "@lobehub/icons/es/DeepSeek";
 import Meta from "@lobehub/icons/es/Meta";
@@ -26,7 +25,6 @@ import Spark from "@lobehub/icons/es/Spark";
 import Stepfun from "@lobehub/icons/es/Stepfun";
 import Ollama from "@lobehub/icons/es/Ollama";
 import ZenMux from "@lobehub/icons/es/ZenMux";
-import kiroPng from "../../assets/kiro.png";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type LobehubIcon = Record<string, any> & React.ComponentType<any>;
@@ -42,7 +40,6 @@ export {
   OpenAI,
   Gemini,
   Google,
-  GithubCopilot,
   Qwen,
   DeepSeek,
   Meta,
@@ -68,10 +65,6 @@ export {
 // Wrapped/custom icons for providers
 export const AntigravityIcon = ({ className }: { className?: string }) => (
   <Antigravity.Color className={className} />
-);
-
-export const KiroIcon = ({ className }: { className?: string }) => (
-  <img src={kiroPng} alt="Kiro" className={className} />
 );
 
 export const IFlowIcon = ({ className }: { className?: string }) => (
@@ -161,10 +154,6 @@ export function getProviderIcon(
     }
     case "antigravity":
       return <AntigravityIcon className={className} />;
-    case "copilot": {
-      const CopilotColor = colorVariant(GithubCopilot);
-      return <CopilotColor size={size} />;
-    }
     case "qwen": {
       const QwenColor = colorVariant(Qwen);
       return <QwenColor size={size} />;
@@ -264,8 +253,6 @@ export function getProviderIcon(
       return <ZenMuxColor size={size} />;
     }
 
-    case "kiro":
-      return <KiroIcon className={className} />;
     case "iflow":
       return <IFlowIcon className={className} />;
     case "custom":
@@ -348,10 +335,6 @@ export function inferProviderFromLabel(label: string): string {
   // Qwen models
   if (lowerLabel.includes("qwen") || lowerLabel.includes("tongyi")) {
     return "qwen";
-  }
-
-  if (lowerLabel.includes("copilot")) {
-    return "copilot";
   }
 
   if (lowerLabel.includes("deepseek")) {
@@ -444,10 +427,6 @@ export function inferProviderFromLabel(label: string): string {
 
   if (lowerLabel.includes("zenmux")) {
     return "zenmux";
-  }
-
-  if (lowerLabel.includes("kiro")) {
-    return "kiro";
   }
 
   // Default fallback

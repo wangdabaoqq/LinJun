@@ -19,18 +19,18 @@
 </p>
 
 <p align="center">
-  <strong>Cross-platform AI proxy management for Claude, Gemini, Codex, Copilot, Qwen, iFlow, Kiro, and more.</strong>
+  <strong>Cross-platform AI proxy management for Claude, Gemini, Codex, Qwen, iFlow, Antigravity, and more.</strong>
 </p>
 
 <p align="center">
-  LinJun is a native desktop application for managing <a href="https://github.com/router-for-me/CLIProxyAPIPlus">CLIProxyAPIPlus</a> - a local proxy server that powers your AI coding agents. It helps you manage multiple AI accounts, track quotas, and configure CLI tools in one place across <strong>macOS</strong>, <strong>Windows</strong>, and <strong>Linux</strong>.
+  LinJun is a native desktop application for managing <a href="https://github.com/router-for-me/CLIProxyAPI">CLIProxyAPI</a> - a local proxy server that powers your AI coding agents. It helps you manage multiple AI accounts, track quotas, and configure CLI tools in one place across <strong>macOS</strong>, <strong>Windows</strong>, and <strong>Linux</strong>.
 </p>
 
 ## ✨ Features
 
-- 🔌 **Expanded Provider Support**: Connect Claude, Gemini, Codex, Qwen, Antigravity, iFlow, GitHub Copilot, Kiro, Custom Provider, and AmpCode
+- 🔌 **Expanded Provider Support**: Connect Claude, Gemini, Codex, Qwen, Antigravity, iFlow, Custom Provider, and AmpCode
 - 📊 **Quota + Model Visibility**: Track account usage and open **View All Models** to browse the provider-scoped model catalog
-- 🧠 **Provider-Aware Model Filtering**: Quota model list is filtered by provider context (for example Codex/Copilot/Kiro-specific views)
+- 🧠 **Provider-Aware Model Filtering**: Quota model list is filtered by provider context (for example Codex/Claude/Gemini-specific views)
 - ⚡ **Large Log Performance**: Virtualized log table and incremental polling keep the Logs page responsive for large datasets
 - 🚀 **One-Click Agent Configuration**: Auto-detect and configure Claude Code, OpenCode, Gemini CLI, and more
 - 📈 **Live Dashboard**: Monitor request traffic, token usage, and success rates
@@ -51,8 +51,6 @@
 | Qwen Code       | OAuth          |
 | Antigravity     | OAuth (Google) |
 | iFlow           | OAuth          |
-| GitHub Copilot  | OAuth          |
-| Kiro            | OAuth          |
 | Custom Provider | API Key        |
 | AmpCode         | API Key        |
 
@@ -97,7 +95,7 @@ cd LinJun
 # Install dependencies
 bun install
 
-# Download CLIProxyAPIPlus binary
+# Download CLIProxyAPI binary
 bun run download:binary
 
 # Start development server
@@ -166,7 +164,7 @@ LinJun/
 │   ├── main/                    # Electron main process
 │   │   ├── index.ts            # App entry point
 │   │   ├── tray.ts             # System tray integration
-│   │   ├── proxy/              # CLIProxyAPIPlus management
+│   │   ├── proxy/              # CLIProxyAPI management
 │   │   │   ├── manager.ts      # Process lifecycle
 │   │   │   └── api.ts          # Management API client
 │   │   ├── ipc/                # IPC handlers
@@ -195,7 +193,7 @@ LinJun/
 
 ## 📁 Auth File Storage
 
-Authentication is managed through CLIProxyAPIPlus `auth-files`, not a fixed `~/.cli-proxy-api/` directory.
+Authentication is managed through CLIProxyAPI `auth-files`, not a fixed `~/.cli-proxy-api/` directory.
 
 LinJun reads accounts from the local management API. When auth files are stored locally, they use the configured `auth-dir` from `config.yaml`; if that is not set, the default location is the app's `cli-proxy/auth` directory under Electron `userData`.
 
@@ -203,7 +201,6 @@ Typical auth filenames include:
 
 - `codex-{email}-Plus.json`
 - `antigravity-{email}.json`
-- `kiro-{auth-method}-{id}.json`
 - etc.
 
 ## ❓ FAQ
@@ -230,7 +227,7 @@ MIT License. See [LICENSE](LICENSE) for details.
 
 ## 🙏 Acknowledgments
 
-- [CLIProxyAPIPlus](https://github.com/router-for-me/CLIProxyAPIPlus) - The amazing proxy server
+- [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI) - The amazing proxy server
 - [Quotio](https://github.com/nguyenphutrong/quotio) - Inspiration for this project
 - [Electron](https://www.electronjs.org/) - Cross-platform framework
 - [Vite](https://vitejs.dev/) - Fast build tool
