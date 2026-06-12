@@ -518,4 +518,27 @@ describe("requestLogService user input extraction", () => {
     // 5 minutes apart → two separate conversations
     expect(result.entries).toHaveLength(2);
   });
+
+  it("caps requested log count to avoid parsing too many files at startup", async () => {
+    for (let index = 0; index < 120; index += 1) {
+      const body = JSON.stringify({
+        messages: [{ role: "user", content: `request ${index}` }],
+      });
+      const timestamp = new Date(
+        Date.UTC(2026, 3, 1, 12, index, 0),
+      ).toISOString();
+      await fs.writeFile(
+        path.join(tempRoot, "logs", `v1-messages-cap-${index}.log`),
+        makeLog(body, timestamp, "200"),
+        "utf-8",
+      );
+    }
+
+    const { fetchRecentRequestLogs } =
+      await import("../logging/requestLogService");
+    const result = await fetchRecentRequestLogs(500);
+
+    expect(result.entries).toHaveLength(100);
+    expect(result.diagnostics.parsedFiles).toBe(100);
+  });
 });

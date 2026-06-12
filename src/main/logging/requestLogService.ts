@@ -63,6 +63,7 @@ export interface RequestLogFetchOptions {
 const SUCCESS_PREFIXES = ["v1-responses", "v1-messages", "v1-chat-completions"];
 const ERROR_PREFIX = "error-v1";
 const DIAGNOSTIC_FILE_LIMIT = 8;
+const MAX_RECENT_REQUEST_LOGS = 100;
 const REQUEST_LOG_DIRECTORY_OVERRIDE_KEY =
   "__LINJUN_REQUEST_LOG_DIRECTORY_OVERRIDE__" as const;
 // File name substrings that indicate non-conversation log files (token counting, etc.)
@@ -114,6 +115,7 @@ export async function fetchRecentRequestLogs(
   limit = 50,
   options?: RequestLogFetchOptions,
 ): Promise<RequestLogFetchResult> {
+  const safeLimit = normalizeLogFetchLimit(limit);
   const directories = buildRequestLogDirectories(
     options?.directoryOverride || getRequestLogDirectoryOverrideFromGlobal(),
   );
@@ -164,7 +166,9 @@ export async function fetchRecentRequestLogs(
   }
 
   try {
-    const files = candidates.sort((a, b) => b.mtime - a.mtime).slice(0, limit);
+    const files = candidates
+      .sort((a, b) => b.mtime - a.mtime)
+      .slice(0, safeLimit);
 
     const parsedEntries: RequestLogEntry[] = [];
 
@@ -191,6 +195,14 @@ export async function fetchRecentRequestLogs(
     log.error("[Logs] Failed to inspect request log directory:", error);
     return { entries: [], diagnostics };
   }
+}
+
+function normalizeLogFetchLimit(limit: number): number {
+  if (!Number.isFinite(limit)) {
+    return 50;
+  }
+
+  return Math.max(0, Math.min(Math.floor(limit), MAX_RECENT_REQUEST_LOGS));
 }
 
 function getRequestLogDirectoryOverrideFromGlobal():

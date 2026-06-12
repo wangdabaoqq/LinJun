@@ -3,29 +3,34 @@ import { ipcMain } from "electron";
 import { deleteAllLogs, fetchRecentRequestLogs } from "../logging";
 import log from "../utils/logger";
 
+const DEFAULT_LOG_FETCH_LIMIT = 30;
+
 export function setupLogsHandlers(): void {
-  ipcMain.handle("logs:request", async (_event, limit: number = 30) => {
-    try {
-      return await fetchRecentRequestLogs(limit);
-    } catch (error) {
-      log.error("[IPC] Failed to read request logs:", error);
-      return {
-        entries: [],
-        diagnostics: {
-          logDir: "",
-          scannedDirs: [],
-          compatibilityLogDirs: [],
-          resolution: "config_dir",
-          status: "read_error",
-          error: String(error),
-          totalFiles: 0,
-          matchedFiles: 0,
-          parsedFiles: 0,
-          ignoredFiles: [],
-        },
-      };
-    }
-  });
+  ipcMain.handle(
+    "logs:request",
+    async (_event, limit: number = DEFAULT_LOG_FETCH_LIMIT) => {
+      try {
+        return await fetchRecentRequestLogs(limit);
+      } catch (error) {
+        log.error("[IPC] Failed to read request logs:", error);
+        return {
+          entries: [],
+          diagnostics: {
+            logDir: "",
+            scannedDirs: [],
+            compatibilityLogDirs: [],
+            resolution: "config_dir",
+            status: "read_error",
+            error: String(error),
+            totalFiles: 0,
+            matchedFiles: 0,
+            parsedFiles: 0,
+            ignoredFiles: [],
+          },
+        };
+      }
+    },
+  );
 
   ipcMain.handle("logs:deleteAll", async () => {
     try {

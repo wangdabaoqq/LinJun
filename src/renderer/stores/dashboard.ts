@@ -19,6 +19,20 @@ export interface LogEntry {
   duration: number;
 }
 
+interface RequestLogFetchResult {
+  entries: DashboardLogResponseEntry[];
+}
+
+interface DashboardLogResponseEntry {
+  id: string;
+  timestamp: string;
+  provider?: string;
+  account?: string;
+  model?: string;
+  status: string;
+  duration?: number;
+}
+
 export interface Account {
   id: string;
   provider: string;
@@ -229,32 +243,26 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
     }
   },
 
-  fetchLogs: async (limit = 500) => {
+  fetchLogs: async (limit = 30) => {
     try {
-      const entries = await window.electronAPI?.logs.fetch(limit);
+      const result = (await window.electronAPI?.logs.fetch(limit)) as
+        | DashboardLogResponseEntry[]
+        | RequestLogFetchResult
+        | undefined;
+      const entries = Array.isArray(result) ? result : result?.entries;
       if (entries && Array.isArray(entries)) {
-        const logs: LogEntry[] = entries.map(
-          (e: {
-            id: string;
-            timestamp: string;
-            provider?: string;
-            account?: string;
-            model?: string;
-            status: string;
-            duration?: number;
-          }) => ({
-            id: e.id,
-            timestamp: e.timestamp,
-            provider: resolveDashboardProvider(e.provider, e.account),
-            account: e.account,
-            model: e.model || "unknown",
-            tokens: 0,
-            status: (e.status === "success"
-              ? "success"
-              : "error") as LogEntry["status"],
-            duration: e.duration || 0,
-          }),
-        );
+        const logs: LogEntry[] = entries.map((e) => ({
+          id: e.id,
+          timestamp: e.timestamp,
+          provider: resolveDashboardProvider(e.provider, e.account),
+          account: e.account,
+          model: e.model || "unknown",
+          tokens: 0,
+          status: (e.status === "success"
+            ? "success"
+            : "error") as LogEntry["status"],
+          duration: e.duration || 0,
+        }));
         set({ logs });
       }
     } catch (error) {
