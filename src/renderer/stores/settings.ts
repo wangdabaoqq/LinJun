@@ -10,6 +10,7 @@ interface MainSettings {
   port?: number;
   host?: string;
   proxyUrl?: string;
+  slimMode?: boolean;
   allowRemote?: boolean;
   endpoint?: string;
   managementSecret?: string;
@@ -30,6 +31,7 @@ interface SettingsState {
   port: number;
   host: string;
   proxyUrl: string;
+  slimMode: boolean;
   allowRemote: boolean;
   appliedAllowRemote: boolean;
   endpoint: string;
@@ -52,6 +54,7 @@ interface SettingsState {
   setPort: (port: number) => void;
   setHost: (host: string) => void;
   setProxyUrl: (proxyUrl: string) => void;
+  setSlimMode: (enabled: boolean) => void;
   setAllowRemote: (enabled: boolean) => void;
   setAppliedAllowRemote: (enabled: boolean) => void;
   setEndpoint: (endpoint: string) => void;
@@ -118,6 +121,7 @@ export const useSettingsStore = create<SettingsState>()(
       port: DEFAULT_PORT,
       host: "",
       proxyUrl: "",
+      slimMode: false,
       allowRemote: false,
       appliedAllowRemote: false,
       endpoint: "",
@@ -165,6 +169,12 @@ export const useSettingsStore = create<SettingsState>()(
           window.electronAPI.settings.syncToYaml({
             proxyUrl: normalizedProxyUrl,
           });
+        }
+      },
+      setSlimMode: (slimMode) => {
+        set({ slimMode });
+        if (typeof window !== "undefined" && window.electronAPI) {
+          window.electronAPI.settings.set("slimMode", slimMode);
         }
       },
       setAllowRemote: (allowRemote) => {
@@ -270,6 +280,9 @@ export const useSettingsStore = create<SettingsState>()(
           ...(settings.proxyUrl !== undefined && {
             proxyUrl: settings.proxyUrl,
           }),
+          ...(settings.slimMode !== undefined && {
+            slimMode: settings.slimMode,
+          }),
           ...(settings.allowRemote !== undefined && {
             allowRemote: settings.allowRemote,
             appliedAllowRemote: settings.allowRemote,
@@ -311,6 +324,7 @@ export const useSettingsStore = create<SettingsState>()(
       partialize: (state) => ({
         language: state.language,
         theme: state.theme,
+        slimMode: state.slimMode,
         port: state.port,
         allowRemote: state.allowRemote,
         endpoint: state.endpoint,

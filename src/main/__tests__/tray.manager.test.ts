@@ -1,7 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
-// RED baseline: timer/threshold tests expected to FAIL until implementation lands.
-
 const mockTrayOn = vi.fn();
 const mockTraySetToolTip = vi.fn();
 const mockTrayDestroy = vi.fn();
@@ -182,13 +180,21 @@ describe("TrayManager", () => {
       expect(channels).toContain("tray:resize");
     });
 
-    it("should forward height to TrayWindow.setHeight when tray:resize fires", async () => {
+    it("should forward height to TrayWindow.setHeight after tray window is created", async () => {
       const { TrayManager } = await import("../tray/TrayManager");
       const tm = TrayManager.getInstance();
       tm.destroy();
       mockIpcMainOn.mockClear();
+      mockTrayOn.mockClear();
       mockTrayWindowSetHeight.mockClear();
       tm.create(createMockMainWindow());
+
+      const clickCall = mockTrayOn.mock.calls.find(
+        (call: unknown[]) => call[0] === "click",
+      );
+      expect(clickCall).toBeDefined();
+      const clickHandler = clickCall![1] as () => void;
+      clickHandler();
 
       const resizeCall = mockIpcMainOn.mock.calls.find(
         (call: unknown[]) => call[0] === "tray:resize",
@@ -245,13 +251,21 @@ describe("TrayManager", () => {
   });
 
   describe("destroy()", () => {
-    it("should destroy trayWindow and tray on destroy()", async () => {
+    it("should destroy trayWindow and tray on destroy() after tray window is created", async () => {
       const { TrayManager } = await import("../tray/TrayManager");
       const tm = TrayManager.getInstance();
       tm.destroy();
+      mockTrayOn.mockClear();
       mockTrayWindowDestroy.mockClear();
       mockTrayDestroy.mockClear();
       tm.create(createMockMainWindow());
+
+      const clickCall = mockTrayOn.mock.calls.find(
+        (call: unknown[]) => call[0] === "click",
+      );
+      expect(clickCall).toBeDefined();
+      const clickHandler = clickCall![1] as () => void;
+      clickHandler();
 
       tm.destroy();
 
@@ -315,9 +329,8 @@ describe("TrayManager", () => {
     });
   });
 
-  // 15s TIMER LIFECYCLE — RED BASELINE (not yet implemented)
-  describe("15s timer lifecycle (RED baseline)", () => {
-    it("should start a 15-second polling interval on create()", async () => {
+  describe("empty polling timer lifecycle", () => {
+    it("should not start a 15-second polling interval on create()", async () => {
       const intervalSpy = vi.spyOn(globalThis, "setInterval");
 
       const { TrayManager } = await import("../tray/TrayManager");
@@ -329,12 +342,12 @@ describe("TrayManager", () => {
       const interval15sCalls = intervalSpy.mock.calls.filter(
         (call) => call[1] === 15000,
       );
-      expect(interval15sCalls.length).toBe(1);
+      expect(interval15sCalls.length).toBe(0);
 
       intervalSpy.mockRestore();
     });
 
-    it("should only have a single active interval at any time", async () => {
+    it("should not start duplicate 15-second polling intervals", async () => {
       const intervalSpy = vi.spyOn(globalThis, "setInterval");
 
       const { TrayManager } = await import("../tray/TrayManager");
@@ -349,12 +362,12 @@ describe("TrayManager", () => {
       const interval15sCalls = intervalSpy.mock.calls.filter(
         (call) => call[1] === 15000,
       );
-      expect(interval15sCalls.length).toBeLessThanOrEqual(1);
+      expect(interval15sCalls.length).toBe(0);
 
       intervalSpy.mockRestore();
     });
 
-    it("should clear the interval on destroy()", async () => {
+    it("should not clear a removed polling interval on destroy()", async () => {
       const clearIntervalSpy = vi.spyOn(globalThis, "clearInterval");
 
       const { TrayManager } = await import("../tray/TrayManager");
@@ -364,7 +377,7 @@ describe("TrayManager", () => {
       tm.create(createMockMainWindow());
       tm.destroy();
 
-      expect(clearIntervalSpy).toHaveBeenCalled();
+      expect(clearIntervalSpy).not.toHaveBeenCalled();
 
       clearIntervalSpy.mockRestore();
     });

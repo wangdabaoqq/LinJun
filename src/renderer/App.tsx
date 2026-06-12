@@ -174,6 +174,7 @@ export default function App() {
   const allowRemote = useSettingsStore((s) => s.allowRemote);
   const appliedAllowRemote = useSettingsStore((s) => s.appliedAllowRemote);
   const proxyRunning = useSettingsStore((s) => s.proxyRunning);
+  const slimMode = useSettingsStore((s) => s.slimMode);
 
   const isLocalOrWildcardHost =
     host.length === 0 ||
@@ -246,7 +247,9 @@ export default function App() {
   }
 
   return (
-    <div className="flex flex-col h-screen relative">
+    <div
+      className={`flex flex-col h-screen relative ${slimMode ? "slim-mode" : ""}`}
+    >
       <ToastContainer />
       <AnimatePresence>
         {showIntro && <IntroPage onComplete={handleIntroComplete} />}
@@ -306,10 +309,14 @@ export default function App() {
             <AnimatePresence mode="wait">
               <motion.div
                 key={currentPage}
-                initial={{ opacity: 0, y: 18, scale: 0.99 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -12, scale: 0.99 }}
-                transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
+                initial={slimMode ? false : { opacity: 0, y: 18, scale: 0.99 }}
+                animate={slimMode ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
+                exit={slimMode ? { opacity: 1 } : { opacity: 0, y: -12, scale: 0.99 }}
+                transition={
+                  slimMode
+                    ? { duration: 0 }
+                    : { duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }
+                }
                 className="flex-1 min-h-0 flex flex-col"
               >
                 {renderPage()}

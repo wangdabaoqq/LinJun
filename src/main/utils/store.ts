@@ -60,6 +60,7 @@ interface StoreSchema {
   port: number;
   host: string;
   proxyUrl: string;
+  slimMode: boolean;
   autoStart: boolean;
   autoLaunch: boolean;
   routingStrategy: "round-robin" | "fill-first";
@@ -82,6 +83,7 @@ export const store = new Store<StoreSchema>({
     port: DEFAULT_PORT,
     host: "",
     proxyUrl: "",
+    slimMode: false,
     autoStart: true,
     autoLaunch: false,
     routingStrategy: "round-robin",

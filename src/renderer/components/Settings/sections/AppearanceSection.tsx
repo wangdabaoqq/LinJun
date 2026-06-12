@@ -1,4 +1,4 @@
-import { Palette, Moon, Sun, Languages } from "lucide-react";
+import { Gauge, Languages, Moon, Palette, Sun } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -16,10 +16,12 @@ import { SettingCard } from "../shared/SettingCard";
 import { SectionHeader } from "../shared/SectionHeader";
 import { SettingRow } from "../shared/SettingRow";
 import { ThemeCard } from "../shared/ThemeCard";
+import { CustomToggle } from "../shared/CustomToggle";
 
 export function AppearanceSection() {
   const t = useTranslations();
-  const { theme, language, setTheme, setLanguage } = useSettingsStore();
+  const { theme, language, slimMode, setTheme, setLanguage, setSlimMode } =
+    useSettingsStore();
 
   const themes: {
     id: ThemeType;
@@ -105,6 +107,15 @@ export function AppearanceSection() {
             </SelectContent>
           </Select>
         </SettingRow>
+
+        {/* Slim Mode */}
+        <CustomToggle
+          value={slimMode}
+          onChange={setSlimMode}
+          label={t.settings.slimMode}
+          desc={t.settings.slimModeDesc}
+          icon={Gauge}
+        />
       </div>
     </SettingCard>
   );

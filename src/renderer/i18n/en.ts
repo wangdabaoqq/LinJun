@@ -720,6 +720,9 @@ export const en = {
     appearance: "Appearance",
     appearanceDesc: "Customize the look and feel of the application",
     theme: "Theme",
+    slimMode: "Slim Mode",
+    slimModeDesc:
+      "Reduce animations, blur, shadows, and visual effects to lower resource usage.",
     themeDark: "Cyberpunk Dark",
     themeLight: "Light (Coming Soon)",
     language: "Language",

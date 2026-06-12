@@ -1057,3 +1057,72 @@ body {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+.slim-mode .bokeh-bg {
+  display: none;
+}
+
+.slim-mode *,
+.slim-mode *::before,
+.slim-mode *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  scroll-behavior: auto !important;
+  transition-duration: 0.001ms !important;
+}
+
+.slim-mode .glass-card,
+.slim-mode .glass-sidebar,
+.slim-mode .glass-topbar,
+.slim-mode .glass-btn,
+.slim-mode .glass-input,
+.slim-mode .metric-badge,
+.slim-mode .bg-overlay,
+.slim-mode [class*="backdrop-blur"] {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.slim-mode .glass-card,
+.slim-mode .glass-card-hover:hover,
+.slim-mode .glass-sidebar,
+.slim-mode .glass-btn,
+.slim-mode .glass-btn:hover,
+.slim-mode .metric-badge,
+.slim-mode .theme-card-selected,
+.slim-mode [class*="shadow-"] {
+  box-shadow: none !important;
+}
+
+.slim-mode .glow-teal,
+.slim-mode .glow-primary,
+.slim-mode .glow-magenta,
+.slim-mode .glow-secondary,
+.slim-mode .glow-indigo {
+  text-shadow: none !important;
+}
+
+.slim-mode .status-dot-online,
+.slim-mode .animate-ping-slow,
+.slim-mode .animate-spin,
+.slim-mode .animate-pulse {
+  animation: none !important;
+}
+
+.slim-mode .glass-card-hover:hover,
+.slim-mode .glass-btn:hover,
+.slim-mode .theme-card:hover,
+.slim-mode .nav-item:hover {
+  transform: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.001ms !important;
+  }
+}

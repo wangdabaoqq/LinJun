@@ -22,7 +22,6 @@ export class TrayManager {
   private trayWindow: TrayWindow | null = null;
   private mainWindow: BrowserWindow | null = null;
   private isRunning: boolean = false;
-  private quotaInterval: NodeJS.Timeout | null = null;
   private warningState: boolean = false;
   private readonly handleProxyStatusChange = (running: boolean): void => {
     this.isRunning = running;
@@ -42,9 +41,6 @@ export class TrayManager {
     if (this.tray) return;
 
     this.mainWindow = mainWindow;
-    if (!isLinux) {
-      this.trayWindow = new TrayWindow();
-    }
     this.isRunning = proxyManager.isRunning();
 
     const iconPath = app.isPackaged
@@ -63,20 +59,6 @@ export class TrayManager {
     this.setupIpcHandlers();
 
     proxyManager.on("statusChange", this.handleProxyStatusChange);
-
-    this.startQuotaPolling();
-  }
-
-  private startQuotaPolling(): void {
-    if (this.quotaInterval) return;
-    this.quotaInterval = setInterval(() => {}, 15000);
-  }
-
-  private stopQuotaPolling(): void {
-    if (this.quotaInterval) {
-      clearInterval(this.quotaInterval);
-      this.quotaInterval = null;
-    }
   }
 
   public updateQuotaUsage(pct: number): void {
@@ -137,6 +119,9 @@ export class TrayManager {
 
   private toggleWindow(): void {
     const bounds = this.tray?.getBounds();
+    if (!this.trayWindow && !isLinux) {
+      this.trayWindow = new TrayWindow();
+    }
     if (bounds && this.trayWindow) {
       this.trayWindow.toggle(bounds);
     }
@@ -204,7 +189,6 @@ export class TrayManager {
 
   public destroy(): void {
     proxyManager.off("statusChange", this.handleProxyStatusChange);
-    this.stopQuotaPolling();
     this.trayWindow?.destroy();
     this.tray?.destroy();
     this.tray = null;

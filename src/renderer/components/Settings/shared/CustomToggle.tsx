@@ -1,5 +1,7 @@
 import { motion } from "motion/react";
 
+import { useSettingsStore } from "../../../stores/settings";
+
 interface CustomToggleProps {
   value: boolean;
   onChange: (v: boolean) => void;
@@ -15,10 +17,12 @@ export function CustomToggle({
   desc,
   icon: Icon,
 }: CustomToggleProps) {
+  const slimMode = useSettingsStore((s) => s.slimMode);
+
   return (
     <motion.div
-      whileHover={{ scale: 1.005 }}
-      whileTap={{ scale: 0.995 }}
+      whileHover={slimMode ? undefined : { scale: 1.005 }}
+      whileTap={slimMode ? undefined : { scale: 0.995 }}
       className={`flex items-center justify-between p-4 rounded-2xl transition-all duration-300 cursor-pointer border border-[var(--glass-border)] ${
         value
           ? "bg-[var(--accent-primary)]/[0.06]"
@@ -62,7 +66,11 @@ export function CustomToggle({
       >
         <motion.div
           animate={{ x: value ? 20 : 0 }}
-          transition={{ type: "spring", stiffness: 500, damping: 30 }}
+          transition={
+            slimMode
+              ? { duration: 0 }
+              : { type: "spring", stiffness: 500, damping: 30 }
+          }
           className="w-5 h-5 rounded-full bg-white shadow-md"
         />
       </div>

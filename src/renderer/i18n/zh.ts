@@ -688,6 +688,8 @@ export const zh: Translations = {
     appearance: "外观",
     appearanceDesc: "自定义应用的外观和感觉",
     theme: "主题",
+    slimMode: "低资源模式",
+    slimModeDesc: "减少动画、模糊、阴影和视觉效果，降低程序资源占用。",
     themeDark: "赛博朋克暗色",
     themeLight: "浅色（即将推出）",
     language: "语言",
