@@ -83,6 +83,7 @@ const electronAPI = {
     syncToYaml: (updates: {
       port?: number;
       host?: string;
+      proxyUrl?: string;
       apiKey?: string;
       allowRemote?: boolean;
       managementSecret?: string;

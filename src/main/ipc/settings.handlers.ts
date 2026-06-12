@@ -33,6 +33,7 @@ export function setupSettingsHandlers(): void {
       ...storeData,
       port: config?.port ?? storeData.port,
       host: config?.host ?? storeData.host ?? "",
+      proxyUrl: config?.["proxy-url"] ?? storeData.proxyUrl ?? "",
       allowRemote: config?.["remote-management"]?.["allow-remote"] ?? false,
       routingStrategy: config?.routing?.strategy ?? storeData.routingStrategy,
       requestRetry: config?.["request-retry"] ?? storeData.requestRetry ?? 3,
@@ -51,6 +52,7 @@ export function setupSettingsHandlers(): void {
       updates: {
         port?: number;
         host?: string;
+        proxyUrl?: string;
         apiKey?: string;
         allowRemote?: boolean;
         routingStrategy?: "round-robin" | "fill-first";
@@ -73,6 +75,12 @@ export function setupSettingsHandlers(): void {
         if (updates.host !== undefined) {
           yamlUpdates.host = updates.host;
           store.set("host", updates.host);
+        }
+
+        if (updates.proxyUrl !== undefined) {
+          const proxyUrl = updates.proxyUrl.trim();
+          yamlUpdates["proxy-url"] = proxyUrl;
+          store.set("proxyUrl", proxyUrl);
         }
 
         if (updates.apiKey !== undefined) {

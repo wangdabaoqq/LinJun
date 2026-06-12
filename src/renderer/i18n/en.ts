@@ -701,6 +701,14 @@ export const en = {
     autoStartDesc: "Automatically start proxy service when app launches",
     autoLaunch: "Launch at system startup",
     autoLaunchDesc: "Automatically launch application when system starts",
+    networkConfig: "Network Configuration",
+    networkConfigDesc: "Configure outbound proxy and retry behavior",
+    proxyUrl: "Proxy Address",
+    proxyUrlPlaceholder: "socks5://127.0.0.1:7890",
+    proxyUrlDesc:
+      "Global outbound proxy for CLIProxyAPI upstream requests. Supports http://, https://, and socks5://. Leave empty to disable.",
+    proxyUrlError:
+      "Enter a valid proxy URL starting with http://, https://, or socks5://",
     requestRetry: "Request Retry Count",
     retryConfig: "Retry Config",
     retryConfigDesc: "Configure retry and timeout behavior",

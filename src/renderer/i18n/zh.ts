@@ -670,6 +670,13 @@ export const zh: Translations = {
     autoStartDesc: "应用开启后自动启动代理服务进程",
     autoLaunch: "开机自启动",
     autoLaunchDesc: "开启此项将在计算机启动时自动运行应用",
+    networkConfig: "网络配置",
+    networkConfigDesc: "配置出站代理与请求重试行为",
+    proxyUrl: "代理地址",
+    proxyUrlPlaceholder: "socks5://127.0.0.1:7890",
+    proxyUrlDesc:
+      "霖君访问上游服务时使用的全局出站代理，支持 http://、https://、socks5://，留空表示不启用。",
+    proxyUrlError: "请输入以 http://、https:// 或 socks5:// 开头的代理地址",
     requestRetry: "请求重试次数",
     maxRetryInterval: "最长等待时间(秒)",
     core: "核心设置",

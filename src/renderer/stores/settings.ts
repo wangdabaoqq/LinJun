@@ -9,6 +9,7 @@ export type ThemeType = "dark" | "light";
 interface MainSettings {
   port?: number;
   host?: string;
+  proxyUrl?: string;
   allowRemote?: boolean;
   endpoint?: string;
   managementSecret?: string;
@@ -28,6 +29,7 @@ interface SettingsState {
   theme: ThemeType;
   port: number;
   host: string;
+  proxyUrl: string;
   allowRemote: boolean;
   appliedAllowRemote: boolean;
   endpoint: string;
@@ -49,6 +51,7 @@ interface SettingsState {
   setTheme: (theme: ThemeType) => void;
   setPort: (port: number) => void;
   setHost: (host: string) => void;
+  setProxyUrl: (proxyUrl: string) => void;
   setAllowRemote: (enabled: boolean) => void;
   setAppliedAllowRemote: (enabled: boolean) => void;
   setEndpoint: (endpoint: string) => void;
@@ -114,6 +117,7 @@ export const useSettingsStore = create<SettingsState>()(
       theme: DEFAULT_THEME,
       port: DEFAULT_PORT,
       host: "",
+      proxyUrl: "",
       allowRemote: false,
       appliedAllowRemote: false,
       endpoint: "",
@@ -152,6 +156,15 @@ export const useSettingsStore = create<SettingsState>()(
         set({ host });
         if (typeof window !== "undefined" && window.electronAPI) {
           window.electronAPI.settings.syncToYaml({ host });
+        }
+      },
+      setProxyUrl: (proxyUrl) => {
+        const normalizedProxyUrl = proxyUrl.trim();
+        set({ proxyUrl: normalizedProxyUrl });
+        if (typeof window !== "undefined" && window.electronAPI) {
+          window.electronAPI.settings.syncToYaml({
+            proxyUrl: normalizedProxyUrl,
+          });
         }
       },
       setAllowRemote: (allowRemote) => {
@@ -254,6 +267,9 @@ export const useSettingsStore = create<SettingsState>()(
         set({
           ...(settings.port !== undefined && { port: settings.port }),
           ...(settings.host !== undefined && { host: settings.host }),
+          ...(settings.proxyUrl !== undefined && {
+            proxyUrl: settings.proxyUrl,
+          }),
           ...(settings.allowRemote !== undefined && {
             allowRemote: settings.allowRemote,
             appliedAllowRemote: settings.allowRemote,

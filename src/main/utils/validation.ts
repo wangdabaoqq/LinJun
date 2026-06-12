@@ -71,6 +71,7 @@ export function isPathSafe(basePath: string, userPath: string): boolean {
  */
 const ALLOWED_SETTINGS = [
   "port",
+  "proxyUrl",
   "autoStart",
   "autoLaunch",
   "routingStrategy",
