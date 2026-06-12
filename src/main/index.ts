@@ -9,12 +9,14 @@ import log from "./utils/logger";
 import { TrayManager } from "./tray/TrayManager";
 import { setupIpcHandlers } from "./ipc/handlers";
 import { proxyManager } from "./proxy/manager";
+import { managementAPI } from "./proxy/api";
 import { store } from "./utils/store";
 
 let mainWindow: BrowserWindow | null = null;
 let isQuitting = false;
 let statusChangeHandler: ((running: boolean) => void) | null = null;
 let proxyErrorHandler: ((message: string) => void) | null = null;
+let usageCollectorHandler: ((running: boolean) => void) | null = null;
 let pendingProxyError: string | null = null;
 const isHiddenStart = process.argv.includes("--hidden");
 const isLinux = process.platform === "linux";
@@ -39,6 +41,15 @@ if (process.env.NODE_ENV !== "development") {
 
 async function initializeApp(): Promise<void> {
   proxyManager.syncConfigToStore(store);
+
+  usageCollectorHandler = (running: boolean) => {
+    if (running) {
+      managementAPI.startUsageCollector();
+    } else {
+      managementAPI.stopUsageCollector();
+    }
+  };
+  proxyManager.on("statusChange", usageCollectorHandler);
 
   const autoStart = store.get("autoStart");
   if (autoStart) {
@@ -180,6 +191,11 @@ app.on("window-all-closed", () => {
 
 app.on("before-quit", async () => {
   isQuitting = true;
+  managementAPI.stopUsageCollector();
+  if (usageCollectorHandler) {
+    proxyManager.off("statusChange", usageCollectorHandler);
+    usageCollectorHandler = null;
+  }
   TrayManager.getInstance().destroy();
   await proxyManager.stop();
 });

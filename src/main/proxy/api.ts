@@ -3,6 +3,7 @@ import axios, { AxiosInstance } from "axios";
 import log from "../utils/logger";
 import { proxyManager } from "./manager";
 import { store } from "../utils/store";
+import { UsageCollector, type UsageResponse } from "../usage/usageCollector";
 
 function isExpectedManagementAvailabilityError(error: unknown): boolean {
   if (!axios.isAxiosError(error)) {
@@ -25,10 +26,16 @@ function isExpectedManagementAvailabilityError(error: unknown): boolean {
 
 class ManagementAPI {
   private client: AxiosInstance;
+  private usageCollector: UsageCollector;
 
   constructor() {
     this.client = axios.create({
       timeout: 10000,
+    });
+    this.usageCollector = new UsageCollector({
+      getBaseURL: () => this.baseURL,
+      getAuthHeaders: () => this.getAuthHeaders(),
+      client: this.client,
     });
   }
 
@@ -971,7 +978,19 @@ class ManagementAPI {
     }
   }
 
+  startUsageCollector(): void {
+    this.usageCollector.start();
+  }
+
+  stopUsageCollector(): void {
+    this.usageCollector.stop();
+  }
+
   async getUsage(): Promise<UsageResponse> {
+    if (this.usageCollector.hasData()) {
+      return this.usageCollector.getUsage();
+    }
+
     try {
       const res = await this.client.get(`${this.baseURL}/v0/management/usage`, {
         headers: this.getAuthHeaders(),
@@ -979,20 +998,7 @@ class ManagementAPI {
       return res.data;
     } catch (error) {
       log.error("[ManagementAPI] Failed to get usage:", error);
-      return {
-        usage: {
-          total_requests: 0,
-          success_count: 0,
-          failure_count: 0,
-          total_tokens: 0,
-          requests_by_day: {},
-          requests_by_hour: {},
-          tokens_by_day: {},
-          tokens_by_hour: {},
-          apis: {},
-        },
-        failed_requests: 0,
-      };
+      return this.usageCollector.getUsage();
     }
   }
 }
@@ -1061,47 +1067,4 @@ export interface AuthFileMetadataUpdates {
   proxyUrl?: string;
 }
 
-export interface UsageTokenDetail {
-  input_tokens: number;
-  output_tokens: number;
-  reasoning_tokens: number;
-  cached_tokens: number;
-  total_tokens: number;
-}
-
-export interface UsageRequestDetail {
-  timestamp: string;
-  source: string;
-  auth_index: string;
-  tokens: UsageTokenDetail;
-  failed: boolean;
-}
-
-export interface UsageModelDetail {
-  total_requests: number;
-  total_tokens: number;
-  details: UsageRequestDetail[];
-}
-
-export interface UsageApiDetail {
-  total_requests: number;
-  total_tokens: number;
-  models: Record<string, UsageModelDetail>;
-}
-
-export interface UsageData {
-  total_requests: number;
-  success_count: number;
-  failure_count: number;
-  total_tokens: number;
-  requests_by_day: Record<string, number>;
-  requests_by_hour: Record<string, number>;
-  tokens_by_day: Record<string, number>;
-  tokens_by_hour: Record<string, number>;
-  apis: Record<string, UsageApiDetail>;
-}
-
-export interface UsageResponse {
-  usage: UsageData;
-  failed_requests: number;
-}
+export type { UsageResponse } from "../usage/usageCollector";
