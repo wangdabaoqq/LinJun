@@ -91,7 +91,14 @@ async function fetchLatestTag(repo: string): Promise<string> {
 
 function getAssetPlatformTokens(target: PlatformTarget): string[] {
   if (target.dir === "darwin-arm64") {
-    return ["darwin_arm64", "darwin-aarch64", "macos_arm64", "macos-aarch64"];
+    return [
+      "darwin_aarch64",
+      "darwin_arm64",
+      "darwin-aarch64",
+      "macos_aarch64",
+      "macos_arm64",
+      "macos-aarch64",
+    ];
   }
   if (target.dir === "darwin-x64") {
     return ["darwin_amd64", "darwin_x64", "macos_amd64", "macos_x64"];

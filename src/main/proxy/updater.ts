@@ -271,7 +271,14 @@ async function fetchLatestProxyRelease(): Promise<{
 
 function getAssetPlatformTokens(target: PlatformTarget): string[] {
   if (target.dir === "darwin-arm64") {
-    return ["darwin_arm64", "darwin-aarch64", "macos_arm64", "macos-aarch64"];
+    return [
+      "darwin_aarch64",
+      "darwin_arm64",
+      "darwin-aarch64",
+      "macos_aarch64",
+      "macos_arm64",
+      "macos-aarch64",
+    ];
   }
 
   if (target.dir === "darwin-x64") {
@@ -280,6 +287,10 @@ function getAssetPlatformTokens(target: PlatformTarget): string[] {
 
   if (target.dir === "linux-x64") {
     return ["linux_amd64", "linux_x64"];
+  }
+
+  if (target.dir === "linux-arm64") {
+    return ["linux_aarch64", "linux_arm64"];
   }
 
   if (target.dir === "win32-x64") {
