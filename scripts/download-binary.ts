@@ -107,7 +107,7 @@ function getAssetPlatformTokens(target: PlatformTarget): string[] {
     return ["linux_amd64", "linux_x64"];
   }
   if (target.dir === "linux-arm64") {
-    return ["linux_arm64", "linux_aarch64"];
+    return ["linux_aarch64", "linux_arm64"];
   }
   if (target.dir === "win32-x64") {
     return ["windows_amd64", "windows_x64", "win32_x64", "win_amd64"];

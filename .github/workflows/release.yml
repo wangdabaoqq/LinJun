@@ -22,7 +22,7 @@ jobs:
           - os: macos-latest
             platform: darwin
             arch: arm64
-            cli-arch: arm64
+            cli-arch: aarch64
             cli-platform: darwin
             electron-args: --mac --arm64
           - os: macos-latest
@@ -40,7 +40,7 @@ jobs:
           - os: ubuntu-latest
             platform: linux
             arch: arm64
-            cli-arch: arm64
+            cli-arch: aarch64
             cli-platform: linux
             electron-args: --linux --arm64
           - os: ubuntu-latest
