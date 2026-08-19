@@ -234,4 +234,4 @@ MIT 许可证。详见 [LICENSE](LICENSE)。
 
 ---
 
-[![Star History Chart](https://api.star-history.com/svg?repos=wangdabaoqq/LinJun&type=Date)](https://star-history.com/#wangdabaoqq/LinJun&Date)
+[![Star History Chart](https://star-history.dera.page/svg?repos=wangdabaoqq/LinJun&type=Date)](https://star-history.dera.page/#wangdabaoqq/LinJun&Date)
